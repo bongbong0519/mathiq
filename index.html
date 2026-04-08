@@ -822,7 +822,7 @@
 <body>
 
 <!-- ════ AUTH OVERLAY ════ -->
-<div class="auth-overlay" id="authOverlay">
+<div class="auth-overlay" id="authOverlay" style="display:none">
   <div class="auth-box">
     <div class="auth-logo">Math<span>IQ</span></div>
     <div class="auth-sub">수학 학습 분석 플랫폼에 오신 것을 환영합니다</div>
@@ -877,7 +877,7 @@
   </div>
 </div>
 
-<div class="app-wrapper" id="appWrapper" style="display:none">
+<div class="app-wrapper" id="appWrapper" style="display:flex">
 
   <!-- ════════════════════ SIDEBAR ════════════════════ -->
   <aside class="sidebar">
@@ -2011,6 +2011,7 @@ async function checkSession() {
     await loadProfile();
   } else {
     document.getElementById('authOverlay').style.display = 'flex';
+    document.getElementById('appWrapper').style.display = 'none';
   }
 }
 
@@ -2046,6 +2047,7 @@ async function loadProfile() {
 function showApp() {
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('appWrapper').style.display = 'flex';
+  showView('dashboard');
   setTimeout(() => {
     if (sbClient) {
       loadDashboard();
