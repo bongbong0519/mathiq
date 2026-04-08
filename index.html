@@ -2179,6 +2179,13 @@ function showView(viewId) {
       item.classList.add('active');
     }
   });
+
+  // 실제 데이터 로드
+  if (sbClient) {
+    if (viewId === 'dashboard') loadDashboard();
+    if (viewId === 'students') loadStudents();
+    if (viewId === 'exams') loadExams();
+  }
 }
 
 // ── TABS ──
@@ -2907,15 +2914,7 @@ async function uploadExamFile(file) {
   return path;
 }
 
-// ── showView 후크: 뷰 전환 시 데이터 로드 ──
-const _origShowView = showView;
-showView = function(viewId) {
-  _origShowView(viewId);
-  if (!sbClient) return;
-  if (viewId === 'dashboard') loadDashboard();
-  if (viewId === 'students') loadStudents();
-  if (viewId === 'exams') loadExams();
-};
+
 
 // ── 앱 진입 시 데이터 로드는 showApp 내부에서 처리 ──
 
