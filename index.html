@@ -1093,6 +1093,7 @@
             <div class="empty-state-text">등록된 시험이 없습니다</div>
           </div>
         </div>
+      </div>
     </div>
 
     <!-- ══ VIEW: REPORTS ══ -->
@@ -2019,7 +2020,7 @@ async function checkSession() {
 }
 
 async function loadProfile() {
-  if (!supabase || !currentUser) return;
+  if (!sbClient || !currentUser) return;
   const { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
   if (!data) {
     // 프로필 없으면 기본 선생님으로 자동 생성
