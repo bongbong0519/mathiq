@@ -2286,7 +2286,7 @@
 // ═══════════════════════════════════════
 //  SUPABASE 초기화 & 인증
 // ═══════════════════════════════════════
-let supabase = null;
+let sbClient = null;
 let currentUser = null;
 let currentProfile = null;
 let selectedRole = 'teacher';
@@ -2294,7 +2294,7 @@ let selectedRole = 'teacher';
 function initSupabase() {
   try {
     if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_KEY !== 'undefined') {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       checkSession();
     } else {
       // config.js 없으면 바로 앱 진입 (개발 모드)
@@ -2306,7 +2306,7 @@ function initSupabase() {
 }
 
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     currentUser = session.user;
     await loadProfile();
@@ -2318,7 +2318,7 @@ async function checkSession() {
 
 async function loadProfile() {
   if (!supabase || !currentUser) return;
-  const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  const { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
   if (data) {
     currentProfile = data;
     // UI 업데이트
@@ -2367,7 +2367,7 @@ async function handleLogin() {
   if (!email || !password) { showAuthError('loginError', '이메일과 비밀번호를 입력해주세요'); return; }
 
   btn.disabled = true; btn.textContent = '로그인 중...';
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
   btn.disabled = false; btn.textContent = '🔐 로그인';
 
   if (error) { showAuthError('loginError', '이메일 또는 비밀번호가 올바르지 않습니다'); return; }
@@ -2388,11 +2388,11 @@ async function handleSignup() {
   if (password.length < 8) { showAuthError('signupError', '비밀번호는 8자 이상이어야 합니다'); return; }
 
   btn.disabled = true; btn.textContent = '가입 중...';
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await sbClient.auth.signUp({ email, password });
   if (error) { btn.disabled = false; btn.textContent = '✨ 회원가입'; showAuthError('signupError', error.message); return; }
 
   // 프로필 저장
-  await supabase.from('profiles').insert({
+  await sbClient.from('profiles').insert({
     id: data.user.id,
     role: selectedRole,
     name,
@@ -2413,7 +2413,7 @@ function showAuthError(id, msg) {
 
 // ── 로그아웃 ──
 async function handleLogout() {
-  if (supabase) await supabase.auth.signOut();
+  if (sbClient) await sbClient.auth.signOut();
   currentUser = null; currentProfile = null;
   document.getElementById('appWrapper').style.display = 'none';
   document.getElementById('authOverlay').style.display = 'flex';
