@@ -2181,12 +2181,16 @@ function showView(viewId) {
     }
   });
 
-  // 실제 데이터 로드
-  if (sbClient) {
-    if (viewId === 'dashboard') loadDashboard();
-    if (viewId === 'students') loadStudents();
-    if (viewId === 'exams') loadExams();
-  }
+  // 실제 데이터 로드 (비동기, 오류나도 뷰 전환은 유지)
+  setTimeout(() => {
+    try {
+      if (sbClient && currentUser) {
+        if (viewId === 'dashboard') loadDashboard().catch(e => console.log('dashboard load error:', e));
+        if (viewId === 'students') loadStudents().catch(e => console.log('students load error:', e));
+        if (viewId === 'exams') loadExams().catch(e => console.log('exams load error:', e));
+      }
+    } catch(e) { console.log('showView data load error:', e); }
+  }, 0);
 }
 
 // ── TABS ──
