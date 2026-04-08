@@ -2015,7 +2015,17 @@ async function checkSession() {
 
 async function loadProfile() {
   if (!supabase || !currentUser) return;
-  const { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
+  const { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+  if (!data) {
+    // 프로필 없으면 기본 선생님으로 자동 생성
+    await sbClient.from('profiles').insert({
+      id: currentUser.id,
+      role: 'teacher',
+      name: currentUser.email.split('@')[0],
+    });
+    await loadProfile();
+    return;
+  }
   if (data) {
     currentProfile = data;
     // UI 업데이트
@@ -2838,7 +2848,7 @@ async function loadExams() {
   const { data: exams } = await sbClient.from('exams')
     .select('*')
     .eq('teacher_id', currentUser.id)
-    .order('exam_date', { ascending: false });
+    .order('created_at', { ascending: false });
 
   const wrap = document.getElementById('exam-list-wrap');
   if (!wrap) return;
