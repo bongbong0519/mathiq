@@ -997,23 +997,23 @@
       <div class="stat-grid">
         <div class="stat-card" style="--accent-color: var(--accent)">
           <div class="stat-label">전체 학생</div>
-          <div class="stat-value">32</div>
-          <div class="stat-delta up">↑ 작년 대비 +2명</div>
+          <div class="stat-value" id="stat-students">0</div>
+          <div class="stat-delta" style="color:var(--text3)">등록된 학생 수</div>
         </div>
         <div class="stat-card" style="--accent-color: var(--green)">
           <div class="stat-label">평균 점수</div>
-          <div class="stat-value">74.2</div>
-          <div class="stat-delta up">↑ 지난 시험 +3.4</div>
+          <div class="stat-value" id="stat-avg">—</div>
+          <div class="stat-delta" style="color:var(--text3)">전체 시험 평균</div>
         </div>
         <div class="stat-card" style="--accent-color: var(--yellow)">
           <div class="stat-label">응시 완료</div>
-          <div class="stat-value">28</div>
-          <div class="stat-delta down">↓ 4명 미응시</div>
+          <div class="stat-value" id="stat-exams">0</div>
+          <div class="stat-delta" style="color:var(--text3)">등록된 시험 수</div>
         </div>
         <div class="stat-card" style="--accent-color: var(--purple)">
           <div class="stat-label">이번 주 리포트</div>
-          <div class="stat-value">6</div>
-          <div class="stat-delta up">↑ 공유 3건</div>
+          <div class="stat-value" id="stat-reports">0</div>
+          <div class="stat-delta" style="color:var(--text3)">이번 주 리포트</div>
         </div>
       </div>
 
@@ -1021,129 +1021,30 @@
         <!-- 최근 시험 -->
         <div class="card">
           <div class="card-title">📝 최근 시험 결과</div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>시험명</th>
-                  <th>난이도</th>
-                  <th>평균</th>
-                  <th>응시</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="exam-row">
-                  <td>방정식 단원평가</td>
-                  <td><div class="diff-badge normal">●● 보통</div></td>
-                  <td class="font-mono">72.4</td>
-                  <td><span class="chip green">30/32</span></td>
-                </tr>
-                <tr class="exam-row">
-                  <td>부등식 쪽지시험</td>
-                  <td><div class="diff-badge easy">● 쉬움</div></td>
-                  <td class="font-mono">84.1</td>
-                  <td><span class="chip green">32/32</span></td>
-                </tr>
-                <tr class="exam-row">
-                  <td>함수 중간고사</td>
-                  <td><div class="diff-badge hard">●●● 어려움</div></td>
-                  <td class="font-mono">61.8</td>
-                  <td><span class="chip yellow">28/32</span></td>
-                </tr>
-                <tr class="exam-row">
-                  <td>수와 연산 형성평가</td>
-                  <td><div class="diff-badge expert">●●●● 심화</div></td>
-                  <td class="font-mono">48.3</td>
-                  <td><span class="chip red">25/32</span></td>
-                </tr>
-              </tbody>
-            </table>
+          <div id="dashboard-exam-list">
+            <div class="empty-state" style="padding:30px 20px">
+              <div class="empty-state-icon">📝</div>
+              <div class="empty-state-text">등록된 시험이 없습니다</div>
+            </div>
           </div>
         </div>
 
         <!-- 성취도 분포 -->
         <div class="card">
           <div class="card-title">🎯 성취도 분포</div>
-          <div class="subject-breakdown" style="margin-top:4px">
-            <div class="subject-row">
-              <div class="subject-name">수와 연산</div>
-              <div class="subject-bar-wrap">
-                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">62점</div>
-                <div class="progress-bar"><div class="progress-fill" style="width:62%;background:var(--yellow)"></div></div>
-              </div>
-              <div class="subject-score">62</div>
+          <div class="empty-state" style="padding:30px 20px">
+              <div class="empty-state-icon">📊</div>
+              <div class="empty-state-text">시험 데이터가 없습니다</div>
             </div>
-            <div class="subject-row">
-              <div class="subject-name">문자와 식</div>
-              <div class="subject-bar-wrap">
-                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">74점</div>
-                <div class="progress-bar"><div class="progress-fill" style="width:74%"></div></div>
-              </div>
-              <div class="subject-score">74</div>
-            </div>
-            <div class="subject-row">
-              <div class="subject-name">함수</div>
-              <div class="subject-bar-wrap">
-                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">58점</div>
-                <div class="progress-bar"><div class="progress-fill" style="width:58%;background:var(--red)"></div></div>
-              </div>
-              <div class="subject-score">58</div>
-            </div>
-            <div class="subject-row">
-              <div class="subject-name">기하</div>
-              <div class="subject-bar-wrap">
-                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">80점</div>
-                <div class="progress-bar"><div class="progress-fill" style="width:80%;background:var(--green)"></div></div>
-              </div>
-              <div class="subject-score">80</div>
-            </div>
-            <div class="subject-row">
-              <div class="subject-name">확률/통계</div>
-              <div class="subject-bar-wrap">
-                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">69점</div>
-                <div class="progress-bar"><div class="progress-fill" style="width:69%"></div></div>
-              </div>
-              <div class="subject-score">69</div>
-            </div>
-          </div>
         </div>
       </div>
 
       <!-- 관심 학생 -->
       <div class="card">
         <div class="card-title">⚠️ 관심 학생 (하위 30%)</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>학생</th><th>최근 점수</th><th>취약 단원</th><th>결석</th><th>학부모 공유</th><th>액션</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><div class="flex items-center gap-8"><div class="student-ava" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#f56565,#fc8181)">김</div> 김민준</div></td>
-                <td><span class="font-mono text-accent">42</span></td>
-                <td><span class="chip red">함수</span> <span class="chip yellow">수와 연산</span></td>
-                <td><span class="chip yellow">3회</span></td>
-                <td><span class="chip">미공유</span></td>
-                <td><button class="btn btn-green btn-xs" onclick="openShareModal('김민준 학생 리포트')">📤 공유</button></td>
-              </tr>
-              <tr>
-                <td><div class="flex items-center gap-8"><div class="student-ava" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#f6ad55,#fbd38d)">이</div> 이서연</div></td>
-                <td><span class="font-mono text-accent">51</span></td>
-                <td><span class="chip red">문자와 식</span></td>
-                <td><span class="chip green">0회</span></td>
-                <td><span class="chip green">공유됨</span></td>
-                <td><button class="btn btn-ghost btn-xs">📊 상세</button></td>
-              </tr>
-              <tr>
-                <td><div class="flex items-center gap-8"><div class="student-ava" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#b794f4,#9f7aea)">박</div> 박지호</div></td>
-                <td><span class="font-mono text-accent">55</span></td>
-                <td><span class="chip yellow">확률/통계</span></td>
-                <td><span class="chip red">5회</span></td>
-                <td><span class="chip">미공유</span></td>
-                <td><button class="btn btn-green btn-xs" onclick="openShareModal('박지호 학생 리포트')">📤 공유</button></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="empty-state" style="padding:30px 20px">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-text">학생을 등록하면 여기에 표시됩니다</div>
         </div>
       </div>
     </div>
@@ -1185,105 +1086,12 @@
 
       <div class="card">
         <div class="card-title">📋 시험 목록</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>시험명</th>
-                <th>단원</th>
-                <th>날짜</th>
-                <th>난이도</th>
-                <th>평균</th>
-                <th>최고/최저</th>
-                <th>응시율</th>
-                <th>공유</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="font-bold">방정식 단원평가</td>
-                <td><span class="chip">문자와 식</span></td>
-                <td class="text-muted text-sm">2025.04.01</td>
-                <td>
-                  <div class="flex items-center gap-8">
-                    <div class="diff-dots">
-                      <div class="diff-dot filled normal"></div>
-                      <div class="diff-dot filled normal"></div>
-                      <div class="diff-dot"></div>
-                      <div class="diff-dot"></div>
-                    </div>
-                    <span class="diff-badge normal">보통</span>
-                  </div>
-                </td>
-                <td class="font-mono">72.4</td>
-                <td class="text-sm"><span style="color:var(--green)">98</span> / <span style="color:var(--red)">34</span></td>
-                <td><span class="chip green">93.75%</span></td>
-                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('방정식 단원평가 리포트')">🔗 공유</button></td>
-              </tr>
-              <tr>
-                <td class="font-bold">부등식 쪽지시험</td>
-                <td><span class="chip">문자와 식</span></td>
-                <td class="text-muted text-sm">2025.03.24</td>
-                <td>
-                  <div class="flex items-center gap-8">
-                    <div class="diff-dots">
-                      <div class="diff-dot filled easy"></div>
-                      <div class="diff-dot"></div>
-                      <div class="diff-dot"></div>
-                      <div class="diff-dot"></div>
-                    </div>
-                    <span class="diff-badge easy">쉬움</span>
-                  </div>
-                </td>
-                <td class="font-mono">84.1</td>
-                <td class="text-sm"><span style="color:var(--green)">100</span> / <span style="color:var(--red)">61</span></td>
-                <td><span class="chip green">100%</span></td>
-                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('부등식 쪽지시험 리포트')">🔗 공유</button></td>
-              </tr>
-              <tr>
-                <td class="font-bold">함수 중간고사</td>
-                <td><span class="chip">함수</span></td>
-                <td class="text-muted text-sm">2025.03.15</td>
-                <td>
-                  <div class="flex items-center gap-8">
-                    <div class="diff-dots">
-                      <div class="diff-dot filled hard"></div>
-                      <div class="diff-dot filled hard"></div>
-                      <div class="diff-dot filled hard"></div>
-                      <div class="diff-dot"></div>
-                    </div>
-                    <span class="diff-badge hard">어려움</span>
-                  </div>
-                </td>
-                <td class="font-mono">61.8</td>
-                <td class="text-sm"><span style="color:var(--green)">95</span> / <span style="color:var(--red)">22</span></td>
-                <td><span class="chip yellow">87.5%</span></td>
-                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('함수 중간고사 리포트')">🔗 공유</button></td>
-              </tr>
-              <tr>
-                <td class="font-bold">수와 연산 형성평가</td>
-                <td><span class="chip">수와 연산</span></td>
-                <td class="text-muted text-sm">2025.03.05</td>
-                <td>
-                  <div class="flex items-center gap-8">
-                    <div class="diff-dots">
-                      <div class="diff-dot filled expert"></div>
-                      <div class="diff-dot filled expert"></div>
-                      <div class="diff-dot filled expert"></div>
-                      <div class="diff-dot filled expert"></div>
-                    </div>
-                    <span class="diff-badge expert">심화</span>
-                  </div>
-                </td>
-                <td class="font-mono">48.3</td>
-                <td class="text-sm"><span style="color:var(--green)">88</span> / <span style="color:var(--red)">11</span></td>
-                <td><span class="chip red">78.1%</span></td>
-                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('수와 연산 형성평가 리포트')">🔗 공유</button></td>
-              </tr>
-            </tbody>
-          </table>
+        <div id="exam-list-wrap">
+          <div class="empty-state" style="padding:40px">
+            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-text">등록된 시험이 없습니다</div>
+          </div>
         </div>
-      </div>
     </div>
 
     <!-- ══ VIEW: REPORTS ══ -->
@@ -1306,73 +1114,9 @@
       </div>
 
       <div id="report-tab-all">
-        <div class="report-card">
-          <div class="report-card-head">
-            <div class="report-card-info">
-              <div class="report-type-badge" style="background:rgba(79,142,247,0.1)">📊</div>
-              <div>
-                <div class="report-name">3학년 2반 4월 월간 성취도 리포트</div>
-                <div class="report-meta">2025.04.05 생성 · 전체 학급 · <span style="color:var(--green)">🔗 링크 공유중</span></div>
-              </div>
-            </div>
-            <div class="report-card-actions">
-              <button class="btn btn-ghost btn-xs">👁 미리보기</button>
-              <button class="btn btn-green btn-xs" onclick="openShareModal('4월 월간 리포트')">🔗 공유 설정</button>
-            </div>
-          </div>
-          <div class="report-card-body">
-            <div class="mini-stat"><div class="mini-stat-val">32</div><div class="mini-stat-lbl">대상 학생</div></div>
-            <div style="width:1px;height:40px;background:var(--border)"></div>
-            <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--green)">74.2</div><div class="mini-stat-lbl">평균 점수</div></div>
-            <div style="width:1px;height:40px;background:var(--border)"></div>
-            <div class="mini-stat"><div class="mini-stat-val" style="color:var(--accent)">18</div><div class="mini-stat-lbl">열람 횟수</div></div>
-            <div style="width:1px;height:40px;background:var(--border)"></div>
-            <div class="mini-stat"><div class="mini-stat-val">28</div><div class="mini-stat-lbl">학부모 확인</div></div>
-          </div>
-        </div>
-
-        <div class="report-card">
-          <div class="report-card-head">
-            <div class="report-card-info">
-              <div class="report-type-badge" style="background:rgba(62,207,142,0.1)">👤</div>
-              <div>
-                <div class="report-name">김민준 개인 성취도 리포트</div>
-                <div class="report-meta">2025.04.03 생성 · 개인 · <span style="color:var(--yellow)">📧 이메일 발송됨</span></div>
-              </div>
-            </div>
-            <div class="report-card-actions">
-              <button class="btn btn-ghost btn-xs">👁 미리보기</button>
-              <button class="btn btn-green btn-xs" onclick="openShareModal('김민준 리포트')">🔗 재공유</button>
-            </div>
-          </div>
-          <div class="report-card-body">
-            <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--red)">42</div><div class="mini-stat-lbl">최근 점수</div></div>
-            <div style="width:1px;height:40px;background:var(--border)"></div>
-            <div class="mini-stat"><div class="mini-stat-val" style="color:var(--red)">하위 10%</div><div class="mini-stat-lbl">반 순위</div></div>
-            <div style="width:1px;height:40px;background:var(--border)"></div>
-            <div class="mini-stat"><div class="mini-stat-val">2</div><div class="mini-stat-lbl">취약 단원</div></div>
-          </div>
-        </div>
-
-        <div class="report-card">
-          <div class="report-card-head">
-            <div class="report-card-info">
-              <div class="report-type-badge" style="background:rgba(183,148,244,0.1)">📝</div>
-              <div>
-                <div class="report-name">함수 중간고사 결과 분석</div>
-                <div class="report-meta">2025.03.18 생성 · 전체 학급 · <span style="color:var(--text3)">🔒 비공개</span></div>
-              </div>
-            </div>
-            <div class="report-card-actions">
-              <button class="btn btn-ghost btn-xs">👁 미리보기</button>
-              <button class="btn btn-primary btn-xs" onclick="openShareModal('함수 중간고사 결과')">📤 공유하기</button>
-            </div>
-          </div>
-          <div class="report-card-body">
-            <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--yellow)">61.8</div><div class="mini-stat-lbl">평균 점수</div></div>
-            <div style="width:1px;height:40px;background:var(--border)"></div>
-            <div class="mini-stat"><div class="mini-stat-val" style="color:var(--red)">28</div><div class="mini-stat-lbl">응시 인원</div></div>
-          </div>
+        <div class="empty-state" style="padding:60px">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-text">아직 생성된 리포트가 없습니다</div>
         </div>
       </div>
     </div>
@@ -1389,89 +1133,12 @@
           <button class="btn btn-primary btn-sm">+ 학생 추가</button>
         </div>
       </div>
-      <div class="student-grid">
-        <!-- Student Cards -->
-        <div class="student-card" onclick="openShareModal('김민준 리포트')">
-          <div class="student-card-header">
-            <div class="student-ava" style="background:linear-gradient(135deg,#f56565,#fc8181)">김</div>
-            <div>
-              <div class="student-name">김민준</div>
-              <div class="student-meta">출석 29/32 · <span style="color:var(--red)">관심학생</span></div>
-            </div>
-          </div>
-          <div class="student-stats">
-            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--red)">42</div><div class="student-stat-lbl">최근점수</div></div>
-            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--yellow)">58</div><div class="student-stat-lbl">평균</div></div>
-            <div class="student-stat-item"><div class="student-stat-val">28위</div><div class="student-stat-lbl">반 순위</div></div>
-          </div>
-          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill red" style="width:42%"></div></div>
+      <div class="student-grid" id="student-grid">
+        <div style="grid-column:1/-1" class="empty-state">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-text">아직 등록된 학생이 없습니다</div>
         </div>
-
-        <div class="student-card">
-          <div class="student-card-header">
-            <div class="student-ava" style="background:linear-gradient(135deg,#4f8ef7,#63b3ed)">이</div>
-            <div>
-              <div class="student-name">이서연</div>
-              <div class="student-meta">출석 32/32 · <span style="color:var(--green)">우수</span></div>
-            </div>
-          </div>
-          <div class="student-stats">
-            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">96</div><div class="student-stat-lbl">최근점수</div></div>
-            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">91</div><div class="student-stat-lbl">평균</div></div>
-            <div class="student-stat-item"><div class="student-stat-val">2위</div><div class="student-stat-lbl">반 순위</div></div>
-          </div>
-          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill green" style="width:96%"></div></div>
-        </div>
-
-        <div class="student-card">
-          <div class="student-card-header">
-            <div class="student-ava" style="background:linear-gradient(135deg,#f6ad55,#fbd38d)">박</div>
-            <div>
-              <div class="student-name">박지호</div>
-              <div class="student-meta">출석 27/32 · <span style="color:var(--yellow)">주의</span></div>
-            </div>
-          </div>
-          <div class="student-stats">
-            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--yellow)">55</div><div class="student-stat-lbl">최근점수</div></div>
-            <div class="student-stat-item"><div class="student-stat-val">63</div><div class="student-stat-lbl">평균</div></div>
-            <div class="student-stat-item"><div class="student-stat-val">22위</div><div class="student-stat-lbl">반 순위</div></div>
-          </div>
-          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill yellow" style="width:55%"></div></div>
-        </div>
-
-        <div class="student-card">
-          <div class="student-card-header">
-            <div class="student-ava" style="background:linear-gradient(135deg,#b794f4,#9f7aea)">최</div>
-            <div>
-              <div class="student-name">최예린</div>
-              <div class="student-meta">출석 31/32 · <span style="color:var(--accent)">보통</span></div>
-            </div>
-          </div>
-          <div class="student-stats">
-            <div class="student-stat-item"><div class="student-stat-val">78</div><div class="student-stat-lbl">최근점수</div></div>
-            <div class="student-stat-item"><div class="student-stat-val">75</div><div class="student-stat-lbl">평균</div></div>
-            <div class="student-stat-item"><div class="student-stat-val">12위</div><div class="student-stat-lbl">반 순위</div></div>
-          </div>
-          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:78%"></div></div>
-        </div>
-
-        <div class="student-card">
-          <div class="student-card-header">
-            <div class="student-ava" style="background:linear-gradient(135deg,#3ecf8e,#68d391)">정</div>
-            <div>
-              <div class="student-name">정우성</div>
-              <div class="student-meta">출석 30/32 · <span style="color:var(--green)">우수</span></div>
-            </div>
-          </div>
-          <div class="student-stats">
-            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">92</div><div class="student-stat-lbl">최근점수</div></div>
-            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">88</div><div class="student-stat-lbl">평균</div></div>
-            <div class="student-stat-item"><div class="student-stat-val">4위</div><div class="student-stat-lbl">반 순위</div></div>
-          </div>
-          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill green" style="width:92%"></div></div>
-        </div>
-
-        <div class="student-card" style="background:var(--bg3);border-style:dashed;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:140px">
+        <div class="student-card" style="background:var(--bg3);border-style:dashed;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:140px" onclick="openAddStudentModal()">
           <div style="text-align:center;color:var(--text3)">
             <div style="font-size:28px;margin-bottom:8px">+</div>
             <div style="font-size:13px">학생 추가</div>
@@ -2215,6 +1882,36 @@
   </div>
 </div>
 
+
+<!-- ════ ADD STUDENT MODAL ════ -->
+<div class="modal-overlay" id="addStudentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👤 학생 추가</div>
+      <button class="modal-close" onclick="closeModal('addStudentModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" class="form-input" id="stu-name" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label class="form-label">학년</label>
+        <select class="form-input" id="stu-grade">
+          <option value="1">1학년</option>
+          <option value="2">2학년</option>
+          <option value="3">3학년</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">반</label>
+        <input type="text" class="form-input" id="stu-class" placeholder="2반">
+      </div>
+      <div id="stu-error" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px"></div>
+      <button class="btn btn-primary w-full" onclick="submitAddStudent()">추가하기</button>
+    </div>
+  </div>
+</div>
 <!-- ════════════════════ CREATE EXAM MODAL ════════════════════ -->
 <div class="modal-overlay" id="createExamModal">
   <div class="modal">
@@ -2270,7 +1967,7 @@
         <label class="form-label">시험 날짜</label>
         <input type="date" class="form-input" value="2025-05-01">
       </div>
-      <button class="btn btn-primary w-full" onclick="closeModal('createExamModal');showToast('시험이 등록되었습니다','✅')">등록하기</button>
+      <button class="btn btn-primary w-full" onclick="submitCreateExam()">등록하기</button>
     </div>
   </div>
 </div>
@@ -2666,7 +2363,7 @@ function sgProcessUpload(file, type) {
 
     const ext = file.name.split('.').pop().toLowerCase();
     if (ext === 'pdf') {
-      // PDF → base64로 Claude API에 직접 전달
+      // PDF → base64로 Claude API에 직접 전달 + Supabase Storage 저장
       document.getElementById('sg-extracted-wrap').style.display = 'none';
       const reader = new FileReader();
       reader.onload = ev => {
@@ -2675,6 +2372,8 @@ function sgProcessUpload(file, type) {
         sgUpdateBtn();
       };
       reader.readAsDataURL(file);
+      // Supabase Storage에 백그라운드 업로드
+      uploadExamFile(file).catch(() => {});
     } else if (ext === 'txt') {
       document.getElementById('sg-extracted-wrap').style.display = 'block';
       const reader = new FileReader();
@@ -2966,6 +2665,251 @@ function sgClear() {
   document.getElementById('sg-out-empty').style.display = 'flex';
   document.getElementById('sg-out-actions').style.display = 'none';
   document.getElementById('sg-problem-list').innerHTML = '';
+}
+
+
+// ═══════════════════════════════════════
+//  REAL DATA — Supabase CRUD
+// ═══════════════════════════════════════
+
+// ── 대시보드 로드 ──
+async function loadDashboard() {
+  if (!sbClient || !currentUser) return;
+
+  // 학생 수
+  const { count: stuCount } = await sbClient.from('students')
+    .select('*', { count: 'exact', head: true })
+    .eq('teacher_id', currentUser.id);
+  const statStu = document.getElementById('stat-students');
+  if (statStu) statStu.textContent = stuCount || 0;
+
+  // 시험 수
+  const { count: examCount } = await sbClient.from('exams')
+    .select('*', { count: 'exact', head: true })
+    .eq('teacher_id', currentUser.id);
+  const statExam = document.getElementById('stat-exams');
+  if (statExam) statExam.textContent = examCount || 0;
+
+  // 최근 시험 목록
+  const { data: recentExams } = await sbClient.from('exams')
+    .select('*')
+    .eq('teacher_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const examListEl = document.getElementById('dashboard-exam-list');
+  if (examListEl) {
+    if (!recentExams || recentExams.length === 0) {
+      examListEl.innerHTML = '<div class="empty-state" style="padding:30px 20px"><div class="empty-state-icon">📝</div><div class="empty-state-text">등록된 시험이 없습니다</div></div>';
+    } else {
+      const diffLabel = { easy:'● 쉬움', normal:'●● 보통', hard:'●●● 어려움', expert:'●●●● 심화' };
+      const diffClass = { easy:'easy', normal:'normal', hard:'hard', expert:'expert' };
+      examListEl.innerHTML = '<div class="table-wrap"><table><thead><tr><th>시험명</th><th>난이도</th><th>날짜</th></tr></thead><tbody>' +
+        recentExams.map(e => `<tr>
+          <td class="font-bold">${e.title}</td>
+          <td><div class="diff-badge ${diffClass[e.difficulty]||'normal'}">${diffLabel[e.difficulty]||'보통'}</div></td>
+          <td class="text-muted text-sm">${e.exam_date || '—'}</td>
+        </tr>`).join('') +
+      '</tbody></table></div>';
+    }
+  }
+}
+
+// ── 학생 목록 로드 ──
+async function loadStudents() {
+  if (!sbClient || !currentUser) return;
+  const { data: students } = await sbClient.from('students')
+    .select('*')
+    .eq('teacher_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  const grid = document.getElementById('student-grid');
+  if (!grid) return;
+
+  const colors = [
+    'linear-gradient(135deg,#4f8ef7,#63b3ed)',
+    'linear-gradient(135deg,#3ecf8e,#68d391)',
+    'linear-gradient(135deg,#f6ad55,#fbd38d)',
+    'linear-gradient(135deg,#b794f4,#9f7aea)',
+    'linear-gradient(135deg,#f56565,#fc8181)',
+    'linear-gradient(135deg,#f687b3,#feb2b2)',
+  ];
+
+  let html = '';
+  if (!students || students.length === 0) {
+    html += '<div style="grid-column:1/-1" class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">아직 등록된 학생이 없습니다</div></div>';
+  } else {
+    students.forEach((s, i) => {
+      const color = colors[i % colors.length];
+      html += `<div class="student-card">
+        <div class="student-card-header">
+          <div class="student-ava" style="background:${color}">${s.name[0]}</div>
+          <div>
+            <div class="student-name">${s.name}</div>
+            <div class="student-meta">${s.grade}학년 ${s.class_name || ''}</div>
+          </div>
+          <button onclick="deleteStudent('${s.id}')" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="삭제">🗑</button>
+        </div>
+      </div>`;
+    });
+  }
+
+  html += `<div class="student-card" style="background:var(--bg3);border-style:dashed;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:140px" onclick="openAddStudentModal()">
+    <div style="text-align:center;color:var(--text3)">
+      <div style="font-size:28px;margin-bottom:8px">+</div>
+      <div style="font-size:13px">학생 추가</div>
+    </div>
+  </div>`;
+
+  grid.innerHTML = html;
+}
+
+// ── 학생 추가 ──
+function openAddStudentModal() {
+  document.getElementById('addStudentModal').classList.add('open');
+  document.getElementById('stu-name').value = '';
+  document.getElementById('stu-class').value = '';
+  document.getElementById('stu-error').style.display = 'none';
+}
+
+async function submitAddStudent() {
+  const name = document.getElementById('stu-name').value.trim();
+  const grade = document.getElementById('stu-grade').value;
+  const className = document.getElementById('stu-class').value.trim();
+  const errEl = document.getElementById('stu-error');
+
+  if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.style.display = 'block'; return; }
+
+  const { error } = await sbClient.from('students').insert({
+    teacher_id: currentUser.id,
+    name, grade: parseInt(grade), class_name: className
+  });
+
+  if (error) { errEl.textContent = '오류: ' + error.message; errEl.style.display = 'block'; return; }
+
+  closeModal('addStudentModal');
+  showToast('학생이 추가되었습니다', '👤');
+  loadStudents();
+  loadDashboard();
+}
+
+// ── 학생 삭제 ──
+async function deleteStudent(id) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  await sbClient.from('students').delete().eq('id', id);
+  showToast('삭제되었습니다', '🗑');
+  loadStudents();
+  loadDashboard();
+}
+
+// ── 시험 등록 ──
+async function submitCreateExam() {
+  if (!sbClient || !currentUser) return;
+  const title = document.querySelector('#createExamModal input[type=text]').value.trim();
+  const unit = document.querySelector('#createExamModal select').value;
+  const date = document.querySelector('#createExamModal input[type=date]').value;
+  const diffEl = document.querySelector('#createExamModal .share-method.selected[id^=diff-]');
+  const difficulty = diffEl ? diffEl.id.replace('diff-', '') : 'normal';
+
+  if (!title) { showToast('시험명을 입력해주세요', '⚠️'); return; }
+
+  const { error } = await sbClient.from('exams').insert({
+    teacher_id: currentUser.id,
+    title, unit, difficulty, exam_date: date || null
+  });
+
+  if (error) { showToast('오류: ' + error.message, '❌'); return; }
+
+  closeModal('createExamModal');
+  showToast('시험이 등록되었습니다', '✅');
+  loadDashboard();
+  loadExams();
+}
+
+// ── 시험 목록 로드 ──
+async function loadExams() {
+  if (!sbClient || !currentUser) return;
+  const { data: exams } = await sbClient.from('exams')
+    .select('*')
+    .eq('teacher_id', currentUser.id)
+    .order('exam_date', { ascending: false });
+
+  const wrap = document.getElementById('exam-list-wrap');
+  if (!wrap) return;
+
+  if (!exams || exams.length === 0) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">📝</div><div class="empty-state-text">등록된 시험이 없습니다</div></div>';
+    return;
+  }
+
+  const diffLabel = { easy:'쉬움', normal:'보통', hard:'어려움', expert:'심화' };
+  const diffDots  = { easy:'●', normal:'●●', hard:'●●●', expert:'●●●●' };
+
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>시험명</th><th>단원</th><th>날짜</th><th>난이도</th><th>삭제</th></tr></thead><tbody>' +
+    exams.map(e => `<tr>
+      <td class="font-bold">${e.title}</td>
+      <td><span class="chip">${e.unit || '—'}</span></td>
+      <td class="text-muted text-sm">${e.exam_date || '—'}</td>
+      <td><div class="diff-badge ${e.difficulty}">${diffDots[e.difficulty]||'●●'} ${diffLabel[e.difficulty]||'보통'}</div></td>
+      <td><button class="btn btn-ghost btn-xs" onclick="deleteExam('${e.id}')">🗑</button></td>
+    </tr>`).join('') +
+  '</tbody></table></div>';
+}
+
+// ── 시험 삭제 ──
+async function deleteExam(id) {
+  if (!confirm('시험을 삭제하시겠습니까?')) return;
+  await sbClient.from('exams').delete().eq('id', id);
+  showToast('삭제되었습니다', '🗑');
+  loadExams();
+  loadDashboard();
+}
+
+// ── 파일 업로드 → Supabase Storage (admin only) ──
+async function uploadExamFile(file) {
+  if (!sbClient || !currentUser) return null;
+  const ext = file.name.split('.').pop();
+  const path = `uploads/${currentUser.id}/${Date.now()}_${file.name}`;
+
+  const { data, error } = await sbClient.storage
+    .from('exam-files')
+    .upload(path, file, { upsert: false });
+
+  if (error) { showToast('파일 업로드 실패: ' + error.message, '❌'); return null; }
+
+  // DB에 메타데이터 저장
+  await sbClient.from('uploaded_files') .insert({
+    teacher_id: currentUser.id,
+    file_name: file.name,
+    file_path: path,
+    file_size: file.size,
+    status: 'pending'
+  }).then(() => {}).catch(() => {});
+
+  showToast('파일이 업로드되었습니다', '📁');
+  return path;
+}
+
+// ── showView 후크: 뷰 전환 시 데이터 로드 ──
+const _origShowView = showView;
+function showView(viewId) {
+  _origShowView(viewId);
+  if (!sbClient) return;
+  if (viewId === 'dashboard') loadDashboard();
+  if (viewId === 'students') loadStudents();
+  if (viewId === 'exams') loadExams();
+}
+
+// ── 앱 진입 시 데이터 로드 ──
+const _origShowApp = showApp;
+function showApp() {
+  _origShowApp();
+  setTimeout(() => {
+    if (sbClient) {
+      loadDashboard();
+      loadStudents();
+    }
+  }, 300);
 }
 
 function sgEsc(s) {
