@@ -983,7 +983,7 @@
   <main class="main-content">
 
     <!-- ══ VIEW: TEACHER DASHBOARD ══ -->
-    <div id="view-dashboard" class="view active">
+    <div id="view-dashboard" class="view active" style="display:block">
       <div class="page-header">
         <div>
           <div class="page-title">대시보드</div>
@@ -2180,11 +2180,20 @@ function switchRole(role) {
 
 // ── VIEW SWITCHING ──
 function showView(viewId) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const el = document.getElementById('view-' + viewId);
-  if (el) el.classList.add('active');
+  // 모든 뷰 숨기기
+  document.querySelectorAll('.view').forEach(v => {
+    v.style.display = 'none';
+    v.classList.remove('active');
+  });
 
-  // Update nav active
+  // 선택된 뷰 보이기
+  const el = document.getElementById('view-' + viewId);
+  if (el) {
+    el.style.display = 'block';
+    el.classList.add('active');
+  }
+
+  // 네비 활성화
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');
     if (item.getAttribute('onclick') && item.getAttribute('onclick').includes("'" + viewId + "'")) {
@@ -2192,15 +2201,15 @@ function showView(viewId) {
     }
   });
 
-  // 실제 데이터 로드 (비동기, 오류나도 뷰 전환은 유지)
+  // 데이터 로드
   setTimeout(() => {
     try {
       if (sbClient && currentUser) {
-        if (viewId === 'dashboard') loadDashboard().catch(e => console.log('dashboard load error:', e));
-        if (viewId === 'students') loadStudents().catch(e => console.log('students load error:', e));
-        if (viewId === 'exams') loadExams().catch(e => console.log('exams load error:', e));
+        if (viewId === 'dashboard') loadDashboard().catch(() => {});
+        if (viewId === 'students') loadStudents().catch(() => {});
+        if (viewId === 'exams') loadExams().catch(() => {});
       }
-    } catch(e) { console.log('showView data load error:', e); }
+    } catch(e) {}
   }, 0);
 }
 
