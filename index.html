@@ -3,1181 +3,2565 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MathIQ — 유사문제 생성기</title>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>MathIQ — 수학 학습 분석 플랫폼</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:     #08090c;
-  --bg2:    #0f1117;
-  --bg3:    #161921;
-  --bg4:    #1c2029;
-  --border: #1e2330;
-  --border2:#2a3040;
-  --text:   #eaedf5;
-  --text2:  #8892a4;
-  --text3:  #4a5568;
-  --accent: #5b8dee;
-  --accent2:#7c6ef5;
-  --green:  #34d399;
-  --yellow: #fbbf24;
-  --red:    #f87171;
-  --purple: #a78bfa;
-  --r: 10px;
-  --rs: 7px;
-}
+  :root {
+    --bg: #0a0c10;
+    --bg2: #111318;
+    --bg3: #181c23;
+    --border: #232830;
+    --border2: #2e3540;
+    --text: #e8eaf0;
+    --text2: #8b92a0;
+    --text3: #545c6b;
+    --accent: #4f8ef7;
+    --accent2: #6c6ef5;
+    --green: #3ecf8e;
+    --red: #f56565;
+    --yellow: #f6ad55;
+    --purple: #b794f4;
+    --pink: #f687b3;
+    --cyan: #63b3ed;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
 
-* { margin:0; padding:0; box-sizing:border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-body {
-  font-family:'Pretendard', -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  /* subtle grid texture */
-  background-image:
-    linear-gradient(rgba(91,141,238,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(91,141,238,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-/* ── HEADER ── */
-.topbar {
-  border-bottom: 1px solid var(--border);
-  padding: 0 32px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(8,9,12,0.9);
-  backdrop-filter: blur(12px);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.logo {
-  font-family: 'Space Mono', monospace;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-.logo span { color: var(--accent); }
-.logo-sub {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 11px;
-  color: var(--text3);
-  font-weight: 500;
-  margin-left: 10px;
-  letter-spacing: 0.3px;
-}
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-.api-status {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--text2);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 5px 12px;
-}
-.api-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--text3);
-  transition: background 0.3s;
-}
-.api-dot.ready { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.api-dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
-.api-dot.error { background: var(--red); }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  /* ── GRID NOISE TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,142,247,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(108,110,245,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
-/* ── MAIN LAYOUT ── */
-.main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 36px 32px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  min-height: calc(100vh - 56px);
-}
+  /* ══════════════════════════════════════
+     LAYOUT
+  ══════════════════════════════════════ */
+  .app-wrapper { display: flex; min-height: 100vh; position: relative; z-index: 1; }
 
-/* ── PANEL ── */
-.panel {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.panel-header {
-  padding: 18px 22px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.panel-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.panel-title-icon {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
-}
-.panel-body { padding: 20px 22px; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
 
-/* ── INPUT METHOD TABS ── */
-.input-tabs {
-  display: flex;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--rs);
-  padding: 3px;
-  gap: 2px;
-}
-.input-tab {
-  flex: 1;
-  padding: 8px 10px;
-  border-radius: 5px;
-  border: none;
-  background: transparent;
-  color: var(--text2);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  font-family: 'Pretendard', sans-serif;
-}
-.input-tab.active {
-  background: var(--bg2);
-  color: var(--text);
-  border: 1px solid var(--border2);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-}
-.input-tab:hover:not(.active) { color: var(--text); }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    color: var(--text);
+  }
+  .logo-mark span { color: var(--accent); }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-top: 3px; letter-spacing: 0.5px; }
 
-/* ── DROP ZONE ── */
-.drop-zone {
-  border: 2px dashed var(--border2);
-  border-radius: var(--r);
-  padding: 36px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  background: var(--bg3);
-  flex: 1;
-}
-.drop-zone:hover, .drop-zone.dragover {
-  border-color: var(--accent);
-  background: rgba(91,141,238,0.04);
-}
-.drop-zone input[type=file] {
-  position: absolute; inset: 0;
-  opacity: 0; cursor: pointer; width: 100%;
-}
-.drop-icon { font-size: 36px; margin-bottom: 12px; }
-.drop-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
-.drop-sub { font-size: 12px; color: var(--text3); line-height: 1.5; }
-.drop-formats {
-  margin-top: 14px;
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.fmt-chip {
-  padding: 3px 9px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  background: var(--bg4);
-  border: 1px solid var(--border2);
-  color: var(--text3);
-  letter-spacing: 0.5px;
-}
+  .role-switcher {
+    margin: 16px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    display: flex;
+    gap: 2px;
+  }
+  .role-btn {
+    flex: 1;
+    padding: 6px 4px;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text3);
+    letter-spacing: 0.3px;
+  }
+  .role-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .role-btn:hover:not(.active) { color: var(--text); background: var(--border); }
 
-/* 파일 미리보기 */
-.file-preview {
-  display: none;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 14px 16px;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-.file-preview.show { display: flex; }
-.file-thumb {
-  width: 48px; height: 48px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background: var(--bg4);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px;
-}
-.file-info { flex: 1; min-width: 0; }
-.file-name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file-size { font-size: 11px; color: var(--text3); margin-top: 3px; }
-.file-remove {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  background: rgba(248,113,113,0.1);
-  border: 1px solid rgba(248,113,113,0.2);
-  color: var(--red);
-  font-size: 14px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-.file-remove:hover { background: rgba(248,113,113,0.2); }
+  .nav-section { padding: 8px 12px 4px; }
+  .nav-label { font-size: 10px; font-weight: 700; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
 
-/* 이미지 미리보기 */
-.img-preview-wrap {
-  display: none;
-  border-radius: var(--r);
-  overflow: hidden;
-  border: 1px solid var(--border);
-  flex: 1;
-  position: relative;
-  max-height: 260px;
-}
-.img-preview-wrap.show { display: block; }
-.img-preview-wrap img { width: 100%; height: 100%; object-fit: contain; background: var(--bg4); }
-.img-remove {
-  position: absolute;
-  top: 8px; right: 8px;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.7);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  font-size: 14px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text2);
+    transition: all 0.15s;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--border); color: var(--text); }
+  .nav-item.active { background: rgba(79,142,247,0.12); color: var(--accent); }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-item .badge {
+    margin-left: auto;
+    background: var(--red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 20px;
+  }
 
-/* ── TEXTAREA ── */
-.question-textarea {
-  flex: 1;
-  min-height: 220px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  color: var(--text);
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  line-height: 1.7;
-  padding: 14px 16px;
-  resize: none;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.question-textarea:focus { border-color: var(--accent); }
-.question-textarea::placeholder { color: var(--text3); }
-.char-count { font-size: 11px; color: var(--text3); text-align: right; }
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .user-role-tag { font-size: 10px; color: var(--text3); }
 
-/* ── OPTIONS ── */
-.options-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.opt-group { display: flex; flex-direction: column; gap: 5px; }
-.opt-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; }
-.opt-select, .opt-input {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--rs);
-  color: var(--text);
-  font-size: 13px;
-  padding: 8px 11px;
-  outline: none;
-  font-family: 'Pretendard', sans-serif;
-  transition: border-color 0.15s;
-  cursor: pointer;
-  width: 100%;
-}
-.opt-select:focus, .opt-input:focus { border-color: var(--accent); }
-option { background: var(--bg2); }
+  /* ── MAIN CONTENT ── */
+  .main-content {
+    margin-left: 240px;
+    flex: 1;
+    padding: 28px 32px;
+    min-height: 100vh;
+  }
 
-/* ── GENERATE BTN ── */
-.gen-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: var(--r);
-  border: none;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  letter-spacing: -0.2px;
-  font-family: 'Pretendard', sans-serif;
-  position: relative;
-  overflow: hidden;
-}
-.gen-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(91,141,238,0.35); }
-.gen-btn:active { transform: translateY(0); }
-.gen-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-.gen-btn .btn-shimmer {
-  position: absolute;
-  top: 0; left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  animation: shimmer 2s infinite;
-}
-@keyframes shimmer {
-  0% { left: -100%; }
-  100% { left: 200%; }
-}
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .page-title { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1.2; }
+  .page-sub { font-size: 13px; color: var(--text3); margin-top: 4px; }
 
-/* ── API KEY INPUT ── */
-.api-key-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--rs);
-  padding: 8px 12px;
-}
-.api-key-icon { font-size: 14px; flex-shrink: 0; }
-.api-key-input {
-  flex: 1;
-  background: none;
-  border: none;
-  color: var(--text2);
-  font-size: 12px;
-  font-family: 'Space Mono', monospace;
-  outline: none;
-}
-.api-key-input::placeholder { color: var(--text3); }
-.api-key-toggle {
-  background: none;
-  border: none;
-  color: var(--text3);
-  cursor: pointer;
-  font-size: 13px;
-  padding: 0;
-  transition: color 0.15s;
-}
-.api-key-toggle:hover { color: var(--text); }
-.api-warning {
-  font-size: 11px;
-  color: var(--yellow);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 10px;
-  background: rgba(251,191,36,0.06);
-  border: 1px solid rgba(251,191,36,0.15);
-  border-radius: var(--rs);
-}
+  .header-actions { display: flex; gap: 10px; align-items: center; }
 
-/* ── OUTPUT PANEL ── */
-.output-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: var(--text3);
-}
-.output-empty-icon { font-size: 44px; opacity: 0.4; }
-.output-empty-text { font-size: 14px; }
-.output-empty-sub { font-size: 12px; color: var(--text3); opacity: 0.6; }
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7be8; transform: translateY(-1px); }
+  .btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text3); }
+  .btn-green { background: rgba(62,207,142,0.12); color: var(--green); border: 1px solid rgba(62,207,142,0.25); }
+  .btn-green:hover { background: rgba(62,207,142,0.2); }
+  .btn-red { background: rgba(245,101,101,0.12); color: var(--red); border: 1px solid rgba(245,101,101,0.25); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-xs { padding: 4px 9px; font-size: 11px; }
 
-/* ── LOADING STATE ── */
-.loading-state {
-  display: none;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-.loading-state.show { display: flex; }
-.loading-rings {
-  position: relative;
-  width: 64px; height: 64px;
-}
-.loading-rings::before, .loading-rings::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  animation: spin 1.2s linear infinite;
-}
-.loading-rings::before {
-  inset: 0;
-  border-top-color: var(--accent);
-  animation-duration: 1s;
-}
-.loading-rings::after {
-  inset: 8px;
-  border-top-color: var(--accent2);
-  animation-direction: reverse;
-  animation-duration: 0.8s;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 14px; color: var(--text2); }
-.loading-steps { display: flex; flex-direction: column; gap: 6px; width: 240px; }
-.loading-step {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px; color: var(--text3);
-  transition: color 0.3s;
-}
-.loading-step.active { color: var(--accent); }
-.loading-step.done { color: var(--green); }
-.loading-step-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--text3);
-  flex-shrink: 0;
-  transition: background 0.3s;
-}
-.loading-step.active .loading-step-dot { background: var(--accent); }
-.loading-step.done .loading-step-dot { background: var(--green); }
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-/* ── RESULT ── */
-.result-wrap {
-  display: none;
-  flex: 1;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-}
-.result-wrap.show { display: flex; }
+  /* ── STAT GRID ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--accent));
+  }
+  .stat-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .stat-value { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-delta { font-size: 12px; margin-top: 6px; }
+  .stat-delta.up { color: var(--green); }
+  .stat-delta.down { color: var(--red); }
 
-.result-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.result-meta { font-size: 12px; color: var(--text3); }
-.result-actions { display: flex; gap: 8px; }
+  /* ── GRID LAYOUTS ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .col-span-2 { grid-column: span 2; }
 
-.problem-card {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  overflow: hidden;
-  transition: border-color 0.2s;
-  animation: fadeSlideIn 0.4s ease both;
-}
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.problem-card:hover { border-color: var(--border2); }
-.problem-card-head {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg4);
-}
-.problem-num {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text2);
-}
-.problem-num-badge {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Space Mono', monospace;
-}
-.problem-tags { display: flex; gap: 5px; }
-.ptag {
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-.ptag.type { background: rgba(91,141,238,0.1); color: var(--accent); border: 1px solid rgba(91,141,238,0.2); }
-.ptag.diff { background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
-.ptag.diff.easy { background: rgba(52,211,153,0.1); color: var(--green); border-color: rgba(52,211,153,0.2); }
-.ptag.diff.hard { background: rgba(248,113,113,0.1); color: var(--red); border-color: rgba(248,113,113,0.2); }
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 14px;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
 
-.problem-body { padding: 16px; }
-.problem-text {
-  font-size: 14px;
-  line-height: 1.8;
-  color: var(--text);
-  white-space: pre-wrap;
-  word-break: keep-all;
-}
-.problem-text .math-inline {
-  font-family: 'Space Mono', monospace;
-  background: rgba(91,141,238,0.08);
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 13px;
-  color: var(--accent);
-}
+  /* ── DIFFICULTY BADGE (NEW) ── */
+  .diff-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .diff-badge.easy   { background: rgba(62,207,142,0.12); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+  .diff-badge.normal { background: rgba(99,179,237,0.12); color: var(--cyan); border: 1px solid rgba(99,179,237,0.2); }
+  .diff-badge.hard   { background: rgba(246,173,85,0.12); color: var(--yellow); border: 1px solid rgba(246,173,85,0.2); }
+  .diff-badge.expert { background: rgba(245,101,101,0.12); color: var(--red); border: 1px solid rgba(245,101,101,0.2); }
 
-.problem-choices {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.choice-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 7px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  font-size: 13.5px;
-  color: var(--text);
-  line-height: 1.5;
-}
-.choice-num {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: var(--bg4);
-  border: 1px solid var(--border2);
-  font-size: 11px;
-  font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  color: var(--text3);
-  font-family: 'Space Mono', monospace;
-}
-.choice-item.answer { background: rgba(52,211,153,0.05); border-color: rgba(52,211,153,0.2); }
-.choice-item.answer .choice-num { background: var(--green); border-color: var(--green); color: #fff; }
+  .diff-dots { display: flex; gap: 3px; }
+  .diff-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border2);
+    transition: background 0.2s;
+  }
+  .diff-dot.filled.easy   { background: var(--green); }
+  .diff-dot.filled.normal { background: var(--cyan); }
+  .diff-dot.filled.hard   { background: var(--yellow); }
+  .diff-dot.filled.expert { background: var(--red); }
 
-.problem-hint {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 7px;
-  background: rgba(167,139,250,0.06);
-  border: 1px solid rgba(167,139,250,0.15);
-  font-size: 12.5px;
-  color: var(--purple);
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  line-height: 1.6;
-}
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.6s ease;
+  }
+  .progress-fill.green { background: var(--green); }
+  .progress-fill.yellow { background: var(--yellow); }
+  .progress-fill.red { background: var(--red); }
 
-.problem-footer {
-  padding: 10px 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-}
+  /* ── SCORE RING ── */
+  .score-ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .score-ring { position: relative; width: 72px; height: 72px; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring .ring-bg { fill: none; stroke: var(--border2); stroke-width: 6; }
+  .score-ring .ring-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .score-ring .ring-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 16px; font-weight: 700;
+    color: var(--text);
+  }
+  .ring-label { font-size: 11px; color: var(--text3); text-align: center; }
 
-/* ── BUTTONS ── */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 13px;
-  border-radius: var(--rs);
-  font-size: 12px; font-weight: 700;
-  cursor: pointer; border: none;
-  transition: all 0.15s;
-  font-family: 'Pretendard', sans-serif;
-  white-space: nowrap;
-}
-.btn-ghost {
-  background: var(--bg4);
-  color: var(--text2);
-  border: 1px solid var(--border2);
-}
-.btn-ghost:hover { color: var(--text); border-color: var(--text3); }
-.btn-green { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
-.btn-green:hover { background: rgba(52,211,153,0.18); }
-.btn-accent { background: rgba(91,141,238,0.12); color: var(--accent); border: 1px solid rgba(91,141,238,0.25); }
-.btn-accent:hover { background: rgba(91,141,238,0.2); }
-.btn-xs { padding: 4px 9px; font-size: 11px; }
-.btn-sm { padding: 6px 11px; font-size: 12px; }
+  /* ── TABS ── */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    margin-bottom: 24px;
+    width: fit-content;
+  }
+  .tab-btn {
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--bg2); color: var(--text); border: 1px solid var(--border2); }
+  .tab-btn:hover:not(.active) { color: var(--text2); }
 
-/* ── ALL COPY AREA ── */
-.copy-all-bar {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: rgba(52,211,153,0.06);
-  border: 1px solid rgba(52,211,153,0.15);
-  border-radius: var(--r);
-}
-.copy-all-bar.show { display: flex; }
-.copy-all-text { font-size: 13px; color: var(--green); font-weight: 600; }
+  /* ── PAGE VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; }
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+  /* ── STUDENT CARDS ── */
+  .student-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .student-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .student-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .student-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .student-ava {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .student-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .student-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .student-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .student-stat-item { text-align: center; }
+  .student-stat-val { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--text); }
+  .student-stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; }
 
-/* ── TOAST ── */
-.toast {
-  position: fixed; bottom: 24px; right: 24px;
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: 10px;
-  padding: 12px 16px;
-  display: flex; align-items: center; gap: 10px;
-  font-size: 13px; color: var(--text); font-weight: 600;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  z-index: 999;
-  transform: translateY(60px); opacity: 0;
-  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  pointer-events: none;
-}
-.toast.show { transform: translateY(0); opacity: 1; }
+  /* ── EXAM TABLE ── */
+  .exam-row td:first-child { font-weight: 600; }
 
-/* ── RESPONSIVE ── */
-@media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; padding: 20px; }
-}
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    width: 540px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal-header {
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 16px; font-weight: 800; color: var(--text); }
+  .modal-close {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:hover { color: var(--text); background: var(--border2); }
+  .modal-body { padding: 22px 24px; }
+
+  /* ── SHARE MODAL ── */
+  .share-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .share-method {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .share-method:hover { border-color: var(--accent); background: rgba(79,142,247,0.05); }
+  .share-method.selected { border-color: var(--accent); background: rgba(79,142,247,0.1); }
+  .share-method-icon { font-size: 24px; margin-bottom: 8px; }
+  .share-method-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .share-method-desc { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  .share-link-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .share-link-box input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    outline: none;
+  }
+
+  .share-settings { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .share-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .share-toggle-label { font-size: 13px; color: var(--text); }
+  .share-toggle-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .toggle-switch {
+    position: relative; width: 36px; height: 20px;
+    background: var(--border2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on { background: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: left 0.2s;
+  }
+  .toggle-switch.on::after { left: 19px; }
+
+  /* ── PARENT VIEW ── */
+  .parent-welcome {
+    background: linear-gradient(135deg, rgba(79,142,247,0.1) 0%, rgba(108,110,245,0.08) 100%);
+    border: 1px solid rgba(79,142,247,0.2);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .child-avatar-lg {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800;
+    background: linear-gradient(135deg, #4f8ef7, #6c6ef5);
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .parent-welcome-text h2 { font-size: 20px; font-weight: 800; color: var(--text); }
+  .parent-welcome-text p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+  .parent-welcome-text .last-update { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+  .insight-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .insight-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+  }
+  .insight-icon { font-size: 28px; margin-bottom: 10px; }
+  .insight-value { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; color: var(--text); }
+  .insight-label { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .insight-trend { font-size: 11px; margin-top: 6px; }
+
+  .week-activity { display: flex; gap: 6px; margin-top: 8px; }
+  .week-day {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .week-day-bar-wrap { width: 100%; height: 60px; display: flex; align-items: flex-end; }
+  .week-day-bar {
+    width: 100%;
+    background: var(--accent);
+    border-radius: 3px 3px 0 0;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    min-height: 4px;
+  }
+  .week-day-bar:hover { opacity: 1; }
+  .week-day-lbl { font-size: 10px; color: var(--text3); }
+
+  .subject-breakdown { display: flex; flex-direction: column; gap: 10px; }
+  .subject-row { display: flex; align-items: center; gap: 10px; }
+  .subject-name { font-size: 13px; color: var(--text2); width: 80px; flex-shrink: 0; }
+  .subject-bar-wrap { flex: 1; }
+  .subject-score { font-size: 13px; font-weight: 700; color: var(--text); font-family: 'Space Mono', monospace; width: 40px; text-align: right; flex-shrink: 0; }
+
+  /* ── ADMIN / OPERATOR VIEW ── */
+  .admin-hero {
+    background: linear-gradient(135deg, rgba(183,148,244,0.1), rgba(246,135,179,0.06));
+    border: 1px solid rgba(183,148,244,0.2);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .admin-hero h2 { font-size: 18px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .admin-hero p { font-size: 13px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+
+  .admin-pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .pipeline-step {
+    background: var(--bg2);
+    padding: 18px;
+    position: relative;
+  }
+  .pipeline-step::after {
+    content: '→';
+    position: absolute;
+    right: -12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 16px;
+    z-index: 2;
+    background: var(--bg2);
+    padding: 0 4px;
+  }
+  .pipeline-step:last-child::after { display: none; }
+  .pipeline-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .pipeline-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .pipeline-desc { font-size: 11px; color: var(--text3); line-height: 1.5; }
+
+  .use-case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .use-case-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    border-left: 3px solid var(--case-color, var(--accent));
+  }
+  .use-case-icon { font-size: 22px; margin-bottom: 10px; }
+  .use-case-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .use-case-desc { font-size: 12.5px; color: var(--text2); line-height: 1.6; }
+  .use-case-tag {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.06);
+    color: var(--text3);
+    letter-spacing: 0.5px;
+  }
+
+  .uploaded-files-table .file-icon { font-size: 18px; }
+  .file-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; }
+  .file-status.reviewed { color: var(--green); }
+  .file-status.pending { color: var(--yellow); }
+  .file-status.flagged { color: var(--red); }
+
+  .supabase-note {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-top: 20px;
+  }
+  .supabase-note-title { font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .code-tag {
+    display: inline-block;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 2px 7px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  /* ── REPORT CARD ── */
+  .report-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .report-card:hover { border-color: var(--border2); }
+  .report-card-head {
+    padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-card-info { display: flex; align-items: center; gap: 12px; }
+  .report-type-badge {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .report-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .report-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .report-card-actions { display: flex; gap: 8px; }
+  .report-card-body { padding: 14px 20px; display: flex; align-items: center; gap: 20px; }
+
+  .mini-stat { text-align: center; }
+  .mini-stat-val { font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700; color: var(--text); }
+  .mini-stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: var(--shadow);
+    z-index: 999;
+    font-size: 13px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 18px; }
+  .toast-text { color: var(--text); font-weight: 600; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state-text { font-size: 14px; }
+
+  /* ── MISC ── */
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .chip.blue { background: rgba(79,142,247,0.1); color: var(--accent); border-color: rgba(79,142,247,0.2); }
+  .chip.green { background: rgba(62,207,142,0.1); color: var(--green); border-color: rgba(62,207,142,0.2); }
+  .chip.yellow { background: rgba(246,173,85,0.1); color: var(--yellow); border-color: rgba(246,173,85,0.2); }
+  .chip.red { background: rgba(245,101,101,0.1); color: var(--red); border-color: rgba(245,101,101,0.2); }
+  .chip.purple { background: rgba(183,148,244,0.1); color: var(--purple); border-color: rgba(183,148,244,0.2); }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .text-sm { font-size: 13px; }
+  .text-xs { font-size: 11px; }
+  .text-muted { color: var(--text3); }
+  .text-accent { color: var(--accent); }
+  .font-mono { font-family: 'Space Mono', monospace; }
+  .font-bold { font-weight: 700; }
+  .w-full { width: 100%; }
+
+  /* ── INPUT ── */
+  .form-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    font-family: inherit;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; }
+  .form-group { margin-bottom: 16px; }
+
+  /* ── SELECT ── */
+  select.form-input { cursor: pointer; }
+  option { background: var(--bg2); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div style="display:flex;align-items:center;gap:6px">
-    <div class="logo">Math<span>IQ</span></div>
-    <div class="logo-sub">유사문제 생성기</div>
-  </div>
-  <div class="topbar-right">
-    <div class="api-status">
-      <div class="api-dot" id="apiDot"></div>
-      <span id="apiStatusText">API 연결 대기중</span>
+<div class="app-wrapper">
+
+  <!-- ════════════════════ SIDEBAR ════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">Math<span>IQ</span></div>
+      <div class="logo-sub">수학 학습 분석 플랫폼</div>
+    </div>
+
+    <!-- Role Switcher -->
+    <div class="role-switcher">
+      <button class="role-btn active" onclick="switchRole('teacher')">선생님</button>
+      <button class="role-btn" onclick="switchRole('parent')">학부모</button>
+      <button class="role-btn" onclick="switchRole('admin')">운영자</button>
+    </div>
+
+    <!-- Teacher Nav -->
+    <nav id="nav-teacher">
+      <div class="nav-section">
+        <div class="nav-label">학습 관리</div>
+        <div class="nav-item active" onclick="showView('dashboard')">
+          <span class="icon">📊</span> 대시보드
+        </div>
+        <div class="nav-item" onclick="showView('students')">
+          <span class="icon">👥</span> 학생 관리
+        </div>
+        <div class="nav-item" onclick="showView('exams')">
+          <span class="icon">📝</span> 시험 관리
+        </div>
+        <div class="nav-item" onclick="showView('reports')">
+          <span class="icon">📋</span> 리포트
+          <span class="badge">3</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">분석</div>
+        <div class="nav-item" onclick="showView('analytics')">
+          <span class="icon">📈</span> 성취도 분석
+        </div>
+        <div class="nav-item" onclick="showView('upload')">
+          <span class="icon">📤</span> 파일 업로드
+        </div>
+        <div class="nav-item" onclick="showView('similar')">
+          <span class="icon">🧩</span> 유사문제 생성
+        </div>
+      </div>
+    </nav>
+
+    <!-- Parent Nav -->
+    <nav id="nav-parent" style="display:none">
+      <div class="nav-section">
+        <div class="nav-label">우리 아이</div>
+        <div class="nav-item active" onclick="showView('parent-home')">
+          <span class="icon">🏠</span> 홈
+        </div>
+        <div class="nav-item" onclick="showView('parent-progress')">
+          <span class="icon">📈</span> 학습 현황
+        </div>
+        <div class="nav-item" onclick="showView('parent-reports')">
+          <span class="icon">📋</span> 받은 리포트
+          <span class="badge">2</span>
+        </div>
+        <div class="nav-item" onclick="showView('parent-consult')">
+          <span class="icon">💬</span> 상담 요청
+        </div>
+      </div>
+    </nav>
+
+    <!-- Admin Nav -->
+    <nav id="nav-admin" style="display:none">
+      <div class="nav-section">
+        <div class="nav-label">플랫폼 운영</div>
+        <div class="nav-item active" onclick="showView('admin-overview')">
+          <span class="icon">🏢</span> 운영 현황
+        </div>
+        <div class="nav-item" onclick="showView('admin-files')">
+          <span class="icon">📁</span> 업로드 파일
+          <span class="badge">7</span>
+        </div>
+        <div class="nav-item" onclick="showView('admin-insights')">
+          <span class="icon">💡</span> 데이터 활용
+        </div>
+        <div class="nav-item" onclick="showView('admin-teachers')">
+          <span class="icon">🏫</span> 선생님 현황
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="userAvatar">봉</div>
+        <div>
+          <div class="user-name" id="userName">봉쌤</div>
+          <div class="user-role-tag" id="userRoleTag">수학 교사 · 광주</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════════════════ MAIN ════════════════════ -->
+  <main class="main-content">
+
+    <!-- ══ VIEW: TEACHER DASHBOARD ══ -->
+    <div id="view-dashboard" class="view active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">대시보드</div>
+          <div class="page-sub">2025년 1학기 · 3학년 2반</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openShareModal('리포트')">🔗 리포트 공유</button>
+          <button class="btn btn-primary btn-sm">+ 시험 추가</button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card" style="--accent-color: var(--accent)">
+          <div class="stat-label">전체 학생</div>
+          <div class="stat-value">32</div>
+          <div class="stat-delta up">↑ 작년 대비 +2명</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--green)">
+          <div class="stat-label">평균 점수</div>
+          <div class="stat-value">74.2</div>
+          <div class="stat-delta up">↑ 지난 시험 +3.4</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--yellow)">
+          <div class="stat-label">응시 완료</div>
+          <div class="stat-value">28</div>
+          <div class="stat-delta down">↓ 4명 미응시</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--purple)">
+          <div class="stat-label">이번 주 리포트</div>
+          <div class="stat-value">6</div>
+          <div class="stat-delta up">↑ 공유 3건</div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-24">
+        <!-- 최근 시험 -->
+        <div class="card">
+          <div class="card-title">📝 최근 시험 결과</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>시험명</th>
+                  <th>난이도</th>
+                  <th>평균</th>
+                  <th>응시</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="exam-row">
+                  <td>방정식 단원평가</td>
+                  <td><div class="diff-badge normal">●● 보통</div></td>
+                  <td class="font-mono">72.4</td>
+                  <td><span class="chip green">30/32</span></td>
+                </tr>
+                <tr class="exam-row">
+                  <td>부등식 쪽지시험</td>
+                  <td><div class="diff-badge easy">● 쉬움</div></td>
+                  <td class="font-mono">84.1</td>
+                  <td><span class="chip green">32/32</span></td>
+                </tr>
+                <tr class="exam-row">
+                  <td>함수 중간고사</td>
+                  <td><div class="diff-badge hard">●●● 어려움</div></td>
+                  <td class="font-mono">61.8</td>
+                  <td><span class="chip yellow">28/32</span></td>
+                </tr>
+                <tr class="exam-row">
+                  <td>수와 연산 형성평가</td>
+                  <td><div class="diff-badge expert">●●●● 심화</div></td>
+                  <td class="font-mono">48.3</td>
+                  <td><span class="chip red">25/32</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 성취도 분포 -->
+        <div class="card">
+          <div class="card-title">🎯 성취도 분포</div>
+          <div class="subject-breakdown" style="margin-top:4px">
+            <div class="subject-row">
+              <div class="subject-name">수와 연산</div>
+              <div class="subject-bar-wrap">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">62점</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:62%;background:var(--yellow)"></div></div>
+              </div>
+              <div class="subject-score">62</div>
+            </div>
+            <div class="subject-row">
+              <div class="subject-name">문자와 식</div>
+              <div class="subject-bar-wrap">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">74점</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:74%"></div></div>
+              </div>
+              <div class="subject-score">74</div>
+            </div>
+            <div class="subject-row">
+              <div class="subject-name">함수</div>
+              <div class="subject-bar-wrap">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">58점</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:58%;background:var(--red)"></div></div>
+              </div>
+              <div class="subject-score">58</div>
+            </div>
+            <div class="subject-row">
+              <div class="subject-name">기하</div>
+              <div class="subject-bar-wrap">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">80점</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:80%;background:var(--green)"></div></div>
+              </div>
+              <div class="subject-score">80</div>
+            </div>
+            <div class="subject-row">
+              <div class="subject-name">확률/통계</div>
+              <div class="subject-bar-wrap">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:3px">69점</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:69%"></div></div>
+              </div>
+              <div class="subject-score">69</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 관심 학생 -->
+      <div class="card">
+        <div class="card-title">⚠️ 관심 학생 (하위 30%)</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>학생</th><th>최근 점수</th><th>취약 단원</th><th>결석</th><th>학부모 공유</th><th>액션</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="flex items-center gap-8"><div class="student-ava" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#f56565,#fc8181)">김</div> 김민준</div></td>
+                <td><span class="font-mono text-accent">42</span></td>
+                <td><span class="chip red">함수</span> <span class="chip yellow">수와 연산</span></td>
+                <td><span class="chip yellow">3회</span></td>
+                <td><span class="chip">미공유</span></td>
+                <td><button class="btn btn-green btn-xs" onclick="openShareModal('김민준 학생 리포트')">📤 공유</button></td>
+              </tr>
+              <tr>
+                <td><div class="flex items-center gap-8"><div class="student-ava" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#f6ad55,#fbd38d)">이</div> 이서연</div></td>
+                <td><span class="font-mono text-accent">51</span></td>
+                <td><span class="chip red">문자와 식</span></td>
+                <td><span class="chip green">0회</span></td>
+                <td><span class="chip green">공유됨</span></td>
+                <td><button class="btn btn-ghost btn-xs">📊 상세</button></td>
+              </tr>
+              <tr>
+                <td><div class="flex items-center gap-8"><div class="student-ava" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#b794f4,#9f7aea)">박</div> 박지호</div></td>
+                <td><span class="font-mono text-accent">55</span></td>
+                <td><span class="chip yellow">확률/통계</span></td>
+                <td><span class="chip red">5회</span></td>
+                <td><span class="chip">미공유</span></td>
+                <td><button class="btn btn-green btn-xs" onclick="openShareModal('박지호 학생 리포트')">📤 공유</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: EXAMS ══ -->
+    <div id="view-exams" class="view">
+      <div class="page-header">
+        <div>
+          <div class="page-title">시험 관리</div>
+          <div class="page-sub">난이도 설정 및 결과 분석</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="openCreateExamModal()">+ 새 시험 등록</button>
+        </div>
+      </div>
+
+      <!-- Difficulty Guide -->
+      <div class="card mb-24">
+        <div class="card-title">🎯 난이도 기준표</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;border-top:3px solid var(--green)">
+            <div class="diff-badge easy" style="margin-bottom:10px">● 기본 (쉬움)</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">교과서 수준 문제<br>정답률 80% 이상 예상<br>개념 확인 용도</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;border-top:3px solid var(--cyan)">
+            <div class="diff-badge normal" style="margin-bottom:10px">●● 표준 (보통)</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">수능/내신 유형<br>정답률 60~79%<br>단원 마무리 용도</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;border-top:3px solid var(--yellow)">
+            <div class="diff-badge hard" style="margin-bottom:10px">●●● 도전 (어려움)</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">응용/복합 문제<br>정답률 40~59%<br>심화 수업 용도</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;border-top:3px solid var(--red)">
+            <div class="diff-badge expert" style="margin-bottom:10px">●●●● 최상위 (심화)</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">경시대회 수준<br>정답률 39% 이하<br>최상위권 변별</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 시험 목록</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>시험명</th>
+                <th>단원</th>
+                <th>날짜</th>
+                <th>난이도</th>
+                <th>평균</th>
+                <th>최고/최저</th>
+                <th>응시율</th>
+                <th>공유</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-bold">방정식 단원평가</td>
+                <td><span class="chip">문자와 식</span></td>
+                <td class="text-muted text-sm">2025.04.01</td>
+                <td>
+                  <div class="flex items-center gap-8">
+                    <div class="diff-dots">
+                      <div class="diff-dot filled normal"></div>
+                      <div class="diff-dot filled normal"></div>
+                      <div class="diff-dot"></div>
+                      <div class="diff-dot"></div>
+                    </div>
+                    <span class="diff-badge normal">보통</span>
+                  </div>
+                </td>
+                <td class="font-mono">72.4</td>
+                <td class="text-sm"><span style="color:var(--green)">98</span> / <span style="color:var(--red)">34</span></td>
+                <td><span class="chip green">93.75%</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('방정식 단원평가 리포트')">🔗 공유</button></td>
+              </tr>
+              <tr>
+                <td class="font-bold">부등식 쪽지시험</td>
+                <td><span class="chip">문자와 식</span></td>
+                <td class="text-muted text-sm">2025.03.24</td>
+                <td>
+                  <div class="flex items-center gap-8">
+                    <div class="diff-dots">
+                      <div class="diff-dot filled easy"></div>
+                      <div class="diff-dot"></div>
+                      <div class="diff-dot"></div>
+                      <div class="diff-dot"></div>
+                    </div>
+                    <span class="diff-badge easy">쉬움</span>
+                  </div>
+                </td>
+                <td class="font-mono">84.1</td>
+                <td class="text-sm"><span style="color:var(--green)">100</span> / <span style="color:var(--red)">61</span></td>
+                <td><span class="chip green">100%</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('부등식 쪽지시험 리포트')">🔗 공유</button></td>
+              </tr>
+              <tr>
+                <td class="font-bold">함수 중간고사</td>
+                <td><span class="chip">함수</span></td>
+                <td class="text-muted text-sm">2025.03.15</td>
+                <td>
+                  <div class="flex items-center gap-8">
+                    <div class="diff-dots">
+                      <div class="diff-dot filled hard"></div>
+                      <div class="diff-dot filled hard"></div>
+                      <div class="diff-dot filled hard"></div>
+                      <div class="diff-dot"></div>
+                    </div>
+                    <span class="diff-badge hard">어려움</span>
+                  </div>
+                </td>
+                <td class="font-mono">61.8</td>
+                <td class="text-sm"><span style="color:var(--green)">95</span> / <span style="color:var(--red)">22</span></td>
+                <td><span class="chip yellow">87.5%</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('함수 중간고사 리포트')">🔗 공유</button></td>
+              </tr>
+              <tr>
+                <td class="font-bold">수와 연산 형성평가</td>
+                <td><span class="chip">수와 연산</span></td>
+                <td class="text-muted text-sm">2025.03.05</td>
+                <td>
+                  <div class="flex items-center gap-8">
+                    <div class="diff-dots">
+                      <div class="diff-dot filled expert"></div>
+                      <div class="diff-dot filled expert"></div>
+                      <div class="diff-dot filled expert"></div>
+                      <div class="diff-dot filled expert"></div>
+                    </div>
+                    <span class="diff-badge expert">심화</span>
+                  </div>
+                </td>
+                <td class="font-mono">48.3</td>
+                <td class="text-sm"><span style="color:var(--green)">88</span> / <span style="color:var(--red)">11</span></td>
+                <td><span class="chip red">78.1%</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openShareModal('수와 연산 형성평가 리포트')">🔗 공유</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: REPORTS ══ -->
+    <div id="view-reports" class="view">
+      <div class="page-header">
+        <div>
+          <div class="page-title">리포트 관리</div>
+          <div class="page-sub">생성 · 공유 · 열람 이력</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm">📥 내보내기</button>
+          <button class="btn btn-primary btn-sm" onclick="openShareModal('새 리포트')">+ 리포트 공유</button>
+        </div>
+      </div>
+
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab(this,'reports','all')">전체 (6)</button>
+        <button class="tab-btn" onclick="switchTab(this,'reports','shared')">공유됨 (3)</button>
+        <button class="tab-btn" onclick="switchTab(this,'reports','draft')">임시저장 (3)</button>
+      </div>
+
+      <div id="report-tab-all">
+        <div class="report-card">
+          <div class="report-card-head">
+            <div class="report-card-info">
+              <div class="report-type-badge" style="background:rgba(79,142,247,0.1)">📊</div>
+              <div>
+                <div class="report-name">3학년 2반 4월 월간 성취도 리포트</div>
+                <div class="report-meta">2025.04.05 생성 · 전체 학급 · <span style="color:var(--green)">🔗 링크 공유중</span></div>
+              </div>
+            </div>
+            <div class="report-card-actions">
+              <button class="btn btn-ghost btn-xs">👁 미리보기</button>
+              <button class="btn btn-green btn-xs" onclick="openShareModal('4월 월간 리포트')">🔗 공유 설정</button>
+            </div>
+          </div>
+          <div class="report-card-body">
+            <div class="mini-stat"><div class="mini-stat-val">32</div><div class="mini-stat-lbl">대상 학생</div></div>
+            <div style="width:1px;height:40px;background:var(--border)"></div>
+            <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--green)">74.2</div><div class="mini-stat-lbl">평균 점수</div></div>
+            <div style="width:1px;height:40px;background:var(--border)"></div>
+            <div class="mini-stat"><div class="mini-stat-val" style="color:var(--accent)">18</div><div class="mini-stat-lbl">열람 횟수</div></div>
+            <div style="width:1px;height:40px;background:var(--border)"></div>
+            <div class="mini-stat"><div class="mini-stat-val">28</div><div class="mini-stat-lbl">학부모 확인</div></div>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="report-card-head">
+            <div class="report-card-info">
+              <div class="report-type-badge" style="background:rgba(62,207,142,0.1)">👤</div>
+              <div>
+                <div class="report-name">김민준 개인 성취도 리포트</div>
+                <div class="report-meta">2025.04.03 생성 · 개인 · <span style="color:var(--yellow)">📧 이메일 발송됨</span></div>
+              </div>
+            </div>
+            <div class="report-card-actions">
+              <button class="btn btn-ghost btn-xs">👁 미리보기</button>
+              <button class="btn btn-green btn-xs" onclick="openShareModal('김민준 리포트')">🔗 재공유</button>
+            </div>
+          </div>
+          <div class="report-card-body">
+            <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--red)">42</div><div class="mini-stat-lbl">최근 점수</div></div>
+            <div style="width:1px;height:40px;background:var(--border)"></div>
+            <div class="mini-stat"><div class="mini-stat-val" style="color:var(--red)">하위 10%</div><div class="mini-stat-lbl">반 순위</div></div>
+            <div style="width:1px;height:40px;background:var(--border)"></div>
+            <div class="mini-stat"><div class="mini-stat-val">2</div><div class="mini-stat-lbl">취약 단원</div></div>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="report-card-head">
+            <div class="report-card-info">
+              <div class="report-type-badge" style="background:rgba(183,148,244,0.1)">📝</div>
+              <div>
+                <div class="report-name">함수 중간고사 결과 분석</div>
+                <div class="report-meta">2025.03.18 생성 · 전체 학급 · <span style="color:var(--text3)">🔒 비공개</span></div>
+              </div>
+            </div>
+            <div class="report-card-actions">
+              <button class="btn btn-ghost btn-xs">👁 미리보기</button>
+              <button class="btn btn-primary btn-xs" onclick="openShareModal('함수 중간고사 결과')">📤 공유하기</button>
+            </div>
+          </div>
+          <div class="report-card-body">
+            <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--yellow)">61.8</div><div class="mini-stat-lbl">평균 점수</div></div>
+            <div style="width:1px;height:40px;background:var(--border)"></div>
+            <div class="mini-stat"><div class="mini-stat-val" style="color:var(--red)">28</div><div class="mini-stat-lbl">응시 인원</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: STUDENTS ══ -->
+    <div id="view-students" class="view">
+      <div class="page-header">
+        <div>
+          <div class="page-title">학생 관리</div>
+          <div class="page-sub">3학년 2반 · 32명</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm">📥 엑셀 내보내기</button>
+          <button class="btn btn-primary btn-sm">+ 학생 추가</button>
+        </div>
+      </div>
+      <div class="student-grid">
+        <!-- Student Cards -->
+        <div class="student-card" onclick="openShareModal('김민준 리포트')">
+          <div class="student-card-header">
+            <div class="student-ava" style="background:linear-gradient(135deg,#f56565,#fc8181)">김</div>
+            <div>
+              <div class="student-name">김민준</div>
+              <div class="student-meta">출석 29/32 · <span style="color:var(--red)">관심학생</span></div>
+            </div>
+          </div>
+          <div class="student-stats">
+            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--red)">42</div><div class="student-stat-lbl">최근점수</div></div>
+            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--yellow)">58</div><div class="student-stat-lbl">평균</div></div>
+            <div class="student-stat-item"><div class="student-stat-val">28위</div><div class="student-stat-lbl">반 순위</div></div>
+          </div>
+          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill red" style="width:42%"></div></div>
+        </div>
+
+        <div class="student-card">
+          <div class="student-card-header">
+            <div class="student-ava" style="background:linear-gradient(135deg,#4f8ef7,#63b3ed)">이</div>
+            <div>
+              <div class="student-name">이서연</div>
+              <div class="student-meta">출석 32/32 · <span style="color:var(--green)">우수</span></div>
+            </div>
+          </div>
+          <div class="student-stats">
+            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">96</div><div class="student-stat-lbl">최근점수</div></div>
+            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">91</div><div class="student-stat-lbl">평균</div></div>
+            <div class="student-stat-item"><div class="student-stat-val">2위</div><div class="student-stat-lbl">반 순위</div></div>
+          </div>
+          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill green" style="width:96%"></div></div>
+        </div>
+
+        <div class="student-card">
+          <div class="student-card-header">
+            <div class="student-ava" style="background:linear-gradient(135deg,#f6ad55,#fbd38d)">박</div>
+            <div>
+              <div class="student-name">박지호</div>
+              <div class="student-meta">출석 27/32 · <span style="color:var(--yellow)">주의</span></div>
+            </div>
+          </div>
+          <div class="student-stats">
+            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--yellow)">55</div><div class="student-stat-lbl">최근점수</div></div>
+            <div class="student-stat-item"><div class="student-stat-val">63</div><div class="student-stat-lbl">평균</div></div>
+            <div class="student-stat-item"><div class="student-stat-val">22위</div><div class="student-stat-lbl">반 순위</div></div>
+          </div>
+          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill yellow" style="width:55%"></div></div>
+        </div>
+
+        <div class="student-card">
+          <div class="student-card-header">
+            <div class="student-ava" style="background:linear-gradient(135deg,#b794f4,#9f7aea)">최</div>
+            <div>
+              <div class="student-name">최예린</div>
+              <div class="student-meta">출석 31/32 · <span style="color:var(--accent)">보통</span></div>
+            </div>
+          </div>
+          <div class="student-stats">
+            <div class="student-stat-item"><div class="student-stat-val">78</div><div class="student-stat-lbl">최근점수</div></div>
+            <div class="student-stat-item"><div class="student-stat-val">75</div><div class="student-stat-lbl">평균</div></div>
+            <div class="student-stat-item"><div class="student-stat-val">12위</div><div class="student-stat-lbl">반 순위</div></div>
+          </div>
+          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:78%"></div></div>
+        </div>
+
+        <div class="student-card">
+          <div class="student-card-header">
+            <div class="student-ava" style="background:linear-gradient(135deg,#3ecf8e,#68d391)">정</div>
+            <div>
+              <div class="student-name">정우성</div>
+              <div class="student-meta">출석 30/32 · <span style="color:var(--green)">우수</span></div>
+            </div>
+          </div>
+          <div class="student-stats">
+            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">92</div><div class="student-stat-lbl">최근점수</div></div>
+            <div class="student-stat-item"><div class="student-stat-val" style="color:var(--green)">88</div><div class="student-stat-lbl">평균</div></div>
+            <div class="student-stat-item"><div class="student-stat-val">4위</div><div class="student-stat-lbl">반 순위</div></div>
+          </div>
+          <div class="progress-bar" style="margin-top:12px"><div class="progress-fill green" style="width:92%"></div></div>
+        </div>
+
+        <div class="student-card" style="background:var(--bg3);border-style:dashed;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:140px">
+          <div style="text-align:center;color:var(--text3)">
+            <div style="font-size:28px;margin-bottom:8px">+</div>
+            <div style="font-size:13px">학생 추가</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ANALYTICS ══ -->
+    <div id="view-analytics" class="view">
+      <div class="page-header">
+        <div><div class="page-title">성취도 분석</div><div class="page-sub">단원별 · 학생별 심층 분석</div></div>
+      </div>
+      <div class="empty-state">
+        <div class="empty-state-icon">📈</div>
+        <div class="empty-state-text">분석 차트는 Supabase 연동 후 실데이터가 표시됩니다</div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: UPLOAD ══ -->
+    <div id="view-upload" class="view">
+      <div class="page-header">
+        <div><div class="page-title">파일 업로드</div><div class="page-sub">학습 자료 · 시험지 · 분석 데이터</div></div>
+      </div>
+      <div class="card">
+        <div style="border:2px dashed var(--border2);border-radius:var(--radius);padding:48px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+          <div style="font-size:36px;margin-bottom:12px">📤</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">파일을 드래그하거나 클릭하여 업로드</div>
+          <div style="font-size:12px;color:var(--text3)">PDF, XLSX, HWP, JPG, PNG 지원 · 최대 50MB</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-similar" class="view">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🧩 유사문제 생성기</div>
+          <div class="page-sub">시험지 업로드 또는 문제 붙여넣기 → Claude AI가 유사문제 자동 생성</div>
+        </div>
+        <div class="header-actions">
+          <div id="sg-api-status" style="display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text2)">
+            <div id="sg-api-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);transition:background 0.3s;flex-shrink:0"></div>
+            <span id="sg-api-label">API 대기중</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- API KEY -->
+      <div class="card mb-24">
+        <div class="card-title">🔑 Anthropic API Key</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 13px">
+            <input type="password" id="sg-api-key" placeholder="sk-ant-api03-..." oninput="sgOnApiKey()"
+              style="flex:1;background:none;border:none;color:var(--text2);font-size:12px;font-family:'Space Mono',monospace;outline:none">
+            <button onclick="sgToggleKey()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px">👁</button>
+          </div>
+          <div style="font-size:11px;color:var(--yellow);background:rgba(246,173,85,0.08);border:1px solid rgba(246,173,85,0.2);border-radius:var(--radius-sm);padding:9px 12px;white-space:nowrap">
+            ⚠️ 브라우저에 자동 저장됩니다
+          </div>
+        </div>
+      </div>
+
+      <!-- TWO COLUMN LAYOUT -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+        <!-- ── LEFT: INPUT ── -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <!-- Input Method Tabs -->
+          <div class="card" style="padding:16px 18px">
+            <div class="card-title">📥 문제 입력</div>
+            <div style="display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px;gap:2px;margin-bottom:14px">
+              <button class="sg-tab active" id="sg-tab-file" onclick="sgSwitchTab('file')" style="flex:1;padding:7px 6px;border-radius:5px;border:none;background:var(--bg2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);font-family:inherit">📎 파일</button>
+              <button class="sg-tab" id="sg-tab-image" onclick="sgSwitchTab('image')" style="flex:1;padding:7px 6px;border-radius:5px;border:none;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🖼 이미지</button>
+              <button class="sg-tab" id="sg-tab-text" onclick="sgSwitchTab('text')" style="flex:1;padding:7px 6px;border-radius:5px;border:none;background:transparent;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✏️ 텍스트</button>
+            </div>
+
+            <!-- File Tab -->
+            <div id="sg-content-file">
+              <div id="sg-file-dropzone"
+                ondragover="sgDragOver(event,'sg-file-dropzone')" ondragleave="sgDragLeave('sg-file-dropzone')" ondrop="sgDrop(event,'file')"
+                style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:28px 16px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);position:relative">
+                <input type="file" id="sg-file-input" accept=".pdf,.txt,.docx" onchange="sgHandleFile(event,'file')"
+                  style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%">
+                <div style="font-size:28px;margin-bottom:8px">📄</div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">PDF · TXT · DOCX</div>
+                <div style="font-size:11px;color:var(--text3)">드래그 또는 클릭</div>
+              </div>
+              <div id="sg-file-preview" style="display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;display:none;align-items:center;gap:10px">
+                <div style="font-size:22px">📄</div>
+                <div style="flex:1;min-width:0">
+                  <div id="sg-file-name" style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+                  <div id="sg-file-size" style="font-size:11px;color:var(--text3);margin-top:2px">—</div>
+                </div>
+                <button onclick="sgRemoveFile('file')" style="background:rgba(245,101,101,0.1);border:1px solid rgba(245,101,101,0.2);color:var(--red);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">✕</button>
+              </div>
+              <div id="sg-extracted-wrap" style="display:none;margin-top:10px">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">추출된 텍스트 (편집 가능)</div>
+                <textarea id="sg-extracted-text" oninput="sgUpdateBtn()"
+                  style="width:100%;min-height:100px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;line-height:1.7;padding:10px 12px;resize:vertical;outline:none;font-family:inherit"
+                  placeholder="파일에서 텍스트를 추출하거나 여기에 직접 입력하세요..."></textarea>
+              </div>
+            </div>
+
+            <!-- Image Tab -->
+            <div id="sg-content-image" style="display:none">
+              <div id="sg-img-dropzone"
+                ondragover="sgDragOver(event,'sg-img-dropzone')" ondragleave="sgDragLeave('sg-img-dropzone')" ondrop="sgDrop(event,'image')"
+                style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:28px 16px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);position:relative">
+                <input type="file" id="sg-img-input" accept="image/*" onchange="sgHandleFile(event,'image')"
+                  style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%">
+                <div style="font-size:28px;margin-bottom:8px">🖼</div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">시험지 사진 · 스캔본</div>
+                <div style="font-size:11px;color:var(--text3)">JPG · PNG · WEBP</div>
+              </div>
+              <div id="sg-img-preview-wrap" style="display:none;margin-top:10px;position:relative;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);max-height:200px">
+                <img id="sg-img-preview" style="width:100%;object-fit:contain;background:var(--bg3)">
+                <button onclick="sgRemoveFile('image')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:1px solid var(--border2);color:var(--text);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px">✕</button>
+              </div>
+            </div>
+
+            <!-- Text Tab -->
+            <div id="sg-content-text" style="display:none">
+              <textarea id="sg-text-input" oninput="sgUpdateBtn()"
+                style="width:100%;min-height:180px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13.5px;line-height:1.8;padding:12px 14px;resize:vertical;outline:none;font-family:inherit"
+                placeholder="문제를 여기에 붙여넣으세요.
+
+예시)
+다음 수직선에서 -3보다 크고 2보다 작은 정수를 모두 구하시오."></textarea>
+              <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px" id="sg-char-count">0자</div>
+            </div>
+          </div>
+
+          <!-- Options -->
+          <div class="card" style="padding:16px 18px">
+            <div class="card-title">⚙️ 생성 옵션</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">문제 수</div>
+                <select id="sg-opt-count" class="form-input">
+                  <option value="3">3문제</option>
+                  <option value="5" selected>5문제</option>
+                  <option value="7">7문제</option>
+                  <option value="10">10문제</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">난이도</div>
+                <select id="sg-opt-diff" class="form-input">
+                  <option value="same">원본과 동일</option>
+                  <option value="easier">한 단계 쉽게</option>
+                  <option value="harder">한 단계 어렵게</option>
+                  <option value="mixed">혼합</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">문제 유형</div>
+                <select id="sg-opt-type" class="form-input">
+                  <option value="multiple" selected>객관식 (5지)</option>
+                  <option value="short">단답형</option>
+                  <option value="essay">서술형</option>
+                  <option value="mixed">혼합</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">힌트</div>
+                <select id="sg-opt-hint" class="form-input">
+                  <option value="yes" selected>정답 + 힌트</option>
+                  <option value="answer">정답만</option>
+                  <option value="no">미포함</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generate Button -->
+          <button id="sg-gen-btn" onclick="sgGenerate()" disabled
+            style="width:100%;padding:14px;border-radius:var(--radius);border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;opacity:0.45">
+            <span id="sg-btn-icon">✨</span>
+            <span id="sg-btn-text">유사문제 생성하기</span>
+          </button>
+        </div>
+
+        <!-- ── RIGHT: OUTPUT ── -->
+        <div class="card" style="min-height:500px;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:0">🧩 생성된 문제</div>
+            <div id="sg-out-actions" style="display:none;gap:8px;display:none">
+              <button class="btn btn-ghost btn-sm" onclick="sgCopyAll()">📋 전체 복사</button>
+              <button class="btn btn-ghost btn-sm" onclick="sgClear()">🗑</button>
+            </div>
+          </div>
+
+          <!-- Empty -->
+          <div id="sg-out-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text3)">
+            <div style="font-size:40px;opacity:0.3">🧮</div>
+            <div style="font-size:14px">문제를 입력하고 생성 버튼을 누르세요</div>
+            <div style="font-size:12px;opacity:0.6">Claude AI가 유사문제를 자동으로 만들어드립니다</div>
+          </div>
+
+          <!-- Loading -->
+          <div id="sg-out-loading" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+            <div style="position:relative;width:56px;height:56px">
+              <div style="position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:var(--accent);animation:spin 1s linear infinite"></div>
+              <div style="position:absolute;inset:8px;border-radius:50%;border:2px solid transparent;border-top-color:var(--accent2);animation:spin 0.7s linear infinite reverse"></div>
+            </div>
+            <div id="sg-loading-text" style="font-size:13px;color:var(--text2)">문제 분석 중...</div>
+            <div style="display:flex;flex-direction:column;gap:6px;width:220px">
+              <div class="sg-step" id="sg-step1" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)"><div style="width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background 0.3s"></div>문제 구조 파악 중</div>
+              <div class="sg-step" id="sg-step2" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)"><div style="width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>핵심 개념 추출 중</div>
+              <div class="sg-step" id="sg-step3" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)"><div style="width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>유사 문제 생성 중</div>
+              <div class="sg-step" id="sg-step4" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)"><div style="width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>정답 및 힌트 작성 중</div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div id="sg-out-results" style="display:none;flex-direction:column;gap:12px;overflow-y:auto;flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border)">
+              <div id="sg-result-meta" style="font-size:12px;color:var(--text3)">—</div>
+              <div style="display:flex;gap:7px">
+                <button class="btn btn-ghost btn-sm" onclick="sgCopyAll()">📋 전체 복사</button>
+                <button class="btn btn-accent btn-sm" onclick="sgGenerate()">🔄 재생성</button>
+              </div>
+            </div>
+            <div id="sg-copy-bar" style="display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(62,207,142,0.07);border:1px solid rgba(62,207,142,0.2);border-radius:var(--radius-sm)">
+              <span style="font-size:13px;color:var(--green);font-weight:600">✅ 클립보드에 복사되었습니다</span>
+              <button class="btn btn-ghost btn-xs" onclick="document.getElementById('sg-copy-bar').style.display='none'">✕</button>
+            </div>
+            <div id="sg-problem-list"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: PARENT HOME ══ (NEW) -->
+    <div id="view-parent-home" class="view">
+      <div class="parent-welcome">
+        <div class="child-avatar-lg">민</div>
+        <div class="parent-welcome-text">
+          <h2>안녕하세요, 김민준 학부모님 👋</h2>
+          <p>아이의 이번 주 수학 학습 현황을 확인하세요.</p>
+          <div class="last-update">마지막 업데이트: 2025.04.08 (봉쌤 작성)</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="showToast('상담 요청이 전송되었습니다', '📬')">💬 상담 요청</button>
+      </div>
+
+      <div class="insight-cards">
+        <div class="insight-card">
+          <div class="insight-icon">📚</div>
+          <div class="insight-value font-mono" style="color:var(--yellow)">42점</div>
+          <div class="insight-label">이번 시험 점수</div>
+          <div class="insight-trend" style="color:var(--red)">↓ 지난번 대비 -11점</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon">⏱️</div>
+          <div class="insight-value font-mono" style="color:var(--accent)">3.2시간</div>
+          <div class="insight-label">이번 주 학습시간</div>
+          <div class="insight-trend" style="color:var(--green)">↑ 지난주 대비 +0.8시간</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon">🎯</div>
+          <div class="insight-value font-mono" style="color:var(--red)">하위 10%</div>
+          <div class="insight-label">반 성취 수준</div>
+          <div class="insight-trend" style="color:var(--text3)">관심이 필요해요</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- 이번 주 학습 -->
+        <div class="card">
+          <div class="card-title">📅 이번 주 학습 활동</div>
+          <div class="week-activity">
+            <div class="week-day"><div class="week-day-bar-wrap"><div class="week-day-bar" style="height:30%"></div></div><div class="week-day-lbl">월</div></div>
+            <div class="week-day"><div class="week-day-bar-wrap"><div class="week-day-bar" style="height:70%"></div></div><div class="week-day-lbl">화</div></div>
+            <div class="week-day"><div class="week-day-bar-wrap"><div class="week-day-bar" style="height:45%"></div></div><div class="week-day-lbl">수</div></div>
+            <div class="week-day"><div class="week-day-bar-wrap"><div class="week-day-bar" style="height:90%"></div></div><div class="week-day-lbl">목</div></div>
+            <div class="week-day"><div class="week-day-bar-wrap"><div class="week-day-bar" style="height:55%"></div></div><div class="week-day-lbl">금</div></div>
+            <div class="week-day"><div class="week-day-bar-wrap"><div class="week-day-bar" style="height:20%;background:var(--border2)"></div></div><div class="week-day-lbl">토</div></div>
+            <div class="week-day"><div class="week-day-bar-wrap"><div class="week-day-bar" style="height:10%;background:var(--border2)"></div></div><div class="week-day-lbl">일</div></div>
+          </div>
+        </div>
+
+        <!-- 선생님 코멘트 -->
+        <div class="card">
+          <div class="card-title">💬 선생님 코멘트</div>
+          <div style="background:rgba(79,142,247,0.06);border:1px solid rgba(79,142,247,0.15);border-radius:10px;padding:16px;font-size:13.5px;color:var(--text);line-height:1.7;">
+            "민준이는 연산 능력은 좋으나, 함수의 <strong>개념 이해</strong>가 부족합니다. 방정식 파트에서 실수가 잦으니 오답노트를 활용해 보완하면 좋겠습니다. 꾸준히 노력하는 모습이 보여 기대됩니다. 😊"
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:var(--text3)">봉쌤 · 2025.04.08</div>
+          <div class="divider"></div>
+          <div class="card-title">📝 취약 단원 (선생님 선정)</div>
+          <div class="flex gap-8" style="flex-wrap:wrap">
+            <span class="chip red">🔴 함수 — 심층 보완 필요</span>
+            <span class="chip yellow">🟡 수와 연산 — 보완 권장</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: PARENT PROGRESS ══ -->
+    <div id="view-parent-progress" class="view">
+      <div class="page-header">
+        <div><div class="page-title">학습 현황</div><div class="page-sub">단원별 성취도 상세</div></div>
+      </div>
+      <div class="card mb-24">
+        <div class="card-title">📊 단원별 점수 추이</div>
+        <div class="subject-breakdown">
+          <div class="subject-row"><div class="subject-name">수와 연산</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill yellow" style="width:55%"></div></div></div><div class="subject-score">55</div></div>
+          <div class="subject-row"><div class="subject-name">문자와 식</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div></div><div class="subject-score">62</div></div>
+          <div class="subject-row"><div class="subject-name">함수</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill red" style="width:34%"></div></div></div><div class="subject-score">34</div></div>
+          <div class="subject-row"><div class="subject-name">기하</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill green" style="width:78%"></div></div></div><div class="subject-score">78</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 시험 이력</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>시험명</th><th>날짜</th><th>난이도</th><th>점수</th><th>반 평균</th></tr></thead>
+            <tbody>
+              <tr><td>방정식 단원평가</td><td class="text-muted">04.01</td><td><div class="diff-badge normal">●● 보통</div></td><td><span class="font-mono" style="color:var(--yellow)">58</span></td><td class="font-mono text-muted">72.4</td></tr>
+              <tr><td>부등식 쪽지시험</td><td class="text-muted">03.24</td><td><div class="diff-badge easy">● 쉬움</div></td><td><span class="font-mono" style="color:var(--accent)">72</span></td><td class="font-mono text-muted">84.1</td></tr>
+              <tr><td>함수 중간고사</td><td class="text-muted">03.15</td><td><div class="diff-badge hard">●●● 어려움</div></td><td><span class="font-mono" style="color:var(--red)">34</span></td><td class="font-mono text-muted">61.8</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: PARENT REPORTS ══ -->
+    <div id="view-parent-reports" class="view">
+      <div class="page-header">
+        <div><div class="page-title">받은 리포트</div><div class="page-sub">선생님이 공유한 리포트</div></div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-head">
+          <div class="report-card-info">
+            <div class="report-type-badge" style="background:rgba(62,207,142,0.1)">📊</div>
+            <div>
+              <div class="report-name">4월 월간 성취도 리포트</div>
+              <div class="report-meta">봉쌤 · 2025.04.05 공유 · <span style="color:var(--green)">새 리포트</span></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-xs">열람하기</button>
+        </div>
+        <div class="report-card-body">
+          <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--yellow)">58</div><div class="mini-stat-lbl">내 점수</div></div>
+          <div style="width:1px;height:40px;background:var(--border)"></div>
+          <div class="mini-stat"><div class="mini-stat-val font-mono">72</div><div class="mini-stat-lbl">반 평균</div></div>
+        </div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-head">
+          <div class="report-card-info">
+            <div class="report-type-badge" style="background:rgba(183,148,244,0.1)">👤</div>
+            <div>
+              <div class="report-name">김민준 개인 성취 분석</div>
+              <div class="report-meta">봉쌤 · 2025.04.03 공유 · 열람함</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-xs">다시 보기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: PARENT CONSULT ══ -->
+    <div id="view-parent-consult" class="view">
+      <div class="page-header">
+        <div><div class="page-title">상담 요청</div><div class="page-sub">봉쌤에게 메시지 보내기</div></div>
+      </div>
+      <div class="card" style="max-width:560px">
+        <div class="form-group">
+          <label class="form-label">상담 유형</label>
+          <select class="form-input"><option>학습 부진 관련</option><option>태도/출석 관련</option><option>시험 결과 문의</option><option>기타</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">문의 내용</label>
+          <textarea class="form-input" rows="5" placeholder="선생님께 전하고 싶은 내용을 적어주세요..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="showToast('상담 요청이 봉쌤께 전달되었습니다', '✅')">📨 상담 요청 보내기</button>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN OVERVIEW ══ (NEW) -->
+    <div id="view-admin-overview" class="view">
+      <div class="page-header">
+        <div><div class="page-title">플랫폼 운영 현황</div><div class="page-sub">MathIQ 전국 운영 대시보드</div></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card" style="--accent-color:var(--purple)">
+          <div class="stat-label">등록 선생님</div>
+          <div class="stat-value">847</div>
+          <div class="stat-delta up">↑ 이번 달 +62명</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--accent)">
+          <div class="stat-label">등록 학생</div>
+          <div class="stat-value">24.3K</div>
+          <div class="stat-delta up">↑ +1,240명</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--green)">
+          <div class="stat-label">업로드 파일</div>
+          <div class="stat-value">5,912</div>
+          <div class="stat-delta up">↑ 이번 주 +187</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--yellow)">
+          <div class="stat-label">공유 리포트</div>
+          <div class="stat-value">18.7K</div>
+          <div class="stat-delta up">↑ +890건</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🏆 활성 지역 TOP 5</div>
+          <div class="subject-breakdown">
+            <div class="subject-row"><div class="subject-name">서울</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:95%"></div></div></div><div class="subject-score" style="font-size:12px">248명</div></div>
+            <div class="subject-row"><div class="subject-name">경기</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:82%"></div></div></div><div class="subject-score" style="font-size:12px">201명</div></div>
+            <div class="subject-row"><div class="subject-name">광주</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill purple" style="width:44%;background:var(--purple)"></div></div></div><div class="subject-score" style="font-size:12px">108명</div></div>
+            <div class="subject-row"><div class="subject-name">부산</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:38%"></div></div></div><div class="subject-score" style="font-size:12px">93명</div></div>
+            <div class="subject-row"><div class="subject-name">대구</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:32%"></div></div></div><div class="subject-score" style="font-size:12px">78명</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 콘텐츠 유형 분포</div>
+          <div class="subject-breakdown">
+            <div class="subject-row"><div class="subject-name">시험지</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div></div><div class="subject-score" style="font-size:12px">3,665</div></div>
+            <div class="subject-row"><div class="subject-name">학습자료</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill green" style="width:22%"></div></div></div><div class="subject-score" style="font-size:12px">1,301</div></div>
+            <div class="subject-row"><div class="subject-name">분석결과</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill yellow" style="width:10%"></div></div></div><div class="subject-score" style="font-size:12px">591</div></div>
+            <div class="subject-row"><div class="subject-name">기타</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:6%;background:var(--text3)"></div></div></div><div class="subject-score" style="font-size:12px">355</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN FILES ══ (NEW) -->
+    <div id="view-admin-files" class="view">
+      <div class="page-header">
+        <div><div class="page-title">업로드 파일 관리</div><div class="page-sub">전국 선생님 업로드 파일 검토</div></div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm">📥 CSV 내보내기</button>
+          <button class="btn btn-primary btn-sm">🤖 AI 일괄 분류</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap uploaded-files-table">
+          <table>
+            <thead><tr><th></th><th>파일명</th><th>업로더</th><th>지역</th><th>유형</th><th>업로드일</th><th>상태</th><th>액션</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="file-icon">📄</td>
+                <td class="font-bold">중1_정수와유리수_시험지.pdf</td>
+                <td>이민영 선생님</td>
+                <td><span class="chip">서울</span></td>
+                <td><span class="chip blue">시험지</span></td>
+                <td class="text-muted text-sm">04.08</td>
+                <td><span class="file-status pending">⏳ 검토 대기</span></td>
+                <td><button class="btn btn-primary btn-xs">검토</button></td>
+              </tr>
+              <tr>
+                <td class="file-icon">📊</td>
+                <td class="font-bold">3반_4월_성취분석.xlsx</td>
+                <td>박찬호 선생님</td>
+                <td><span class="chip">경기</span></td>
+                <td><span class="chip green">분석</span></td>
+                <td class="text-muted text-sm">04.07</td>
+                <td><span class="file-status reviewed">✅ 검토 완료</span></td>
+                <td><button class="btn btn-ghost btn-xs">보기</button></td>
+              </tr>
+              <tr>
+                <td class="file-icon">📝</td>
+                <td class="font-bold">함수단원_보충학습지.hwp</td>
+                <td>봉쌤</td>
+                <td><span class="chip purple">광주</span></td>
+                <td><span class="chip yellow">학습자료</span></td>
+                <td class="text-muted text-sm">04.06</td>
+                <td><span class="file-status reviewed">✅ 검토 완료</span></td>
+                <td><button class="btn btn-ghost btn-xs">보기</button></td>
+              </tr>
+              <tr>
+                <td class="file-icon">📄</td>
+                <td class="font-bold">2학년_방정식_기출변형.pdf</td>
+                <td>김현숙 선생님</td>
+                <td><span class="chip">부산</span></td>
+                <td><span class="chip blue">시험지</span></td>
+                <td class="text-muted text-sm">04.05</td>
+                <td><span class="file-status flagged">🚩 검토 필요</span></td>
+                <td><button class="btn btn-red btn-xs">확인</button></td>
+              </tr>
+              <tr>
+                <td class="file-icon">🖼</td>
+                <td class="font-bold">수업판서_기하단원.jpg</td>
+                <td>오태양 선생님</td>
+                <td><span class="chip">대구</span></td>
+                <td><span class="chip">기타</span></td>
+                <td class="text-muted text-sm">04.04</td>
+                <td><span class="file-status pending">⏳ 검토 대기</span></td>
+                <td><button class="btn btn-primary btn-xs">검토</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="supabase-note">
+        <div class="supabase-note-title">🗄️ Supabase 연동 포인트</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          파일은 <span class="code-tag">storage.objects</span> 테이블에 저장됩니다.
+          메타데이터(업로더, 상태, 분류)는 <span class="code-tag">files</span> 커스텀 테이블에 연결하세요.
+          Row Level Security (RLS) 설정으로 운영자만 전체 목록에 접근 가능하도록 제한합니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN INSIGHTS ══ (NEW - 핵심!) -->
+    <div id="view-admin-insights" class="view">
+      <div class="page-header">
+        <div><div class="page-title">업로드 데이터 활용 전략</div><div class="page-sub">전국 선생님이 올린 데이터, 이렇게 쓸 수 있어요</div></div>
+      </div>
+
+      <div class="admin-hero">
+        <h2>🚀 플랫폼 운영자가 데이터를 활용하는 방법</h2>
+        <p>전국 선생님들이 업로드한 시험지·분석 파일은 단순 저장에 그치지 않습니다. 집계·분석하면 <strong>전국 단위 학습 데이터</strong>가 됩니다. 아래 파이프라인과 활용 사례를 참고하세요.</p>
+      </div>
+
+      <!-- 데이터 파이프라인 -->
+      <div class="card mb-24">
+        <div class="card-title">⚙️ 데이터 처리 파이프라인</div>
+        <div class="admin-pipeline">
+          <div class="pipeline-step">
+            <div class="pipeline-num">STEP 01</div>
+            <div class="pipeline-title">수집</div>
+            <div class="pipeline-desc">선생님 업로드 → Supabase Storage 저장 → files 테이블에 메타데이터 기록</div>
+          </div>
+          <div class="pipeline-step">
+            <div class="pipeline-num">STEP 02</div>
+            <div class="pipeline-title">분류 / 태깅</div>
+            <div class="pipeline-desc">AI(Claude API) 자동 분류: 단원, 난이도, 문항수, 유형 추출</div>
+          </div>
+          <div class="pipeline-step">
+            <div class="pipeline-num">STEP 03</div>
+            <div class="pipeline-title">집계 / 분석</div>
+            <div class="pipeline-desc">Supabase Edge Function → 지역별/학년별/단원별 통계 생성</div>
+          </div>
+          <div class="pipeline-step">
+            <div class="pipeline-num">STEP 04</div>
+            <div class="pipeline-title">서비스 적용</div>
+            <div class="pipeline-desc">플랫폼 내 추천, 리포트, 비교 분석, 외부 판매 등으로 활용</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 활용 사례 -->
+      <div class="use-case-grid">
+        <div class="use-case-card" style="--case-color:var(--accent)">
+          <div class="use-case-icon">📊</div>
+          <div class="use-case-title">전국 평균 비교 리포트</div>
+          <div class="use-case-desc">학급 평균을 전국/지역 평균과 비교하는 리포트 자동 생성. "우리 반이 전국 수와 연산 평균보다 8점 낮습니다" 형태로 선생님에게 인사이트 제공.</div>
+          <span class="use-case-tag">B2B 프리미엄 기능</span>
+        </div>
+        <div class="use-case-card" style="--case-color:var(--green)">
+          <div class="use-case-icon">📚</div>
+          <div class="use-case-title">문항 은행 (Question Bank) 구축</div>
+          <div class="use-case-desc">선생님들이 올린 시험지를 AI로 문항 단위 분류 → 단원·난이도별 문항 DB 구축 → 선생님이 시험 자동 생성할 때 활용 가능.</div>
+          <span class="use-case-tag">핵심 경쟁력</span>
+        </div>
+        <div class="use-case-card" style="--case-color:var(--yellow)">
+          <div class="use-case-icon">🗺️</div>
+          <div class="use-case-title">지역별 학력 격차 분석</div>
+          <div class="use-case-desc">지역별 점수 분포 시각화. 교육청·연구소에 익명화된 집계 데이터 제공하여 수익화 또는 공익 활용. 논문 협력 가능.</div>
+          <span class="use-case-tag">B2G / 연구 협력</span>
+        </div>
+        <div class="use-case-card" style="--case-color:var(--purple)">
+          <div class="use-case-icon">🤖</div>
+          <div class="use-case-title">AI 취약 단원 예측</div>
+          <div class="use-case-desc">특정 시기·단원에서 점수 하락이 반복되는 패턴 감지 → 선생님에게 "이 단원 집중 수업 권장" 알림 발송. 학습 개입 최적화.</div>
+          <span class="use-case-tag">AI 자동화</span>
+        </div>
+        <div class="use-case-card" style="--case-color:var(--pink)">
+          <div class="use-case-icon">🏅</div>
+          <div class="use-case-title">우수 교재 큐레이션</div>
+          <div class="use-case-desc">성취도 향상 효과가 높은 학습자료를 분석해 "봉쌤 추천 자료" 같은 큐레이션 콘텐츠로 플랫폼 내 공유. 콘텐츠 생태계 형성.</div>
+          <span class="use-case-tag">커뮤니티 기능</span>
+        </div>
+        <div class="use-case-card" style="--case-color:var(--cyan)">
+          <div class="use-case-icon">📈</div>
+          <div class="use-case-title">학습 트렌드 리포트 (연간)</div>
+          <div class="use-case-desc">연 1회 "MathIQ 전국 수학 학습 트렌드 리포트" 발행. 언론 홍보·브랜딩 효과 및 뉴스레터 구독자 확보에 활용.</div>
+          <span class="use-case-tag">마케팅 / 브랜딩</span>
+        </div>
+      </div>
+
+      <!-- Supabase 쿼리 예시 -->
+      <div class="card">
+        <div class="card-title">🗄️ Supabase 운영자 쿼리 예시</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="supabase-note">
+            <div class="supabase-note-title">📥 전국 단원별 평균 점수 집계</div>
+            <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);line-height:1.8;background:var(--bg);padding:12px;border-radius:6px">
+              SELECT unit_name,<br>
+              &nbsp;&nbsp;AVG(score) as national_avg,<br>
+              &nbsp;&nbsp;COUNT(*) as sample_count<br>
+              FROM exam_results<br>
+              JOIN exams ON ...<br>
+              GROUP BY unit_name<br>
+              ORDER BY national_avg ASC;
+            </div>
+          </div>
+          <div class="supabase-note">
+            <div class="supabase-note-title">📁 미검토 파일 알림 (Edge Function)</div>
+            <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--green);line-height:1.8;background:var(--bg);padding:12px;border-radius:6px">
+              -- Supabase Cron (매일 오전 9시)<br>
+              SELECT * FROM files<br>
+              WHERE status = 'pending'<br>
+              &nbsp;&nbsp;AND created_at &lt; NOW()<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;- INTERVAL '2 days';<br>
+              -- → 운영자 이메일 발송
+            </div>
+          </div>
+        </div>
+        <div class="supabase-note" style="margin-top:12px">
+          <div class="supabase-note-title">⚠️ 중요: 개인정보 처리</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8">
+            전국 집계 시 학생 개인정보는 반드시 <strong>익명화</strong> 처리하세요.
+            <span class="code-tag">student_id</span>를 직접 사용하지 않고,
+            <span class="code-tag">anonymized_hash</span> 컬럼으로 분리 저장하고 집계에만 활용하는 구조를 권장합니다.
+            Supabase RLS 정책으로 운영자만 전체 데이터에 접근 가능하도록 설정하세요.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN TEACHERS ══ -->
+    <div id="view-admin-teachers" class="view">
+      <div class="page-header">
+        <div><div class="page-title">선생님 현황</div><div class="page-sub">전국 등록 교사 관리</div></div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>이름</th><th>학교</th><th>지역</th><th>업로드</th><th>공유 리포트</th><th>최근 활동</th><th>상태</th></tr></thead>
+            <tbody>
+              <tr><td class="font-bold">봉쌤</td><td>○○중학교</td><td><span class="chip purple">광주</span></td><td>23</td><td>18</td><td class="text-muted text-sm">오늘</td><td><span class="chip green">활성</span></td></tr>
+              <tr><td class="font-bold">이민영</td><td>△△중학교</td><td><span class="chip">서울</span></td><td>41</td><td>35</td><td class="text-muted text-sm">어제</td><td><span class="chip green">활성</span></td></tr>
+              <tr><td class="font-bold">박찬호</td><td>□□중학교</td><td><span class="chip">경기</span></td><td>17</td><td>12</td><td class="text-muted text-sm">3일 전</td><td><span class="chip green">활성</span></td></tr>
+              <tr><td class="font-bold">김현숙</td><td>◇◇중학교</td><td><span class="chip">부산</span></td><td>8</td><td>5</td><td class="text-muted text-sm">1주일 전</td><td><span class="chip yellow">비활성</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════════════════ SHARE MODAL ════════════════════ -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📤 리포트 공유 설정</div>
+      <button class="modal-close" onclick="closeModal('shareModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        공유 대상: <strong id="shareTargetName" style="color:var(--text)">리포트</strong>
+      </div>
+
+      <div class="share-methods">
+        <div class="share-method selected" onclick="selectShareMethod(this,'link')">
+          <div class="share-method-icon">🔗</div>
+          <div class="share-method-name">링크 공유</div>
+          <div class="share-method-desc">URL로 열람 가능</div>
+        </div>
+        <div class="share-method" onclick="selectShareMethod(this,'email')">
+          <div class="share-method-icon">📧</div>
+          <div class="share-method-name">이메일 발송</div>
+          <div class="share-method-desc">학부모 이메일로 전송</div>
+        </div>
+        <div class="share-method" onclick="selectShareMethod(this,'kakao')">
+          <div class="share-method-icon">💬</div>
+          <div class="share-method-name">카카오톡</div>
+          <div class="share-method-desc">카카오톡 메시지 발송</div>
+        </div>
+        <div class="share-method" onclick="selectShareMethod(this,'pdf')">
+          <div class="share-method-icon">📄</div>
+          <div class="share-method-name">PDF 다운로드</div>
+          <div class="share-method-desc">인쇄 가능한 PDF</div>
+        </div>
+      </div>
+
+      <div id="shareLinkSection">
+        <label class="form-label">공유 링크</label>
+        <div class="share-link-box">
+          <input type="text" id="shareLinkInput" value="https://mathiq.app/r/a8f3x2k9" readonly>
+          <button class="btn btn-ghost btn-xs" onclick="copyLink()">복사</button>
+        </div>
+      </div>
+
+      <div class="share-settings">
+        <div class="share-toggle">
+          <div>
+            <div class="share-toggle-label">열람 기간 제한</div>
+            <div class="share-toggle-sub">7일 후 링크 만료</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="share-toggle">
+          <div>
+            <div class="share-toggle-label">점수 포함</div>
+            <div class="share-toggle-sub">리포트에 점수 표시</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="share-toggle">
+          <div>
+            <div class="share-toggle-label">반 평균 비교 포함</div>
+            <div class="share-toggle-sub">반 평균과 비교 그래프 포함</div>
+          </div>
+          <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="share-toggle">
+          <div>
+            <div class="share-toggle-label">열람 알림 받기</div>
+            <div class="share-toggle-sub">학부모가 열람 시 알림</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-primary w-full" onclick="confirmShare()">📤 공유하기</button>
+        <button class="btn btn-ghost" onclick="closeModal('shareModal')">취소</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- MAIN -->
-<div class="main">
-
-  <!-- ════ LEFT: INPUT PANEL ════ -->
-  <div class="panel">
-    <div class="panel-header">
-      <div class="panel-title">
-        <div class="panel-title-icon" style="background:rgba(91,141,238,0.12)">📥</div>
-        시험지 입력
-      </div>
-      <span style="font-size:11px;color:var(--text3)">문제를 분석해 유사문제를 생성합니다</span>
+<!-- ════════════════════ CREATE EXAM MODAL ════════════════════ -->
+<div class="modal-overlay" id="createExamModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📝 새 시험 등록</div>
+      <button class="modal-close" onclick="closeModal('createExamModal')">✕</button>
     </div>
-    <div class="panel-body">
-
-      <!-- API KEY -->
-      <div>
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Anthropic API Key</div>
-        <div class="api-key-row">
-          <span class="api-key-icon">🔑</span>
-          <input
-            type="password"
-            class="api-key-input"
-            id="apiKeyInput"
-            placeholder="sk-ant-api03-..."
-            oninput="onApiKeyInput()"
-          >
-          <button class="api-key-toggle" id="keyToggle" onclick="toggleKeyVisibility()">👁</button>
-        </div>
-        <div class="api-warning" style="margin-top:6px">
-          ⚠️ 키는 브라우저에만 저장되며 서버로 전송되지 않습니다. 공용 PC에서는 주의하세요.
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">시험명</label>
+        <input type="text" class="form-input" placeholder="예) 5월 방정식 단원평가">
+      </div>
+      <div class="form-group">
+        <label class="form-label">관련 단원</label>
+        <select class="form-input">
+          <option>수와 연산</option><option>문자와 식</option><option>함수</option><option>기하</option><option>확률과 통계</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">난이도 설정</label>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <label style="cursor:pointer">
+            <input type="radio" name="difficulty" value="easy" style="display:none" onchange="updateDiffPreview('easy')">
+            <div class="share-method" id="diff-easy" onclick="selectDiff('easy')">
+              <div class="diff-badge easy" style="justify-content:center;width:100%">● 기본</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">쉬움</div>
+            </div>
+          </label>
+          <label style="cursor:pointer">
+            <input type="radio" name="difficulty" value="normal" style="display:none">
+            <div class="share-method" id="diff-normal" onclick="selectDiff('normal')">
+              <div class="diff-badge normal" style="justify-content:center;width:100%">●● 표준</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">보통</div>
+            </div>
+          </label>
+          <label style="cursor:pointer">
+            <input type="radio" name="difficulty" value="hard" style="display:none">
+            <div class="share-method selected" id="diff-hard" onclick="selectDiff('hard')">
+              <div class="diff-badge hard" style="justify-content:center;width:100%">●●● 도전</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">어려움</div>
+            </div>
+          </label>
+          <label style="cursor:pointer">
+            <input type="radio" name="difficulty" value="expert" style="display:none">
+            <div class="share-method" id="diff-expert" onclick="selectDiff('expert')">
+              <div class="diff-badge expert" style="justify-content:center;width:100%">●●●● 심화</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">최상위</div>
+            </div>
+          </label>
         </div>
       </div>
-
-      <!-- INPUT METHOD TABS -->
-      <div>
-        <div class="input-tabs">
-          <button class="input-tab active" id="tab-file" onclick="switchInputTab('file')">
-            📎 파일 업로드
-          </button>
-          <button class="input-tab" id="tab-image" onclick="switchInputTab('image')">
-            🖼 이미지 업로드
-          </button>
-          <button class="input-tab" id="tab-text" onclick="switchInputTab('text')">
-            ✏️ 텍스트 입력
-          </button>
-        </div>
+      <div class="form-group">
+        <label class="form-label">시험 날짜</label>
+        <input type="date" class="form-input" value="2025-05-01">
       </div>
-
-      <!-- FILE TAB -->
-      <div id="content-file" style="flex:1;display:flex;flex-direction:column;gap:12px">
-        <div class="drop-zone" id="fileDropZone"
-          ondragover="handleDragOver(event,'fileDropZone')"
-          ondragleave="handleDragLeave('fileDropZone')"
-          ondrop="handleDrop(event,'file')">
-          <input type="file" id="fileInput" accept=".pdf,.hwp,.docx,.txt" onchange="handleFileSelect(event,'file')">
-          <div class="drop-icon">📄</div>
-          <div class="drop-title">PDF · HWP · DOCX · TXT</div>
-          <div class="drop-sub">파일을 드래그하거나 클릭해서 업로드</div>
-          <div class="drop-formats">
-            <span class="fmt-chip">PDF</span>
-            <span class="fmt-chip">HWP</span>
-            <span class="fmt-chip">DOCX</span>
-            <span class="fmt-chip">TXT</span>
-          </div>
-        </div>
-        <div class="file-preview" id="filePreview">
-          <div class="file-thumb" id="fileThumb">📄</div>
-          <div class="file-info">
-            <div class="file-name" id="fileName">—</div>
-            <div class="file-size" id="fileSize">—</div>
-          </div>
-          <button class="file-remove" onclick="removeFile('file')">✕</button>
-        </div>
-        <!-- 텍스트 추출 결과 -->
-        <div id="extractedTextWrap" style="display:none;flex-direction:column;gap:6px">
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">추출된 문제 텍스트 (편집 가능)</div>
-          <textarea class="question-textarea" id="extractedText" style="min-height:130px" placeholder="파일에서 텍스트를 추출 중..."></textarea>
-        </div>
-      </div>
-
-      <!-- IMAGE TAB -->
-      <div id="content-image" style="flex:1;display:none;flex-direction:column;gap:12px">
-        <div class="drop-zone" id="imageDropZone"
-          ondragover="handleDragOver(event,'imageDropZone')"
-          ondragleave="handleDragLeave('imageDropZone')"
-          ondrop="handleDrop(event,'image')">
-          <input type="file" id="imageInput" accept="image/*" onchange="handleFileSelect(event,'image')">
-          <div class="drop-icon">🖼</div>
-          <div class="drop-title">시험지 사진 · 스캔본</div>
-          <div class="drop-sub">이미지를 드래그하거나 클릭해서 업로드<br>Claude Vision이 문제를 읽어냅니다</div>
-          <div class="drop-formats">
-            <span class="fmt-chip">JPG</span>
-            <span class="fmt-chip">PNG</span>
-            <span class="fmt-chip">WEBP</span>
-            <span class="fmt-chip">GIF</span>
-          </div>
-        </div>
-        <div class="img-preview-wrap" id="imgPreviewWrap">
-          <img id="imgPreview" src="" alt="업로드된 시험지">
-          <button class="img-remove" onclick="removeFile('image')">✕</button>
-        </div>
-      </div>
-
-      <!-- TEXT TAB -->
-      <div id="content-text" style="flex:1;display:none;flex-direction:column;gap:6px">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">문제 텍스트</div>
-        <textarea
-          class="question-textarea"
-          id="textInput"
-          placeholder="여기에 문제를 붙여넣으세요.
-
-예시)
-다음 수직선에서 -3보다 크고 2보다 작은 정수를 모두 구하시오.
-
-또는 여러 문제를 한꺼번에 붙여넣어도 됩니다."
-          oninput="updateCharCount()"
-        ></textarea>
-        <div class="char-count" id="charCount">0자</div>
-      </div>
-
-      <!-- OPTIONS -->
-      <div class="options-grid">
-        <div class="opt-group">
-          <div class="opt-label">생성 문제 수</div>
-          <select class="opt-select" id="optCount">
-            <option value="3">3문제</option>
-            <option value="5" selected>5문제</option>
-            <option value="7">7문제</option>
-            <option value="10">10문제</option>
-          </select>
-        </div>
-        <div class="opt-group">
-          <div class="opt-label">난이도</div>
-          <select class="opt-select" id="optDiff">
-            <option value="same">원본과 동일</option>
-            <option value="easier">한 단계 쉽게</option>
-            <option value="harder">한 단계 어렵게</option>
-            <option value="mixed">혼합 (쉬움~어려움)</option>
-          </select>
-        </div>
-        <div class="opt-group">
-          <div class="opt-label">문제 유형</div>
-          <select class="opt-select" id="optType">
-            <option value="same">원본과 동일</option>
-            <option value="multiple" selected>객관식 (5지)</option>
-            <option value="short">단답형</option>
-            <option value="essay">서술형</option>
-            <option value="mixed">혼합</option>
-          </select>
-        </div>
-        <div class="opt-group">
-          <div class="opt-label">힌트 포함</div>
-          <select class="opt-select" id="optHint">
-            <option value="yes" selected>포함</option>
-            <option value="no">미포함</option>
-            <option value="answer">정답만</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- GENERATE BUTTON -->
-      <button class="gen-btn" id="genBtn" onclick="generateProblems()" disabled>
-        <div class="btn-shimmer"></div>
-        <span id="genBtnIcon">✨</span>
-        <span id="genBtnText">유사문제 생성하기</span>
-      </button>
-
+      <button class="btn btn-primary w-full" onclick="closeModal('createExamModal');showToast('시험이 등록되었습니다','✅')">등록하기</button>
     </div>
   </div>
-
-  <!-- ════ RIGHT: OUTPUT PANEL ════ -->
-  <div class="panel">
-    <div class="panel-header">
-      <div class="panel-title">
-        <div class="panel-title-icon" style="background:rgba(52,211,153,0.12)">🧩</div>
-        생성된 유사문제
-      </div>
-      <div id="outputHeaderActions" style="display:none">
-        <button class="btn btn-ghost btn-sm" onclick="clearResults()">🗑 초기화</button>
-      </div>
-    </div>
-    <div class="panel-body" style="overflow-y:auto">
-
-      <!-- EMPTY STATE -->
-      <div class="output-empty" id="outputEmpty">
-        <div class="output-empty-icon">🧮</div>
-        <div class="output-empty-text">문제를 입력하고 생성 버튼을 누르세요</div>
-        <div class="output-empty-sub">Claude AI가 유사한 수학 문제를 자동으로 만들어드립니다</div>
-      </div>
-
-      <!-- LOADING -->
-      <div class="loading-state" id="loadingState">
-        <div class="loading-rings"></div>
-        <div class="loading-text" id="loadingText">문제를 분석하는 중...</div>
-        <div class="loading-steps">
-          <div class="loading-step" id="step1"><div class="loading-step-dot"></div>문제 구조 파악 중</div>
-          <div class="loading-step" id="step2"><div class="loading-step-dot"></div>핵심 개념 추출 중</div>
-          <div class="loading-step" id="step3"><div class="loading-step-dot"></div>유사 문제 생성 중</div>
-          <div class="loading-step" id="step4"><div class="loading-step-dot"></div>정답 및 힌트 작성 중</div>
-        </div>
-      </div>
-
-      <!-- RESULT -->
-      <div class="result-wrap" id="resultWrap">
-        <div class="result-header">
-          <div class="result-meta" id="resultMeta">—</div>
-          <div class="result-actions">
-            <button class="btn btn-ghost btn-sm" onclick="copyAllProblems()">📋 전체 복사</button>
-            <button class="btn btn-accent btn-sm" onclick="generateProblems()">🔄 재생성</button>
-          </div>
-        </div>
-
-        <div class="copy-all-bar" id="copyAllBar">
-          <span class="copy-all-text">✅ 전체 문제가 클립보드에 복사되었습니다</span>
-          <button class="btn btn-ghost btn-xs" onclick="document.getElementById('copyAllBar').classList.remove('show')">✕</button>
-        </div>
-
-        <div id="problemList"></div>
-      </div>
-
-    </div>
-  </div>
-
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toastIcon">✅</div>
+  <div class="toast-text" id="toastText">완료되었습니다</div>
+</div>
 
 <script>
-// ── STATE ──
-let currentInputMode = 'file';
-let uploadedFile = null;
-let uploadedImageData = null; // base64
-let uploadedImageType = null;
-let isGenerating = false;
+// ── ROLE SWITCHING ──
+function switchRole(role) {
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
 
-// ── API KEY ──
-function onApiKeyInput() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  const dot = document.getElementById('apiDot');
-  const statusText = document.getElementById('apiStatusText');
-  const genBtn = document.getElementById('genBtn');
+  document.querySelectorAll('nav[id^="nav-"]').forEach(n => n.style.display = 'none');
+  document.getElementById('nav-' + role).style.display = 'block';
 
-  if (key.startsWith('sk-ant-') && key.length > 30) {
-    dot.className = 'api-dot ready';
-    statusText.textContent = 'API 키 준비됨';
-    updateGenBtn();
-  } else if (key.length > 0) {
-    dot.className = 'api-dot error';
-    statusText.textContent = '유효하지 않은 키';
-    genBtn.disabled = true;
+  const avatarEl = document.getElementById('userAvatar');
+  const nameEl = document.getElementById('userName');
+  const roleTagEl = document.getElementById('userRoleTag');
+
+  const configs = {
+    teacher: { name: '봉쌤', role: '수학 교사 · 광주', avatar: '봉', view: 'dashboard' },
+    parent: { name: '김민준 부모님', role: '학부모 · 광주', avatar: '부', view: 'parent-home' },
+    admin: { name: '봉쌤 (운영자)', role: '플랫폼 관리자', avatar: '관', view: 'admin-overview' }
+  };
+  const c = configs[role];
+  avatarEl.textContent = c.avatar;
+  nameEl.textContent = c.name;
+  roleTagEl.textContent = c.role;
+
+  showView(c.view);
+
+  // Update nav active state
+  document.querySelectorAll('#nav-' + role + ' .nav-item').forEach(item => item.classList.remove('active'));
+  const firstItem = document.querySelector('#nav-' + role + ' .nav-item');
+  if (firstItem) firstItem.classList.add('active');
+}
+
+// ── VIEW SWITCHING ──
+function showView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + viewId);
+  if (el) el.classList.add('active');
+
+  // Update nav active
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes("'" + viewId + "'")) {
+      item.classList.add('active');
+    }
+  });
+}
+
+// ── TABS ──
+function switchTab(btn, group, tab) {
+  btn.closest('.tab-nav').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── SHARE MODAL ──
+function openShareModal(name) {
+  document.getElementById('shareTargetName').textContent = name;
+  document.getElementById('shareModal').classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function selectShareMethod(el, type) {
+  el.closest('.share-methods').querySelectorAll('.share-method').forEach(m => m.classList.remove('selected'));
+  el.classList.add('selected');
+
+  const linkSection = document.getElementById('shareLinkSection');
+  if (type === 'link') {
+    linkSection.style.display = 'block';
+  } else if (type === 'email') {
+    linkSection.innerHTML = '<label class="form-label">학부모 이메일</label><input type="email" class="form-input" placeholder="parent@example.com">';
+    linkSection.style.display = 'block';
+  } else if (type === 'kakao') {
+    linkSection.innerHTML = '<div style="background:rgba(246,173,85,0.1);border:1px solid rgba(246,173,85,0.2);border-radius:8px;padding:12px;font-size:12.5px;color:var(--yellow)">카카오톡 비즈니스 채널 연동이 필요합니다. 설정 &gt; 연동에서 설정하세요.</div>';
+    linkSection.style.display = 'block';
   } else {
-    dot.className = 'api-dot';
-    statusText.textContent = 'API 연결 대기중';
-    genBtn.disabled = true;
+    linkSection.innerHTML = '<div style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);border-radius:8px;padding:12px;font-size:12.5px;color:var(--green)">PDF 생성 중... 완료 시 자동 다운로드됩니다.</div>';
+    linkSection.style.display = 'block';
   }
 }
 
-function toggleKeyVisibility() {
-  const input = document.getElementById('apiKeyInput');
-  input.type = input.type === 'password' ? 'text' : 'password';
+function copyLink() {
+  const input = document.getElementById('shareLinkInput');
+  if (input) {
+    navigator.clipboard.writeText(input.value).catch(() => {});
+    showToast('링크가 복사되었습니다', '🔗');
+  }
 }
 
-function updateGenBtn() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  const hasInput = getInputContent() !== null;
-  const genBtn = document.getElementById('genBtn');
-  genBtn.disabled = !(key.startsWith('sk-ant-') && key.length > 30 && hasInput);
+function confirmShare() {
+  closeModal('shareModal');
+  showToast('리포트가 공유되었습니다', '📤');
 }
 
-// ── TAB SWITCHING ──
-function switchInputTab(tab) {
-  currentInputMode = tab;
-  ['file','image','text'].forEach(t => {
-    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
-    document.getElementById('content-' + t).style.display = t === tab ? 'flex' : 'none';
+// ── CREATE EXAM ──
+function openCreateExamModal() {
+  document.getElementById('createExamModal').classList.add('open');
+}
+
+function selectDiff(level) {
+  ['easy','normal','hard','expert'].forEach(l => {
+    document.getElementById('diff-' + l)?.classList.remove('selected');
   });
-  updateGenBtn();
+  document.getElementById('diff-' + level)?.classList.add('selected');
 }
 
-// ── DRAG & DROP ──
-function handleDragOver(e, zoneId) {
+// ── TOAST ──
+function showToast(text, icon = '✅') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastIcon').textContent = icon;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ── CLOSE MODAL ON OVERLAY CLICK ──
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.stat-value').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(10px)';
+    setTimeout(() => {
+      el.style.transition = 'all 0.5s ease';
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }, 100 + Math.random() * 300);
+  });
+});
+
+// ═══════════════════════════════════════
+//  유사문제 생성기 (SG = Similar Generator)
+// ═══════════════════════════════════════
+
+let sg = {
+  mode: 'file',
+  imageData: null,
+  imageType: null,
+  fileAttached: false,
+  generating: false,
+  lastProblems: []
+};
+
+function sgOnApiKey() {
+  const key = document.getElementById('sg-api-key').value.trim();
+  const dot = document.getElementById('sg-api-dot');
+  const label = document.getElementById('sg-api-label');
+  if (key.startsWith('sk-ant-') && key.length > 30) {
+    dot.style.background = 'var(--green)';
+    dot.style.boxShadow = '0 0 6px var(--green)';
+    label.textContent = 'API 준비됨';
+    // localStorage에 저장
+    try { localStorage.setItem('mathiq_api_key', key); } catch(e) {}
+  } else if (key.length > 0) {
+    dot.style.background = 'var(--red)';
+    dot.style.boxShadow = 'none';
+    label.textContent = '유효하지 않은 키';
+    try { localStorage.removeItem('mathiq_api_key'); } catch(e) {}
+  } else {
+    dot.style.background = 'var(--text3)';
+    dot.style.boxShadow = 'none';
+    label.textContent = 'API 대기중';
+    try { localStorage.removeItem('mathiq_api_key'); } catch(e) {}
+  }
+  sgUpdateBtn();
+}
+
+// 페이지 로드 시 저장된 키 자동 불러오기
+(function sgLoadSavedKey() {
+  try {
+    const saved = localStorage.getItem('mathiq_api_key');
+    if (saved) {
+      document.addEventListener('DOMContentLoaded', () => {
+        const inp = document.getElementById('sg-api-key');
+        if (inp) { inp.value = saved; sgOnApiKey(); }
+      });
+    }
+  } catch(e) {}
+})();
+
+function sgToggleKey() {
+  const inp = document.getElementById('sg-api-key');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function sgSwitchTab(tab) {
+  sg.mode = tab;
+  ['file','image','text'].forEach(t => {
+    const btn = document.getElementById('sg-tab-' + t);
+    const content = document.getElementById('sg-content-' + t);
+    const isActive = t === tab;
+    btn.style.background = isActive ? 'var(--bg2)' : 'transparent';
+    btn.style.color = isActive ? 'var(--text)' : 'var(--text3)';
+    btn.style.border = isActive ? '1px solid var(--border2)' : 'none';
+    content.style.display = isActive ? 'block' : 'none';
+  });
+  sgUpdateBtn();
+}
+
+function sgDragOver(e, id) {
   e.preventDefault();
-  document.getElementById(zoneId).classList.add('dragover');
+  document.getElementById(id).style.borderColor = 'var(--accent)';
+  document.getElementById(id).style.background = 'rgba(79,142,247,0.04)';
 }
-function handleDragLeave(zoneId) {
-  document.getElementById(zoneId).classList.remove('dragover');
+function sgDragLeave(id) {
+  document.getElementById(id).style.borderColor = 'var(--border2)';
+  document.getElementById(id).style.background = 'var(--bg3)';
 }
-function handleDrop(e, type) {
+function sgDrop(e, type) {
   e.preventDefault();
-  const zoneId = type === 'file' ? 'fileDropZone' : 'imageDropZone';
-  document.getElementById(zoneId).classList.remove('dragover');
-  const files = e.dataTransfer.files;
-  if (files.length > 0) processUpload(files[0], type);
+  const id = type === 'image' ? 'sg-img-dropzone' : 'sg-file-dropzone';
+  sgDragLeave(id);
+  if (e.dataTransfer.files[0]) sgProcessUpload(e.dataTransfer.files[0], type);
+}
+function sgHandleFile(e, type) {
+  if (e.target.files[0]) sgProcessUpload(e.target.files[0], type);
 }
 
-// ── FILE SELECT ──
-function handleFileSelect(e, type) {
-  const file = e.target.files[0];
-  if (file) processUpload(file, type);
-}
-
-function processUpload(file, type) {
+function sgProcessUpload(file, type) {
   if (type === 'image') {
-    // 이미지 → base64 변환
     const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImageData = e.target.result.split(',')[1];
-      uploadedImageType = file.type;
-      document.getElementById('imgPreview').src = e.target.result;
-      document.getElementById('imgPreviewWrap').classList.add('show');
-      document.getElementById('imageDropZone').style.display = 'none';
-      updateGenBtn();
+    reader.onload = ev => {
+      sg.imageData = ev.target.result.split(',')[1];
+      sg.imageType = file.type;
+      document.getElementById('sg-img-preview').src = ev.target.result;
+      document.getElementById('sg-img-preview-wrap').style.display = 'block';
+      document.getElementById('sg-img-dropzone').style.display = 'none';
+      sgUpdateBtn();
     };
     reader.readAsDataURL(file);
   } else {
-    // 텍스트 파일이면 직접 읽기
-    uploadedFile = file;
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileSize').textContent = formatSize(file.size);
-    document.getElementById('filePreview').classList.add('show');
-    document.getElementById('fileDropZone').style.display = 'none';
-
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (ext === 'txt') {
+    sg.fileAttached = true;
+    document.getElementById('sg-file-name').textContent = file.name;
+    document.getElementById('sg-file-size').textContent = sgFmtSize(file.size);
+    document.getElementById('sg-file-preview').style.display = 'flex';
+    document.getElementById('sg-file-dropzone').style.display = 'none';
+    document.getElementById('sg-extracted-wrap').style.display = 'block';
+    if (file.name.endsWith('.txt')) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        document.getElementById('extractedText').value = e.target.result;
-        document.getElementById('extractedTextWrap').style.display = 'flex';
+      reader.onload = ev => {
+        document.getElementById('sg-extracted-text').value = ev.target.result;
+        sgUpdateBtn();
       };
       reader.readAsText(file);
     } else {
-      // PDF/HWP 등은 텍스트 입력으로 안내
-      document.getElementById('extractedTextWrap').style.display = 'flex';
-      document.getElementById('extractedText').placeholder =
-        'PDF/HWP는 자동 추출이 제한됩니다.\n문제 텍스트를 여기에 직접 붙여넣거나,\n이미지 탭에서 시험지 사진을 올리세요.';
+      document.getElementById('sg-extracted-text').placeholder =
+        'PDF/HWP는 자동 추출이 제한됩니다.\n문제 텍스트를 여기에 직접 붙여넣거나,\n이미지 탭을 이용하세요.';
     }
-    updateGenBtn();
+    sgUpdateBtn();
   }
 }
 
-function removeFile(type) {
+function sgRemoveFile(type) {
   if (type === 'image') {
-    uploadedImageData = null;
-    uploadedImageType = null;
-    document.getElementById('imgPreviewWrap').classList.remove('show');
-    document.getElementById('imageDropZone').style.display = '';
-    document.getElementById('imageInput').value = '';
+    sg.imageData = null; sg.imageType = null;
+    document.getElementById('sg-img-preview-wrap').style.display = 'none';
+    document.getElementById('sg-img-dropzone').style.display = 'block';
+    document.getElementById('sg-img-input').value = '';
   } else {
-    uploadedFile = null;
-    document.getElementById('filePreview').classList.remove('show');
-    document.getElementById('fileDropZone').style.display = '';
-    document.getElementById('extractedTextWrap').style.display = 'none';
-    document.getElementById('extractedText').value = '';
-    document.getElementById('fileInput').value = '';
+    sg.fileAttached = false;
+    document.getElementById('sg-file-preview').style.display = 'none';
+    document.getElementById('sg-file-dropzone').style.display = 'block';
+    document.getElementById('sg-extracted-wrap').style.display = 'none';
+    document.getElementById('sg-extracted-text').value = '';
+    document.getElementById('sg-file-input').value = '';
   }
-  updateGenBtn();
+  sgUpdateBtn();
 }
 
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + 'B';
-  if (bytes < 1048576) return (bytes/1024).toFixed(1) + 'KB';
-  return (bytes/1048576).toFixed(1) + 'MB';
+function sgFmtSize(b) {
+  if (b < 1024) return b + 'B';
+  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
+  return (b/1048576).toFixed(1) + 'MB';
 }
 
-// ── CHAR COUNT ──
-function updateCharCount() {
-  const len = document.getElementById('textInput').value.length;
-  document.getElementById('charCount').textContent = len.toLocaleString() + '자';
-  updateGenBtn();
-}
-
-// ── GET INPUT CONTENT ──
-function getInputContent() {
-  if (currentInputMode === 'text') {
-    const t = document.getElementById('textInput').value.trim();
-    return t.length > 0 ? { type: 'text', content: t } : null;
+function sgGetInput() {
+  if (sg.mode === 'text') {
+    const t = document.getElementById('sg-text-input').value.trim();
+    return t ? { type: 'text', content: t } : null;
   }
-  if (currentInputMode === 'image') {
-    return uploadedImageData ? { type: 'image', data: uploadedImageData, mediaType: uploadedImageType } : null;
+  if (sg.mode === 'image') {
+    return sg.imageData ? { type: 'image', data: sg.imageData, mediaType: sg.imageType } : null;
   }
-  if (currentInputMode === 'file') {
-    const extracted = document.getElementById('extractedText').value.trim();
-    if (extracted.length > 0) return { type: 'text', content: extracted };
-    return uploadedFile ? { type: 'file', file: uploadedFile } : null;
+  if (sg.mode === 'file') {
+    const t = document.getElementById('sg-extracted-text').value.trim();
+    if (t) return { type: 'text', content: t };
+    return null;
   }
   return null;
 }
 
-// ── LOADING STEPS ──
-function animateLoadingSteps() {
-  const steps = ['step1','step2','step3','step4'];
-  const delays = [0, 1200, 2400, 3600];
+function sgUpdateBtn() {
+  const key = document.getElementById('sg-api-key').value.trim();
+  const hasInput = sgGetInput() !== null;
+  const btn = document.getElementById('sg-gen-btn');
+  const ready = key.startsWith('sk-ant-') && key.length > 30 && hasInput;
+  btn.disabled = !ready;
+  btn.style.opacity = ready ? '1' : '0.45';
+  btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+}
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'sg-text-input') {
+    const len = e.target.value.length;
+    document.getElementById('sg-char-count').textContent = len.toLocaleString() + '자';
+    sgUpdateBtn();
+  }
+  if (e.target.id === 'sg-extracted-text') sgUpdateBtn();
+});
+
+function sgAnimateSteps() {
+  const steps = ['sg-step1','sg-step2','sg-step3','sg-step4'];
+  const delays = [0, 1300, 2600, 3800];
   steps.forEach((id, i) => {
     setTimeout(() => {
-      // previous steps → done
       for (let j = 0; j < i; j++) {
-        document.getElementById(steps[j]).className = 'loading-step done';
+        const el = document.getElementById(steps[j]);
+        el.style.color = 'var(--green)';
+        el.firstElementChild.style.background = 'var(--green)';
       }
-      document.getElementById(id).className = 'loading-step active';
+      const el = document.getElementById(id);
+      el.style.color = 'var(--accent)';
+      el.firstElementChild.style.background = 'var(--accent)';
     }, delays[i]);
   });
 }
 
-// ── MAIN GENERATE ──
-async function generateProblems() {
-  if (isGenerating) return;
-  const apiKey = document.getElementById('apiKeyInput').value.trim();
-  const input = getInputContent();
+async function sgGenerate() {
+  if (sg.generating) return;
+  const apiKey = document.getElementById('sg-api-key').value.trim();
+  const input = sgGetInput();
   if (!apiKey || !input) return;
 
-  const count = document.getElementById('optCount').value;
-  const diff = document.getElementById('optDiff').value;
-  const type = document.getElementById('optType').value;
-  const hint = document.getElementById('optHint').value;
+  const count = document.getElementById('sg-opt-count').value;
+  const diff  = document.getElementById('sg-opt-diff').value;
+  const type  = document.getElementById('sg-opt-type').value;
+  const hint  = document.getElementById('sg-opt-hint').value;
 
-  // UI → Loading
-  isGenerating = true;
-  document.getElementById('genBtn').disabled = true;
-  document.getElementById('genBtnText').textContent = '생성 중...';
-  document.getElementById('genBtnIcon').textContent = '⏳';
-  document.getElementById('outputEmpty').style.display = 'none';
-  document.getElementById('resultWrap').classList.remove('show');
-  document.getElementById('loadingState').classList.add('show');
-  document.getElementById('outputHeaderActions').style.display = 'none';
-  document.getElementById('apiDot').className = 'api-dot loading';
-  document.getElementById('apiStatusText').textContent = 'AI 생성 중...';
+  sg.generating = true;
+  const btn = document.getElementById('sg-gen-btn');
+  btn.disabled = true; btn.style.opacity = '0.5';
+  document.getElementById('sg-btn-text').textContent = '생성 중...';
+  document.getElementById('sg-btn-icon').textContent = '⏳';
 
-  animateLoadingSteps();
+  document.getElementById('sg-out-empty').style.display = 'none';
+  document.getElementById('sg-out-results').style.display = 'none';
+  document.getElementById('sg-out-loading').style.display = 'flex';
+  document.getElementById('sg-out-actions').style.display = 'none';
+  document.getElementById('sg-api-dot').style.background = 'var(--yellow)';
+  document.getElementById('sg-api-dot').style.animation = 'pulse 1s infinite';
 
-  // 난이도 텍스트 변환
-  const diffMap = { same:'원본과 동일한', easier:'조금 더 쉬운', harder:'조금 더 어려운', mixed:'다양한 난이도의' };
-  const typeMap = { same:'원본과 같은 유형', multiple:'객관식(5지선다)', short:'단답형', essay:'서술형', mixed:'혼합 유형' };
-  const hintMap = { yes:'힌트와 정답 포함', no:'힌트 없이 문제만', answer:'정답만 포함' };
+  // reset step colors
+  ['sg-step1','sg-step2','sg-step3','sg-step4'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.color = 'var(--text3)';
+    el.firstElementChild.style.background = 'var(--text3)';
+  });
+  sgAnimateSteps();
 
-  // 프롬프트 구성
+  const diffMap = { same:'원본과 동일한', easier:'한 단계 쉬운', harder:'한 단계 어려운', mixed:'다양한 난이도의' };
+  const typeMap = { multiple:'객관식(5지선다)', short:'단답형', essay:'서술형', mixed:'혼합 유형' };
+  const hintMap = { yes:'힌트와 정답 포함', answer:'정답만 포함', no:'힌트 없이 문제만' };
+
   const systemPrompt = `당신은 대한민국 중학교 수학 전문 교사입니다.
-주어진 수학 문제를 분석해 유사한 문제를 생성합니다.
+주어진 문제를 분석해 유사한 수학 문제를 생성합니다.
+반드시 아래 JSON만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.
+{"original_topic":"파악된 단원","problems":[{"number":1,"question":"문제 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트"}]}
+choices는 객관식일 때만, hint는 "${hintMap[hint]}" 기준으로 처리하세요.`;
 
-응답은 반드시 아래 JSON 형식만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.
-
-{
-  "original_topic": "파악된 수학 주제/단원",
-  "problems": [
-    {
-      "number": 1,
-      "question": "문제 내용 (수식은 예: 3x + 2 = 11 형태)",
-      "type": "multiple|short|essay",
-      "difficulty": "easy|normal|hard",
-      "choices": ["① ...", "② ...", "③ ...", "④ ...", "⑤ ..."],  // 객관식일 때만
-      "answer": "정답 (객관식은 번호, 단답형은 값, 서술형은 풀이)",
-      "answer_index": 2,  // 객관식일 때 0-based index
-      "hint": "풀이 힌트"  // 힌트 포함 시
-    }
-  ]
-}
-
-choices는 객관식일 때만 포함. 단답형/서술형은 choices 생략.
-hint는 "${hintMap[hint]}"에 따라 처리.`;
-
-  let messages = [];
-
+  let messages;
   if (input.type === 'image') {
-    messages = [{
-      role: 'user',
-      content: [
-        {
-          type: 'image',
-          source: { type: 'base64', media_type: input.mediaType, data: input.data }
-        },
-        {
-          type: 'text',
-          text: `이 시험지 이미지에 있는 수학 문제들을 분석하고, ${diffMap[diff]} 난이도의 ${typeMap[type]}으로 ${count}문제를 생성해주세요. ${hintMap[hint]}.`
-        }
-      ]
-    }];
+    messages = [{ role:'user', content:[
+      { type:'image', source:{ type:'base64', media_type:input.mediaType, data:input.data }},
+      { type:'text', text:`이 시험지를 분석해 ${diffMap[diff]} 난이도의 ${typeMap[type]}으로 ${count}문제 생성. ${hintMap[hint]}.` }
+    ]}];
   } else {
-    messages = [{
-      role: 'user',
-      content: `다음 수학 문제를 분석해서 ${diffMap[diff]} 난이도의 ${typeMap[type]}으로 유사한 문제 ${count}개를 생성해주세요. ${hintMap[hint]}.
-
-[원본 문제]
-${input.content}`
+    messages = [{ role:'user', content:
+      `다음 문제를 분석해 ${diffMap[diff]} 난이도의 ${typeMap[type]}으로 유사 문제 ${count}개 생성. ${hintMap[hint]}.\n\n[원본 문제]\n${input.content}`
     }];
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1185,187 +2569,137 @@ ${input.content}`
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: messages
-      })
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, system:systemPrompt, messages })
     });
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error?.message || `HTTP ${response.status}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
     }
 
-    const data = await response.json();
-    const rawText = data.content.map(b => b.type === 'text' ? b.text : '').join('');
+    const data = await res.json();
+    const raw = data.content.map(b => b.type==='text'?b.text:'').join('');
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('응답 형식 오류');
+    const parsed = JSON.parse(match[0]);
+    sgRenderResults(parsed, hint);
 
-    // JSON 파싱
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('응답 형식 오류: JSON을 찾을 수 없습니다');
-    const parsed = JSON.parse(jsonMatch[0]);
+    document.getElementById('sg-api-dot').style.background = 'var(--green)';
+    document.getElementById('sg-api-dot').style.animation = '';
 
-    renderResults(parsed, count);
-
-  } catch (err) {
-    document.getElementById('loadingState').classList.remove('show');
-    document.getElementById('outputEmpty').style.display = 'flex';
-    document.getElementById('apiDot').className = 'api-dot error';
-    document.getElementById('apiStatusText').textContent = '오류 발생';
-    showToast('❌ ' + (err.message.includes('401') ? 'API 키가 올바르지 않습니다' :
-               err.message.includes('429') ? 'API 사용량 한도 초과' :
-               err.message || '생성 실패'), 4000);
+  } catch(err) {
+    document.getElementById('sg-out-loading').style.display = 'none';
+    document.getElementById('sg-out-empty').style.display = 'flex';
+    document.getElementById('sg-api-dot').style.background = 'var(--red)';
+    document.getElementById('sg-api-dot').style.animation = '';
+    showToast(
+      err.message.includes('401') ? '❌ API 키가 올바르지 않습니다' :
+      err.message.includes('429') ? '❌ API 한도 초과' :
+      '❌ ' + (err.message || '생성 실패'), '🚨'
+    );
   } finally {
-    isGenerating = false;
-    document.getElementById('genBtn').disabled = false;
-    document.getElementById('genBtnText').textContent = '유사문제 생성하기';
-    document.getElementById('genBtnIcon').textContent = '✨';
+    sg.generating = false;
+    btn.style.opacity = '1';
+    document.getElementById('sg-btn-text').textContent = '유사문제 생성하기';
+    document.getElementById('sg-btn-icon').textContent = '✨';
+    sgUpdateBtn();
   }
 }
 
-// ── RENDER RESULTS ──
-function renderResults(data, requestedCount) {
+function sgRenderResults(data, hintMode) {
   const problems = data.problems || [];
-  const topic = data.original_topic || '수학';
+  sg.lastProblems = problems;
 
-  document.getElementById('loadingState').classList.remove('show');
-  document.getElementById('resultWrap').classList.add('show');
-  document.getElementById('outputHeaderActions').style.display = 'block';
-  document.getElementById('apiDot').className = 'api-dot ready';
-  document.getElementById('apiStatusText').textContent = 'API 키 준비됨';
+  document.getElementById('sg-out-loading').style.display = 'none';
+  document.getElementById('sg-out-results').style.display = 'flex';
+  document.getElementById('sg-out-actions').style.display = 'flex';
+  document.getElementById('sg-result-meta').textContent =
+    `📚 ${data.original_topic || '수학'} · ${problems.length}문제 생성됨`;
 
-  document.getElementById('resultMeta').textContent =
-    `📚 분석 단원: ${topic} · 생성 ${problems.length}문제`;
-
-  const list = document.getElementById('problemList');
+  const list = document.getElementById('sg-problem-list');
   list.innerHTML = '';
 
   problems.forEach((p, i) => {
-    const isMultiple = p.type === 'multiple' && p.choices && p.choices.length > 0;
+    const isMulti = p.type === 'multiple' && p.choices?.length;
     const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '표준';
-    const diffClass = { easy:'easy', normal:'', hard:'hard' }[p.difficulty] || '';
+    const diffColor = { easy:'var(--green)', normal:'var(--accent)', hard:'var(--red)' }[p.difficulty] || 'var(--accent)';
     const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
-    const includeHint = document.getElementById('optHint').value !== 'no';
-    const includeAnswer = document.getElementById('optHint').value !== 'no';
+    const showAnswer = hintMode !== 'no';
+    const showHint   = hintMode === 'yes';
 
-    const choicesHTML = isMultiple ? `
-      <div class="problem-choices">
-        ${p.choices.map((c, ci) => `
-          <div class="choice-item ${includeAnswer && ci === p.answer_index ? 'answer' : ''}">
-            <div class="choice-num">${ci+1}</div>
-            <div>${escapeHtml(c.replace(/^[①②③④⑤]\s*/, ''))}</div>
-          </div>
-        `).join('')}
-      </div>
-    ` : (p.answer && includeAnswer ? `
-      <div class="problem-hint" style="background:rgba(52,211,153,0.06);border-color:rgba(52,211,153,0.15);color:var(--green);margin-top:10px">
-        <span>✅</span><span><strong>정답:</strong> ${escapeHtml(String(p.answer))}</span>
-      </div>
-    ` : '');
+    const choicesHtml = isMulti ? p.choices.map((c, ci) => {
+      const isAns = showAnswer && ci === p.answer_index;
+      return `<div style="display:flex;align-items:flex-start;gap:9px;padding:7px 11px;border-radius:6px;background:${isAns?'rgba(62,207,142,0.06)':'var(--bg2)'};border:1px solid ${isAns?'rgba(62,207,142,0.25)':'var(--border)'};font-size:13px;color:var(--text);line-height:1.5;margin-bottom:5px">
+        <div style="width:19px;height:19px;border-radius:50%;background:${isAns?'var(--green)':'var(--bg3)'};border:1px solid ${isAns?'var(--green)':'var(--border2)'};font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${isAns?'#fff':'var(--text3)';font-family:'Space Mono',monospace">${ci+1}</div>
+        <div>${sgEsc(c.replace(/^[①②③④⑤]\s*/,''))}</div>
+      </div>`;
+    }).join('') : (showAnswer && p.answer ? `<div style="margin-top:8px;padding:9px 12px;border-radius:7px;background:rgba(62,207,142,0.07);border:1px solid rgba(62,207,142,0.2);font-size:12.5px;color:var(--green);display:flex;gap:7px"><span>✅</span><span><strong>정답:</strong> ${sgEsc(String(p.answer))}</span></div>` : '');
 
-    const hintHTML = (includeHint && p.hint && p.type !== 'multiple') ? `
-      <div class="problem-hint">
-        <span>💡</span><span>${escapeHtml(p.hint)}</span>
-      </div>
-    ` : (includeHint && p.hint && p.type === 'multiple' ? `
-      <div class="problem-hint">
-        <span>💡</span><span>${escapeHtml(p.hint)}</span>
-      </div>
-    ` : '');
+    const hintHtml = (showHint && p.hint) ? `<div style="margin-top:8px;padding:9px 12px;border-radius:7px;background:rgba(183,148,244,0.07);border:1px solid rgba(183,148,244,0.2);font-size:12.5px;color:var(--purple);display:flex;gap:7px;line-height:1.6"><span>💡</span><span>${sgEsc(p.hint)}</span></div>` : '';
 
     const card = document.createElement('div');
-    card.className = 'problem-card';
-    card.style.animationDelay = (i * 0.1) + 's';
+    card.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;animation:slideUp 0.3s ease both';
+    card.style.animationDelay = (i * 0.08) + 's';
     card.innerHTML = `
-      <div class="problem-card-head">
-        <div class="problem-num">
-          <div class="problem-num-badge">${i+1}</div>
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text2)">
+          <div style="width:21px;height:21px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace">${i+1}</div>
           유사문제 ${i+1}번
         </div>
-        <div class="problem-tags">
-          <span class="ptag type">${typeLabel}</span>
-          <span class="ptag diff ${diffClass}">${diffLabel}</span>
+        <div style="display:flex;gap:5px">
+          <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${typeLabel}</span>
+          <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(0,0,0,0.2);color:${diffColor};border:1px solid ${diffColor}33">${diffLabel}</span>
         </div>
       </div>
-      <div class="problem-body">
-        <div class="problem-text">${formatMath(escapeHtml(p.question))}</div>
-        ${choicesHTML}
-        ${hintHTML}
+      <div style="padding:14px">
+        <div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:keep-all">${sgEsc(p.question)}</div>
+        ${choicesHtml}
+        ${hintHtml}
       </div>
-      <div class="problem-footer">
-        <button class="btn btn-ghost btn-xs" onclick="copyProblem(${i})">📋 복사</button>
-      </div>
-    `;
+      <div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+        <button class="btn btn-ghost btn-xs" onclick="sgCopyOne(${i})">📋 복사</button>
+      </div>`;
     list.appendChild(card);
   });
-
-  // 저장용
-  window._lastProblems = problems;
 }
 
-// ── COPY ──
-function copyProblem(idx) {
-  const p = window._lastProblems?.[idx];
+function sgCopyOne(idx) {
+  const p = sg.lastProblems[idx];
   if (!p) return;
-  let text = `[유사문제 ${idx+1}번]\n${p.question}`;
-  if (p.choices) text += '\n' + p.choices.join('\n');
-  if (p.answer) text += `\n\n정답: ${p.answer}`;
-  if (p.hint) text += `\n힌트: ${p.hint}`;
-  navigator.clipboard.writeText(text).then(() => showToast('📋 복사되었습니다'));
+  let t = `[유사문제 ${idx+1}번]\n${p.question}`;
+  if (p.choices) t += '\n' + p.choices.join('\n');
+  if (p.answer) t += `\n정답: ${p.answer}`;
+  if (p.hint) t += `\n힌트: ${p.hint}`;
+  navigator.clipboard.writeText(t).then(() => showToast('📋 복사되었습니다', '📋'));
 }
 
-function copyAllProblems() {
-  const problems = window._lastProblems;
-  if (!problems?.length) return;
-  let text = problems.map((p, i) => {
+function sgCopyAll() {
+  if (!sg.lastProblems.length) return;
+  const text = sg.lastProblems.map((p,i) => {
     let t = `[유사문제 ${i+1}번]\n${p.question}`;
     if (p.choices) t += '\n' + p.choices.join('\n');
     if (p.answer) t += `\n정답: ${p.answer}`;
     if (p.hint) t += `\n힌트: ${p.hint}`;
     return t;
-  }).join('\n\n──────────────\n\n');
+  }).join('\n\n──────────\n\n');
   navigator.clipboard.writeText(text).then(() => {
-    document.getElementById('copyAllBar').classList.add('show');
-    setTimeout(() => document.getElementById('copyAllBar').classList.remove('show'), 4000);
+    const bar = document.getElementById('sg-copy-bar');
+    bar.style.display = 'flex';
+    setTimeout(() => bar.style.display = 'none', 3500);
   });
 }
 
-function clearResults() {
-  document.getElementById('resultWrap').classList.remove('show');
-  document.getElementById('outputEmpty').style.display = 'flex';
-  document.getElementById('outputHeaderActions').style.display = 'none';
-  document.getElementById('problemList').innerHTML = '';
-  window._lastProblems = null;
+function sgClear() {
+  sg.lastProblems = [];
+  document.getElementById('sg-out-results').style.display = 'none';
+  document.getElementById('sg-out-empty').style.display = 'flex';
+  document.getElementById('sg-out-actions').style.display = 'none';
+  document.getElementById('sg-problem-list').innerHTML = '';
 }
 
-// ── HELPERS ──
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
+function sgEsc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-function formatMath(str) {
-  // 수식 하이라이트: 숫자와 연산자 포함 패턴
-  return str.replace(/([0-9]+[a-z]?(\s*[+\-×÷=≠≤≥<>]\s*[0-9a-z]+)+)/g,
-    '<span class="math-inline">$1</span>');
-}
-
-function showToast(msg, duration = 2500) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
-}
-
-// ── INIT: 클립보드에서 붙여넣기 단축키 ──
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && currentInputMode === 'text') {
-    // 자동 포커스
-    document.getElementById('textInput').focus();
-  }
-});
 </script>
 </body>
 </html>
