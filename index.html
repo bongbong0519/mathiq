@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathIQ — 수학 학습 분석 플랫폼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://cmwuuksxziyemknwwvkc.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_e1Xu-klaPd_bZKrKsZ8YsA_WEBnRWRh';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.supabase = supabase;
+
+  // ── 초기화 ──
+  document.addEventListener('DOMContentLoaded', async () => {
+    // 로그인 상태 확인
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await loadUserAndEnter(session.user);
+    }
+    // 로그인 버튼
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
+    document.getElementById('loginPw').addEventListener('keydown', e => e.key==='Enter' && doLogin());
+  });
+
+  // ── 로그인 ──
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw = document.getElementById('loginPw').value.trim();
+    if (!email || !pw) { toast('이메일과 비밀번호를 입력하세요','error'); return; }
+
+    showLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+    showLoading(false);
+
+    if (error) {
+      // 계정 없으면 자동 생성 (프로토타입용)
+      if (error.message.includes('Invalid login')) {
+        toast('아이디 또는 비밀번호를 확인하세요','error');
+      } else {
+        toast(error.message, 'error');
+      }
+      return;
+    }
+    await loadUserAndEnter(data.user);
+  }
+
+  async function loadUserAndEnter(authUser) {
+    // users 테이블에서 프로필 조회
+    const { data: profile } = await supabase
+      .from('users').select('*').eq('email', authUser.email).single();
+
+    if (!profile) {
+      toast('프로필이 없습니다. 관리자에게 문의하세요','error');
+      await supabase.auth.signOut();
+      return;
+    }
+    window.currentUser = profile;
+    enterApp(profile);
+  }
+
+  // ── 회원가입 (선생님용) ──
+  window.doSignup = async function() {
+    const email = document.getElementById('signupEmail').value.trim();
+    const pw = document.getElementById('signupPw').value.trim();
+    const name = document.getElementById('signupName').value.trim();
+    const role = document.getElementById('signupRole').value;
+    const cls = document.getElementById('signupClass').value.trim();
+    if (!email||!pw||!name) { toast('모든 항목을 입력하세요','error'); return; }
+
+    showLoading(true);
+    // Auth 계정 생성
+    const { data, error } = await supabase.auth.signUp({ email, password: pw });
+    if (error) { showLoading(false); toast(error.message,'error'); return; }
+
+    // users 테이블에 프로필 저장
+    await supabase.from('users').insert({
+      email, name, role, class: cls||null,
+      avatar: role==='teacher'?'👨‍🏫':'👨‍🎓'
+    });
+    showLoading(false);
+    toast('가입 완료! 로그인하세요 🎉','success');
+    showTab('login');
+  }
+
+  // ── 로그아웃 ──
+  window.logout = async function() {
+    await supabase.auth.signOut();
+    window.currentUser = null;
+    document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+    document.getElementById('loginScreen').classList.remove('hidden');
+  }
+
+  // ── 앱 진입 ──
+  function enterApp(profile) {
+    document.getElementById('loginScreen').classList.add('hidden');
+    if (profile.role === 'teacher') {
+      document.getElementById('teacherApp').classList.remove('hidden');
+      tNav('dashboard');
+    } else {
+      document.getElementById('studentApp').classList.remove('hidden');
+      document.getElementById('studentBadge').textContent = (profile.avatar||'👤')+' '+profile.name;
+      sNav('home');
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // ABILITY ENGINE
+  // ══════════════════════════════════════════════
+  const ABILITIES = [
+    { key:'logic',    name:'논리력',    color:'#4f8ef7' },
+    { key:'reason',   name:'추론력',    color:'#a78bfa' },
+    { key:'calc',     name:'계산력',    color:'#3dd68c' },
+    { key:'concept',  name:'개념이해',  color:'#2dd4bf' },
+    { key:'spatial',  name:'공간감각',  color:'#ffaa44' },
+    { key:'creative', name:'창의적사고',color:'#ff5a72' },
+  ];
+  window.ABILITIES = ABILITIES;
+
+  async function analyzeStudent(uid) {
+    const { data: results } = await supabase
+      .from('results').select('*, questions(abilities, difficulty)')
+      .eq('student_id', uid);
+
+    const scores={}, counts={};
+    ABILITIES.forEach(a=>{ scores[a.key]=0; counts[a.key]=0; });
+
+    (results||[]).forEach(r=>{
+      const abs = r.questions?.abilities || [];
+      abs.forEach(ab=>{
+        counts[ab]=(counts[ab]||0)+1;
+        if(r.correct) scores[ab]=(scores[ab]||0)+1;
+      });
+    });
+
+    const analysis={};
+    ABILITIES.forEach(a=>{
+      analysis[a.key]=counts[a.key]>0?Math.round(scores[a.key]/counts[a.key]*100):null;
+    });
+
+    const total=(results||[]).length;
+    const correct=(results||[]).filter(r=>r.correct).length;
+    const accuracy=total>0?Math.round(correct/total*100):0;
+    const avgTime=total>0?Math.round((results||[]).reduce((s,r)=>s+(r.time_taken||0),0)/total):0;
+
+    let level;
+    if(accuracy>=85) level='상위권';
+    else if(accuracy>=65) level='중상위권';
+    else if(accuracy>=45) level='중위권';
+    else level='하위권';
+
+    const validAbs=ABILITIES.filter(a=>analysis[a.key]!==null).sort((a,b)=>analysis[b.key]-analysis[a.key]);
+    const strengths=validAbs.slice(0,2).filter(a=>analysis[a.key]>=60);
+    const weaknesses=[...validAbs].reverse().slice(0,2).filter(a=>analysis[a.key]<60);
+
+    return { analysis, accuracy, total, correct, avgTime, level, strengths, weaknesses };
+  }
+  window.analyzeStudent = analyzeStudent;
+
+  function generateAIComment(name, ana) {
+    const {accuracy,level,strengths,weaknesses,avgTime}=ana;
+    let c=`🤖 <strong>AI 분석 — ${name}</strong><br>`;
+    c+=`현재 <strong>${level}</strong> (정답률 ${accuracy}%). `;
+    if(strengths.length) c+=`<strong>${strengths.map(a=>a.name).join(', ')}</strong> 영역 우수. `;
+    if(weaknesses.length) c+=`<strong>${weaknesses.map(a=>a.name).join(', ')}</strong> 집중 보완 필요. `;
+    if(avgTime>100) c+=`평균 풀이 ${avgTime}초 — 속도 향상 연습 권장.`;
+    else if(avgTime>0) c+=`평균 풀이 ${avgTime}초 — 속도 양호.`;
+    return c;
+  }
+  window.generateAIComment = generateAIComment;
+
+  // ══════════════════════════════════════════════
+  // TEACHER
+  // ══════════════════════════════════════════════
+  window.tNav = async function(page) {
+    window.tCurrentPage = page;
+    document.querySelectorAll('#teacherApp .tnav').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('#teacherApp .tnav').forEach(n=>{
+      if(n.getAttribute('onclick')?.includes("'"+page+"'")) n.classList.add('active');
+    });
+    const c=document.getElementById('teacherContent');
+    c.innerHTML=`<div style="padding:60px;text-align:center;color:var(--text3)">⏳ 불러오는 중...</div>`;
+    if(page==='dashboard') await renderTDashboard();
+    else if(page==='students') await renderTStudents();
+    else if(page==='questions') await renderTQuestions();
+    else if(page==='exams') await renderTExams();
+  }
+
+  async function renderTDashboard() {
+    const { data: students } = await supabase.from('users').select('*').eq('role','student');
+    const { data: questions } = await supabase.from('questions').select('id');
+    const { data: exams } = await supabase.from('exams').select('*');
+    const s=students||[], q=questions||[], e=exams||[];
+
+    // 평균 정답률
+    let totalAcc=0;
+    for(const st of s) {
+      const { data: r } = await supabase.from('results').select('correct').eq('student_id',st.id);
+      const rs=r||[]; const correct=rs.filter(x=>x.correct).length;
+      totalAcc+=rs.length>0?correct/rs.length*100:0;
+    }
+    const avgAcc=s.length>0?Math.round(totalAcc/s.length):0;
+
+    document.getElementById('teacherContent').innerHTML=`
+    <div style="padding:28px 32px">
+      <div class="page-header">
+        <div class="page-title">대시보드</div>
+        <div class="page-sub">안녕하세요, ${window.currentUser.name}! 👋</div>
+      </div>
+      <div class="grid4" style="margin-bottom:24px">
+        <div class="stat-card blue"><div class="stat-label">전체 학생</div><div class="stat-value">${s.length}</div><div class="stat-sub">명</div></div>
+        <div class="stat-card green"><div class="stat-label">문제 수</div><div class="stat-value">${q.length}</div><div class="stat-sub">개</div></div>
+        <div class="stat-card orange"><div class="stat-label">시험 수</div><div class="stat-value">${e.length}</div><div class="stat-sub">개</div></div>
+        <div class="stat-card purple"><div class="stat-label">평균 정답률</div><div class="stat-value">${avgAcc}<span style="font-size:16px">%</span></div><div class="stat-sub">전체 학생</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">학생 현황</div>
+          ${s.map(st=>`
+            <div class="student-row-card" onclick="showStudentDetail('${st.id}','${st.name}')">
+              <div class="student-avatar" style="background:rgba(79,142,247,.15);width:36px;height:36px;font-size:16px">${st.avatar||'👤'}</div>
+              <div class="student-info">
+                <div class="student-name">${st.name}</div>
+                <div class="student-meta">${st.class||''}</div>
+              </div>
+              <span class="badge badge-blue">분석 보기</span>
+            </div>`).join('')}
+          ${!s.length?'<div style="color:var(--text3);font-size:13px;padding:20px 0;text-align:center">등록된 학생이 없습니다</div>':''}
+        </div>
+        <div class="card">
+          <div class="card-title">진행 중인 시험</div>
+          ${e.map(ex=>`
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-size:14px;font-weight:700">${ex.name}</div>
+                  <div style="font-size:11px;color:var(--text2);margin-top:3px">${ex.date||''} · ${ex.class||''}</div>
+                </div>
+                <span class="badge badge-green">진행중</span>
+              </div>
+            </div>`).join('')}
+          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:4px" onclick="tNav('exams')">+ 새 시험 출제</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function renderTStudents() {
+    const { data: students } = await supabase.from('users').select('*').eq('role','student');
+    const s=students||[];
+    let html=`<div style="padding:28px 32px">
+      <div class="page-header"><div class="page-title">학생 분석</div><div class="page-sub">AI 기반 강약점 분석</div></div>`;
+
+    for(const st of s) {
+      const ana=await analyzeStudent(st.id);
+      html+=`<div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+          <div class="student-avatar" style="background:rgba(79,142,247,.2);width:48px;height:48px;font-size:20px">${st.avatar||'👤'}</div>
+          <div style="flex:1">
+            <div style="font-size:17px;font-weight:900">${st.name}</div>
+            <div style="font-size:12px;color:var(--text2)">${st.class||''} · ${ana.total}문제 · 정답률 ${ana.accuracy}%</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="badge badge-blue">${ana.level}</span>
+            ${ana.strengths.map(a=>`<span class="badge badge-green">✨ ${a.name}</span>`).join('')}
+            ${ana.weaknesses.map(a=>`<span class="badge badge-red">⚠ ${a.name}</span>`).join('')}
+          </div>
+        </div>
+        <div class="ability-bars">
+          ${ABILITIES.map(a=>{
+            const score=ana.analysis[a.key];
+            return `<div class="ability-row">
+              <div class="ability-name">${a.name}</div>
+              <div class="ability-bar-bg"><div class="ability-bar-fill" style="width:${score??0}%;background:${a.color}"></div></div>
+              <div class="ability-score" style="color:${score===null?'var(--text3)':score>=70?'var(--green)':score>=40?'var(--orange)':'var(--red)'}">${score===null?'-':score+'%'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.8;border-left:3px solid var(--purple)">
+          ${generateAIComment(st.name,ana)}
+        </div>
+      </div>`;
+    }
+    if(!s.length) html+=`<div class="card"><div style="color:var(--text3);text-align:center;padding:40px">등록된 학생이 없습니다</div></div>`;
+    html+=`</div>`;
+    document.getElementById('teacherContent').innerHTML=html;
+  }
+
+  async function renderTQuestions() {
+    const { data: questions } = await supabase.from('questions').select('*').order('created_at',{ascending:false});
+    const q=questions||[];
+    document.getElementById('teacherContent').innerHTML=`
+    <div style="padding:28px 32px">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+        <div><div class="page-title">문제 관리</div><div class="page-sub">총 ${q.length}개</div></div>
+        <button class="btn btn-blue" onclick="openAddQuestion()">+ 문제 추가</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>#</th><th>문제</th><th>단원</th><th>학년</th><th>난이도</th><th>측정능력</th><th>관리</th></tr></thead>
+          <tbody>
+            ${q.map((q2,i)=>`<tr>
+              <td style="font-family:'DM Mono',monospace;color:var(--text3)">${i+1}</td>
+              <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${q2.body?.replace(/\$/g,'').replace(/[\\{}^_]/g,'')||''}</td>
+              <td><span class="badge badge-blue">${q2.topic||'-'}</span></td>
+              <td style="font-size:12px;color:var(--text2)">${q2.grade||'-'}</td>
+              <td>${'⭐'.repeat(q2.difficulty||1)}</td>
+              <td>${(q2.abilities||[]).map(ab=>{const a=ABILITIES.find(x=>x.key===ab);return a?`<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.06);color:var(--text2)">${a.name}</span>`:''}).join(' ')}</td>
+              <td><button class="btn btn-ghost btn-xs" onclick="deleteQuestion('${q2.id}')">삭제</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        ${!q.length?'<div style="color:var(--text3);text-align:center;padding:40px">문제가 없습니다. 추가해보세요!</div>':''}
+      </div>
+    </div>`;
+  }
+
+  async function renderTExams() {
+    const { data: exams } = await supabase.from('exams').select('*').order('created_at',{ascending:false});
+    const e=exams||[];
+    document.getElementById('teacherContent').innerHTML=`
+    <div style="padding:28px 32px">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+        <div><div class="page-title">시험 출제</div><div class="page-sub">학생에게 배포할 시험</div></div>
+        <button class="btn btn-blue" onclick="openCreateExam()">+ 시험 만들기</button>
+      </div>
+      <div class="grid2">
+        ${e.map(ex=>`
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+              <div>
+                <div style="font-size:16px;font-weight:900">${ex.name}</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">${ex.date||''} · ${ex.class||''}</div>
+              </div>
+              <span class="badge badge-green">진행중</span>
+            </div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:14px">${(ex.question_ids||[]).length}문제</div>
+            <button class="btn btn-red btn-sm" onclick="deleteExam('${ex.id}')">삭제</button>
+          </div>`).join('')}
+        ${!e.length?'<div class="card" style="grid-column:span 2"><div style="color:var(--text3);text-align:center;padding:40px">시험이 없습니다</div></div>':''}
+      </div>
+    </div>`;
+  }
+
+  // ══════════════════════════════════════════════
+  // STUDENT
+  // ══════════════════════════════════════════════
+  window.sNav = async function(page) {
+    window.sCurrentPage = page;
+    document.querySelectorAll('#studentApp .tnav').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('#studentApp .tnav').forEach(n=>{
+      if(n.getAttribute('onclick')?.includes("'"+page+"'")) n.classList.add('active');
+    });
+    const c=document.getElementById('studentContent');
+    c.innerHTML=`<div style="padding:60px;text-align:center;color:var(--text3)">⏳ 불러오는 중...</div>`;
+    if(page==='home') await renderSHome();
+    else if(page==='exam') await renderSExamList();
+    else if(page==='analysis') await renderSAnalysis();
+    else if(page==='history') await renderSHistory();
+  }
+
+  async function renderSHome() {
+    const ana=await analyzeStudent(window.currentUser.id);
+    const { data: exams } = await supabase.from('exams').select('*').eq('status','active');
+    const color=ana.accuracy>=70?'var(--green)':ana.accuracy>=50?'var(--orange)':'var(--red)';
+    document.getElementById('studentContent').innerHTML=`
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;margin-bottom:4px">안녕하세요, ${window.currentUser.name}님! 👋</div>
+        <div style="font-size:13px;color:var(--text2)">오늘도 수학 실력을 키워봐요</div>
+      </div>
+      <div class="grid3" style="margin-bottom:24px">
+        <div class="stat-card blue"><div class="stat-label">현재 수준</div><div class="stat-value" style="font-size:20px;color:${color}">${ana.level}</div><div class="stat-sub">정답률 ${ana.accuracy}%</div></div>
+        <div class="stat-card green"><div class="stat-label">총 풀이</div><div class="stat-value">${ana.total}</div><div class="stat-sub">문제</div></div>
+        <div class="stat-card orange"><div class="stat-label">정답</div><div class="stat-value">${ana.correct}</div><div class="stat-sub">문제</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">나의 능력 분석</div>
+          <div class="ability-bars">
+            ${ABILITIES.map(a=>{
+              const score=ana.analysis[a.key];
+              return `<div class="ability-row">
+                <div class="ability-name">${a.name}</div>
+                <div class="ability-bar-bg"><div class="ability-bar-fill" style="width:${score??0}%;background:${a.color}"></div></div>
+                <div class="ability-score" style="color:${score===null?'var(--text3)':score>=70?'var(--green)':score>=40?'var(--orange)':'var(--red)'}">${score===null?'-':score+'%'}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">진행 중인 시험</div>
+          ${(exams||[]).map(e=>`
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+              <div style="font-size:14px;font-weight:700;margin-bottom:4px">${e.name}</div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${e.date||''} · ${(e.question_ids||[]).length}문제</div>
+              <button class="btn btn-blue btn-sm" onclick="startExam('${e.id}')">▶ 시험 시작</button>
+            </div>`).join('')}
+          ${!(exams||[]).length?'<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">진행 중인 시험이 없습니다</div>':''}
+        </div>
+      </div>`;
+  }
+
+  async function renderSExamList() {
+    const { data: exams } = await supabase.from('exams').select('*').eq('status','active');
+    document.getElementById('studentContent').innerHTML=`
+      <div class="page-header"><div class="page-title">문제 풀기</div></div>
+      ${(exams||[]).map(e=>`
+        <div class="card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+          <div>
+            <div style="font-size:16px;font-weight:900">${e.name}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:4px">${e.date||''} · ${(e.question_ids||[]).length}문제</div>
+          </div>
+          <button class="btn btn-blue" onclick="startExam('${e.id}')">▶ 시작</button>
+        </div>`).join('')}
+      ${!(exams||[]).length?'<div class="card"><div style="color:var(--text3);text-align:center;padding:40px">진행 중인 시험이 없습니다</div></div>':''}`;
+  }
+
+  async function renderSAnalysis() {
+    const ana=await analyzeStudent(window.currentUser.id);
+    document.getElementById('studentContent').innerHTML=`
+      <div class="page-header"><div class="page-title">내 분석 리포트</div></div>
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="text-align:center;min-width:100px">
+            <div style="font-family:'Outfit',sans-serif;font-size:48px;font-weight:900;color:${ana.accuracy>=70?'var(--green)':ana.accuracy>=50?'var(--orange)':'var(--red)'}">${ana.accuracy}<span style="font-size:20px">%</span></div>
+            <div style="font-size:12px;color:var(--text2)">정답률</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:18px;font-weight:900;margin-bottom:8px">수준: <span style="color:var(--blue2)">${ana.level}</span></div>
+            ${ana.strengths.length?`<div style="margin-bottom:6px">✨ <strong>강점:</strong> ${ana.strengths.map(a=>a.name).join(', ')}</div>`:''}
+            ${ana.weaknesses.length?`<div>⚠️ <strong>보완:</strong> ${ana.weaknesses.map(a=>a.name).join(', ')}</div>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">영역별 분석</div>
+        <div class="ability-bars">
+          ${ABILITIES.map(a=>{
+            const score=ana.analysis[a.key];
+            const msg=score===null?'데이터 없음':score>=80?'매우 우수':score>=60?'양호':score>=40?'보통':'집중 보완 필요';
+            return `<div class="ability-row">
+              <div class="ability-name">${a.name}</div>
+              <div class="ability-bar-bg"><div class="ability-bar-fill" style="width:${score??0}%;background:${a.color}"></div></div>
+              <div class="ability-score" style="color:${score===null?'var(--text3)':score>=70?'var(--green)':score>=40?'var(--orange)':'var(--red)'}">${score===null?'-':score+'%'}</div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);padding-left:70px;margin-top:-4px;margin-bottom:8px">${msg}</div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--purple)">
+        <div class="card-title">🤖 AI 코멘트</div>
+        <div style="font-size:13px;line-height:1.9">${generateAIComment(window.currentUser.name,ana)}</div>
+      </div>`;
+  }
+
+  async function renderSHistory() {
+    const { data: results } = await supabase
+      .from('results').select('*, questions(body,topic), exams(name)')
+      .eq('student_id', window.currentUser.id)
+      .order('created_at',{ascending:false});
+    const r=results||[];
+    document.getElementById('studentContent').innerHTML=`
+      <div class="page-header"><div class="page-title">풀이 기록</div><div class="page-sub">총 ${r.length}문제</div></div>
+      <div class="card">
+        <table>
+          <thead><tr><th>날짜</th><th>시험</th><th>문제</th><th>결과</th><th>시간</th></tr></thead>
+          <tbody>
+            ${r.map(x=>`<tr>
+              <td style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${x.created_at?.slice(0,10)||''}</td>
+              <td style="font-size:12px">${x.exams?.name||'?'}</td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${x.questions?.body?.replace(/\$/g,'').replace(/[\\{}^_]/g,'')||'?'}</td>
+              <td><span class="badge ${x.correct?'badge-green':'badge-red'}">${x.correct?'✅ 정답':'❌ 오답'}</span></td>
+              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${x.time_taken||0}초</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        ${!r.length?'<div style="color:var(--text3);text-align:center;padding:40px">풀이 기록이 없습니다</div>':''}
+      </div>`;
+  }
+
+  // ══════════════════════════════════════════════
+  // QUIZ ENGINE
+  // ══════════════════════════════════════════════
+  let quizState = {};
+
+  window.startExam = async function(examId) {
+    const { data: exam } = await supabase.from('exams').select('*').eq('id',examId).single();
+    if (!exam) return;
+    const { data: questions } = await supabase.from('questions').select('*').in('id', exam.question_ids||[]);
+    quizState = { exam, questions:questions||[], qIndex:0, answers:[], questionStart:Date.now() };
+    renderQuiz();
+  }
+
+  function renderQuiz() {
+    const { questions, qIndex } = quizState;
+    const q = questions[qIndex];
+    if (!q) return;
+    const progress = (qIndex/questions.length*100).toFixed(0);
+    const circled = ['①','②','③','④','⑤'];
+
+    document.getElementById('studentContent').innerHTML=`
+      <div class="quiz-container">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:13px;color:var(--text2)">${quizState.exam.name}</span>
+          <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${qIndex+1} / ${questions.length}</span>
+        </div>
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:${progress}%"></div></div>
+        <div class="quiz-card">
+          <div class="quiz-meta">
+            <span class="quiz-num">Q${qIndex+1}</span>
+            <span class="quiz-type-badge badge-blue">${q.topic||''}</span>
+            <span style="font-size:11px;color:var(--text3)">${'⭐'.repeat(q.difficulty||1)}</span>
+          </div>
+          <div class="quiz-question">${q.body}</div>
+          <div class="quiz-options" id="quizOptions">
+            ${(q.options||[]).map((o,i)=>`
+              <div class="quiz-option" id="opt${i}" onclick="selectOption(${i})">
+                <span class="quiz-option-num">${circled[i]}</span>
+                <span>${o}</span>
+              </div>`).join('')}
+          </div>
+          <div id="quizFeedback"></div>
+          <div class="quiz-actions">
+            <button class="btn btn-ghost btn-sm" onclick="sNav('home')">그만 풀기</button>
+            <button class="btn btn-blue" id="submitBtn" onclick="submitAnswer()">제출</button>
+          </div>
+        </div>
+      </div>`;
+    quizState.questionStart = Date.now();
+    quizState.selectedOption = null;
+  }
+
+  window.selectOption = function(idx) {
+    quizState.selectedOption = idx;
+    document.querySelectorAll('.quiz-option').forEach((el,i)=>el.classList.toggle('selected',i===idx));
+  }
+
+  window.submitAnswer = async function() {
+    const { questions, qIndex, selectedOption, questionStart, exam } = quizState;
+    if (selectedOption===null) { toast('답을 선택하세요','error'); return; }
+    const q = questions[qIndex];
+    const correct = selectedOption === q.answer;
+    const timeTaken = Math.round((Date.now()-questionStart)/1000);
+
+    // Supabase에 저장
+    await supabase.from('results').insert({
+      student_id: window.currentUser.id,
+      exam_id: exam.id,
+      question_id: q.id,
+      correct, time_taken: timeTaken
+    });
+
+    quizState.answers.push({ qId:q.id, correct, timeTaken });
+
+    // 피드백
+    document.querySelectorAll('.quiz-option').forEach((el,i)=>{
+      el.classList.remove('selected');
+      if(i===q.answer) el.classList.add('correct');
+      else if(i===selectedOption&&!correct) el.classList.add('wrong');
+      el.style.pointerEvents='none';
+    });
+
+    document.getElementById('quizFeedback').innerHTML=`
+      <div class="quiz-feedback ${correct?'correct':'wrong'}">
+        ${correct?'✅ 정답입니다!':'❌ 오답. 정답: '+(['①','②','③','④','⑤'][q.answer]||'')}
+        ${q.explain?`<br><span style="opacity:.8;font-size:12px">💡 ${q.explain}</span>`:''}
+      </div>`;
+
+    const btn=document.getElementById('submitBtn');
+    if(qIndex+1<questions.length) {
+      btn.textContent='다음 문제 →';
+      btn.onclick=()=>{ quizState.qIndex++; renderQuiz(); };
+    } else {
+      btn.textContent='결과 보기 🎉';
+      btn.style.background='var(--green)'; btn.style.color='#07080f';
+      btn.onclick=showResult;
+    }
+  }
+
+  async function showResult() {
+    const { answers, exam, questions } = quizState;
+    const total=answers.length, correct=answers.filter(a=>a.correct).length;
+    const accuracy=Math.round(correct/total*100);
+    const ana=await analyzeStudent(window.currentUser.id);
+    const color=accuracy>=80?'var(--green)':accuracy>=60?'var(--blue)':accuracy>=40?'var(--orange)':'var(--red)';
+    const emoji=accuracy>=80?'🎉':accuracy>=60?'👍':accuracy>=40?'😊':'💪';
+
+    document.getElementById('studentContent').innerHTML=`
+      <div class="result-hero">
+        <div class="result-score-ring" style="border-color:${color}">
+          <div class="result-score-num" style="color:${color}">${accuracy}<span style="font-size:18px">%</span></div>
+          <div class="result-score-label">${correct}/${total} 정답</div>
+        </div>
+        <div class="result-title">${emoji} ${exam.name} 완료!</div>
+        <div class="result-sub">수고했어요, ${window.currentUser.name}님</div>
+      </div>
+      <div class="grid2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-title">이번 결과</div>
+          ${answers.map((a,i)=>{
+            const q=questions[i];
+            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">Q${i+1}</span>
+              <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q?.topic||''}</span>
+              <span class="badge ${a.correct?'badge-green':'badge-red'}">${a.correct?'✅':'❌'}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="card">
+          <div class="card-title">업데이트된 능력 분석</div>
+          <div class="ability-bars">
+            ${ABILITIES.map(a=>{
+              const score=ana.analysis[a.key];
+              return `<div class="ability-row">
+                <div class="ability-name">${a.name}</div>
+                <div class="ability-bar-bg"><div class="ability-bar-fill" style="width:${score??0}%;background:${a.color}"></div></div>
+                <div class="ability-score" style="color:${score===null?'var(--text3)':score>=70?'var(--green)':score>=40?'var(--orange)':'var(--red)'}">${score===null?'-':score+'%'}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button class="btn btn-ghost" onclick="sNav('exam')">다른 시험 풀기</button>
+        <button class="btn btn-blue" onclick="sNav('analysis')">내 분석 보기</button>
+      </div>`;
+  }
+
+  // ══════════════════════════════════════════════
+  // TEACHER ACTIONS
+  // ══════════════════════════════════════════════
+  window.openAddQuestion = function() {
+    document.getElementById('modalTitle').textContent='문제 추가';
+    document.getElementById('modalBody').innerHTML=`
+      <div class="fg"><label>문제 내용 *</label><textarea id="mqBody" placeholder="$x^2+3x+2=0$ 처럼 LaTeX 수식 사용 가능"></textarea></div>
+      <div class="form-row">
+        <div class="fg"><label>단원</label><input id="mqTopic" placeholder="예) 이차방정식"></div>
+        <div class="fg"><label>학년</label><select id="mqGrade"><option>고1</option><option>고2</option><option>고3</option><option>중3</option><option>중2</option><option>중1</option><option>초6</option></select></div>
+      </div>
+      <div class="fg"><label>보기 (쉼표로 구분) *</label><input id="mqOpts" placeholder="$1$, $2$, $3$, $4$, $5$"></div>
+      <div class="form-row">
+        <div class="fg"><label>정답 번호 (1번=0)</label><input type="number" id="mqAnswer" value="0" min="0" max="4"></div>
+        <div class="fg"><label>난이도</label><select id="mqDiff"><option value="1">⭐ 하</option><option value="2">⭐⭐ 중하</option><option value="3" selected>⭐⭐⭐ 중</option><option value="4">⭐⭐⭐⭐ 상</option><option value="5">⭐⭐⭐⭐⭐ 최상</option></select></div>
+      </div>
+      <div class="fg"><label>측정 능력</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+          ${ABILITIES.map(a=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--text2)"><input type="checkbox" value="${a.key}" class="abilityCheck" style="accent-color:var(--blue)"> ${a.name}</label>`).join('')}
+        </div>
+      </div>
+      <div class="fg"><label>해설</label><textarea id="mqExplain" style="min-height:60px" placeholder="풀이 해설..."></textarea></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+        <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+        <button class="btn btn-blue" onclick="saveNewQuestion()">저장</button>
+      </div>`;
+    openModal();
+  }
+
+  window.saveNewQuestion = async function() {
+    const body=document.getElementById('mqBody').value.trim();
+    const optsRaw=document.getElementById('mqOpts').value;
+    if(!body){toast('문제 내용을 입력하세요','error');return;}
+    const options=optsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    const abilities=[...document.querySelectorAll('.abilityCheck:checked')].map(c=>c.value);
+    const {error}=await supabase.from('questions').insert({
+      teacher_id:window.currentUser.id,
+      type:'mc', subject:'수학',
+      topic:document.getElementById('mqTopic').value||'기타',
+      grade:document.getElementById('mqGrade').value,
+      difficulty:parseInt(document.getElementById('mqDiff').value),
+      abilities, body,
+      options:options.length?options:['①','②','③','④','⑤'],
+      answer:parseInt(document.getElementById('mqAnswer').value)||0,
+      explain:document.getElementById('mqExplain').value
+    });
+    if(error){toast('오류: '+error.message,'error');return;}
+    closeModal(); tNav('questions'); toast('문제가 추가되었습니다','success');
+  }
+
+  window.deleteQuestion = async function(id) {
+    if(!confirm('삭제할까요?'))return;
+    await supabase.from('questions').delete().eq('id',id);
+    tNav('questions'); toast('삭제되었습니다');
+  }
+
+  window.openCreateExam = async function() {
+    const {data:questions}=await supabase.from('questions').select('*');
+    const q=questions||[];
+    document.getElementById('modalTitle').textContent='시험 만들기';
+    document.getElementById('modalBody').innerHTML=`
+      <div class="form-row">
+        <div class="fg"><label>시험 이름 *</label><input id="exName" placeholder="예) 4월 단원평가"></div>
+        <div class="fg"><label>날짜</label><input type="date" id="exDate" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+      <div class="fg"><label>대상 반</label><input id="exClass" placeholder="예) 고1-A"></div>
+      <div class="fg"><label>문제 선택 *</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;max-height:260px;overflow-y:auto">
+          ${q.map(q2=>`
+            <label style="display:flex;align-items:center;gap:8px;background:var(--surface2);padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" value="${q2.id}" class="examQCheck" style="accent-color:var(--blue);width:16px;height:16px">
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q2.body?.replace(/\$/g,'').replace(/[\\{}^_]/g,'')||''}</span>
+              <span style="color:var(--text3);font-size:11px">${q2.topic||''}</span>
+            </label>`).join('')}
+          ${!q.length?'<div style="color:var(--text3);text-align:center;padding:20px">먼저 문제를 추가하세요</div>':''}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+        <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+        <button class="btn btn-blue" onclick="saveNewExam()">시험 생성</button>
+      </div>`;
+    openModal();
+  }
+
+  window.saveNewExam = async function() {
+    const name=document.getElementById('exName').value.trim();
+    const qIds=[...document.querySelectorAll('.examQCheck:checked')].map(c=>c.value);
+    if(!name){toast('시험 이름을 입력하세요','error');return;}
+    if(!qIds.length){toast('문제를 선택하세요','error');return;}
+    await supabase.from('exams').insert({
+      teacher_id:window.currentUser.id, name,
+      date:document.getElementById('exDate').value,
+      class:document.getElementById('exClass').value||'전체',
+      question_ids:qIds, status:'active'
+    });
+    closeModal(); tNav('exams'); toast('시험이 생성되었습니다 🎉','success');
+  }
+
+  window.deleteExam = async function(id) {
+    if(!confirm('삭제할까요?'))return;
+    await supabase.from('exams').delete().eq('id',id);
+    tNav('exams'); toast('삭제되었습니다');
+  }
+
+  window.showStudentDetail = async function(uid, name) {
+    const ana=await analyzeStudent(uid);
+    document.getElementById('modalTitle').textContent=name+' 상세 분석';
+    document.getElementById('modalBody').innerHTML=`
+      <div class="ability-bars" style="margin-bottom:16px">
+        ${ABILITIES.map(a=>{
+          const score=ana.analysis[a.key];
+          return `<div class="ability-row">
+            <div class="ability-name">${a.name}</div>
+            <div class="ability-bar-bg"><div class="ability-bar-fill" style="width:${score??0}%;background:${a.color}"></div></div>
+            <div class="ability-score">${score===null?'-':score+'%'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="padding:14px;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.8;border-left:3px solid var(--purple)">
+        ${generateAIComment(name,ana)}
+      </div>`;
+    openModal();
+  }
+
+  // 회원가입 탭 전환
+  window.showTab = function(tab) {
+    document.getElementById('loginTab').classList.toggle('hidden', tab!=='login');
+    document.getElementById('signupTab').classList.toggle('hidden', tab!=='signup');
+    document.getElementById('tabLogin').classList.toggle('active', tab==='login');
+    document.getElementById('tabSignup').classList.toggle('active', tab==='signup');
+  }
+</script>
+<style>
+:root {
+  --bg:#07080f;--surface:#0e0f1a;--surface2:#161728;--surface3:#1e2035;
+  --border:#252840;--border2:#2e3255;--text:#eeeef8;--text2:#8888aa;--text3:#44445a;
+  --blue:#4f8ef7;--blue2:#7ab3ff;--green:#3dd68c;--red:#ff5a72;--orange:#ffaa44;--purple:#a78bfa;--teal:#2dd4bf;--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.hidden{display:none!important;}
+#loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(79,142,247,.12) 0%,transparent 70%);}
+.login-logo{font-family:'Outfit',sans-serif;font-size:36px;font-weight:900;letter-spacing:-1px;margin-bottom:6px;background:linear-gradient(135deg,var(--blue2),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.login-tagline{font-size:13px;color:var(--text2);margin-bottom:32px;text-align:center;}
+.login-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--surface2);border-radius:10px;padding:4px;}
+.tab-btn{flex:1;padding:8px;border:none;border-radius:8px;background:transparent;color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;}
+.tab-btn.active{background:var(--blue);color:#fff;}
+.login-box{width:min(380px,100%);background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;}
+.login-input-group{margin-bottom:12px;}
+.login-input-group input{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border .15s;}
+.login-input-group input:focus{border-color:var(--blue);}
+.login-input-group select{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;}
+.btn-login{width:100%;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:900;font-family:'Noto Sans KR',sans-serif;cursor:pointer;margin-top:4px;transition:all .2s;}
+.btn-login:hover{opacity:.9;transform:translateY(-1px);}
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:200;}
+.topbar-logo{font-family:'Outfit',sans-serif;font-size:18px;font-weight:900;background:linear-gradient(135deg,var(--blue2),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.user-badge{background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;color:var(--text2);}
+.btn-logout{background:none;border:1px solid var(--border2);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:.15s;}
+.btn-logout:hover{background:var(--surface2);color:var(--text);}
+.tnav{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;transition:.15s;}
+.tnav:hover{background:var(--surface2);color:var(--text);}
+.tnav.active{background:rgba(79,142,247,.15);color:var(--blue2);}
+.page-header{margin-bottom:24px;}
+.page-title{font-family:'Outfit',sans-serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;}
+.page-sub{font-size:13px;color:var(--text2);margin-top:4px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+.card-title{font-size:13px;font-weight:900;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-family:'DM Mono',monospace;margin-bottom:14px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.blue::after{background:var(--blue)}.stat-card.green::after{background:var(--green)}.stat-card.orange::after{background:var(--orange)}.stat-card.purple::after{background:var(--purple)}
+.stat-label{font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-family:'DM Mono',monospace;}
+.stat-value{font-family:'Outfit',sans-serif;font-size:32px;font-weight:900;letter-spacing:-1px;margin:4px 0 2px;}
+.stat-sub{font-size:12px;color:var(--text2);}
+.btn{padding:9px 18px;border-radius:8px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-blue{background:var(--blue);color:#fff;}.btn-blue:hover{background:#3a7ae0;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-red{background:var(--red);color:#fff;}
+.btn-green{background:var(--green);color:#07080f;}
+.btn-sm{padding:5px 12px;font-size:12px;}.btn-xs{padding:3px 9px;font-size:11px;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-blue{background:rgba(79,142,247,.15);color:var(--blue2)}.badge-green{background:rgba(61,214,140,.15);color:var(--green)}.badge-red{background:rgba(255,90,114,.15);color:var(--red)}.badge-orange{background:rgba(255,170,68,.15);color:var(--orange)}.badge-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:10px 14px;background:var(--surface2);color:var(--text3);font-size:10px;letter-spacing:.5px;font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);}
+td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text);vertical-align:middle;}
+tr:hover td{background:var(--surface2);}
+.ability-bars{display:flex;flex-direction:column;gap:10px;}
+.ability-row{display:flex;align-items:center;gap:10px;}
+.ability-name{font-size:12px;color:var(--text2);width:60px;flex-shrink:0;font-weight:700;}
+.ability-bar-bg{flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;}
+.ability-bar-fill{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.ability-score{font-size:12px;color:var(--text);font-family:'DM Mono',monospace;width:36px;text-align:right;font-weight:700;}
+.student-row-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:.15s;}
+.student-row-card:hover{border-color:var(--blue);background:rgba(79,142,247,.05);}
+.student-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;flex-shrink:0;}
+.student-info{flex:1;}
+.student-name{font-size:14px;font-weight:700;}
+.student-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+.quiz-container{max-width:680px;margin:0 auto;}
+.quiz-progress-bar{height:4px;background:var(--surface3);border-radius:2px;margin-bottom:28px;overflow:hidden;}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:2px;transition:width .4s;}
+.quiz-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;}
+.quiz-meta{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.quiz-num{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);}
+.quiz-type-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;}
+.quiz-question{font-size:16px;line-height:1.8;margin-bottom:24px;}
+.quiz-options{display:flex;flex-direction:column;gap:10px;}
+.quiz-option{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .15s;font-size:14px;}
+.quiz-option:hover{border-color:var(--blue);background:rgba(79,142,247,.06);}
+.quiz-option.selected{border-color:var(--blue);background:rgba(79,142,247,.12);}
+.quiz-option.correct{border-color:var(--green);background:rgba(61,214,140,.1);}
+.quiz-option.wrong{border-color:var(--red);background:rgba(255,90,114,.1);}
+.quiz-option-num{font-family:'DM Mono',monospace;font-size:13px;color:var(--blue2);font-weight:700;flex-shrink:0;width:24px;}
+.quiz-actions{display:flex;justify-content:space-between;align-items:center;margin-top:24px;}
+.quiz-feedback{margin-top:16px;padding:14px 16px;border-radius:10px;font-size:13px;line-height:1.7;}
+.quiz-feedback.correct{background:rgba(61,214,140,.1);border:1px solid rgba(61,214,140,.3);color:var(--green);}
+.quiz-feedback.wrong{background:rgba(255,90,114,.1);border:1px solid rgba(255,90,114,.3);color:var(--red);}
+.result-hero{text-align:center;padding:40px 20px 32px;}
+.result-score-ring{width:140px;height:140px;border-radius:50%;margin:0 auto 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid var(--border2);}
+.result-score-num{font-family:'Outfit',sans-serif;font-size:42px;font-weight:900;}
+.result-score-label{font-size:12px;color:var(--text2);}
+.result-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;}
+.result-sub{font-size:13px;color:var(--text2);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:min(640px,96vw);max-height:90vh;overflow-y:auto;animation:modalIn .2s ease;}
+@keyframes modalIn{from{transform:scale(.95) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'Outfit',sans-serif;font-size:18px;font-weight:900;}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);}
+.modal-body{padding:24px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;padding:10px 13px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border .15s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue);}
+.fg textarea{resize:vertical;min-height:80px;line-height:1.7;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--blue);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999;}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.success{background:var(--green);color:#07080f;}
+#toast.error{background:var(--red);}
+.loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:2000;}
+.loading-overlay.show{display:flex;}
+.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.grid2,.grid3,.grid4{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.quiz-card{padding:20px}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-logo">MathIQ</div>
+  <div class="login-tagline">수학 학습 분석 플랫폼 · AI 기반 강약점 분석</div>
+  <div class="login-tabs">
+    <button class="tab-btn active" id="tabLogin" onclick="showTab('login')">로그인</button>
+    <button class="tab-btn" id="tabSignup" onclick="showTab('signup')">회원가입</button>
+  </div>
+  <div class="login-box">
+    <!-- 로그인 -->
+    <div id="loginTab">
+      <div class="login-input-group"><input type="email" id="loginEmail" placeholder="이메일" value=""></div>
+      <div class="login-input-group"><input type="password" id="loginPw" placeholder="비밀번호" value=""></div>
+      <button class="btn-login" id="loginBtn">로그인</button>
+    </div>
+    <!-- 회원가입 -->
+    <div id="signupTab" class="hidden">
+      <div class="login-input-group"><input type="text" id="signupName" placeholder="이름"></div>
+      <div class="login-input-group"><input type="email" id="signupEmail" placeholder="이메일"></div>
+      <div class="login-input-group"><input type="password" id="signupPw" placeholder="비밀번호 (6자 이상)"></div>
+      <div class="login-input-group">
+        <select id="signupRole">
+          <option value="teacher">선생님</option>
+          <option value="student">학생</option>
+        </select>
+      </div>
+      <div class="login-input-group"><input type="text" id="signupClass" placeholder="반 (예: 고1-A)"></div>
+      <button class="btn-login" onclick="doSignup()">가입하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER -->
+<div id="teacherApp" class="hidden">
+  <div class="topbar">
+    <div class="topbar-logo">MathIQ</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="display:flex;gap:4px">
+        <div class="tnav active" onclick="tNav('dashboard')">대시보드</div>
+        <div class="tnav" onclick="tNav('students')">학생 분석</div>
+        <div class="tnav" onclick="tNav('questions')">문제 관리</div>
+        <div class="tnav" onclick="tNav('exams')">시험 출제</div>
+      </div>
+      <div class="user-badge">👨‍🏫 선생님</div>
+      <button class="btn-logout" onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+  <div id="teacherContent"></div>
+</div>
+
+<!-- STUDENT -->
+<div id="studentApp" class="hidden">
+  <div class="topbar">
+    <div class="topbar-logo">MathIQ</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="display:flex;gap:4px">
+        <div class="tnav active" onclick="sNav('home')">홈</div>
+        <div class="tnav" onclick="sNav('exam')">문제 풀기</div>
+        <div class="tnav" onclick="sNav('analysis')">내 분석</div>
+        <div class="tnav" onclick="sNav('history')">풀이 기록</div>
+      </div>
+      <div class="user-badge" id="studentBadge">👨‍🎓 학생</div>
+      <button class="btn-logout" onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+  <div id="studentContent" style="padding:28px 32px;max-width:900px;margin:0 auto"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+function openModal(){document.getElementById('modalOverlay').classList.add('open');}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className=type?type+' show':'show';clearTimeout(t._t);t._t=setTimeout(()=>t.className='',3000);}
+function showLoading(v){document.getElementById('loadingOverlay').classList.toggle('show',v);}
+</script>
+</body>
+</html>
