@@ -2040,10 +2040,14 @@ async function loadProfile() {
       data.role === 'parent' ? '학부모' : '플랫폼 관리자';
     document.getElementById('userAvatar').textContent = (data.name || '?')[0];
 
-    // 역할에 따라 뷰 전환
-    if (data.role === 'parent') switchRole('parent');
-    else if (data.role === 'admin') switchRole('admin');
-    else switchRole('teacher');
+    // 역할에 따라 네비게이션만 전환 (뷰는 유지)
+    const roleForNav = data.role === 'parent' ? 'parent' : data.role === 'admin' ? 'admin' : 'teacher';
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById('role-btn-' + roleForNav);
+    if (activeBtn) activeBtn.classList.add('active');
+    document.querySelectorAll('nav[id^="nav-"]').forEach(n => n.style.display = 'none');
+    const activeNav = document.getElementById('nav-' + roleForNav);
+    if (activeNav) activeNav.style.display = 'block';
   }
 }
 
