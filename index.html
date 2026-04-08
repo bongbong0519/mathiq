@@ -822,7 +822,7 @@
 <body>
 
 <!-- ════ AUTH OVERLAY ════ -->
-<div class="auth-overlay" id="authOverlay" style="display:none">
+<div class="auth-overlay" id="authOverlay">
   <div class="auth-box">
     <div class="auth-logo">Math<span>IQ</span></div>
     <div class="auth-sub">수학 학습 분석 플랫폼에 오신 것을 환영합니다</div>
@@ -877,7 +877,7 @@
   </div>
 </div>
 
-<div class="app-wrapper" id="appWrapper" style="display:flex">
+<div class="app-wrapper" id="appWrapper" style="display:none">
 
   <!-- ════════════════════ SIDEBAR ════════════════════ -->
   <aside class="sidebar">
@@ -1991,15 +1991,18 @@ let selectedRole = 'teacher';
 
 function initSupabase() {
   try {
-    if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_KEY !== 'undefined') {
+    if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_KEY !== 'undefined' &&
+        typeof window.supabase !== 'undefined') {
       sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       checkSession();
     } else {
-      // config.js 없으면 바로 앱 진입 (개발 모드)
-      showApp();
+      // SDK 또는 config.js 로딩 실패 → 로그인 화면 표시
+      document.getElementById('authOverlay').style.display = 'flex';
+      console.log('Supabase init failed: SDK or config not loaded');
     }
   } catch(e) {
-    showApp();
+    document.getElementById('authOverlay').style.display = 'flex';
+    console.log('Supabase init error:', e);
   }
 }
 
@@ -2135,8 +2138,10 @@ async function handleLogout() {
   document.getElementById('authOverlay').style.display = 'flex';
 }
 
-// 시작
-document.addEventListener('DOMContentLoaded', initSupabase);
+// 시작 - config.js 로딩 기다린 후 실행
+window.addEventListener('load', () => {
+  setTimeout(initSupabase, 100);
+});
 
 // ── ROLE SWITCHING ──
 function switchRole(role) {
