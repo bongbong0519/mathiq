@@ -887,9 +887,9 @@
 
     <!-- Role Switcher -->
     <div class="role-switcher">
-      <button class="role-btn active" onclick="switchRole('teacher')">선생님</button>
-      <button class="role-btn" onclick="switchRole('parent')">학부모</button>
-      <button class="role-btn" onclick="switchRole('admin')">운영자</button>
+      <button class="role-btn active" id="role-btn-teacher" onclick="switchRole('teacher')">선생님</button>
+      <button class="role-btn" id="role-btn-parent" onclick="switchRole('parent')">학부모</button>
+      <button class="role-btn" id="role-btn-admin" onclick="switchRole('admin')">운영자</button>
     </div>
 
     <!-- Teacher Nav -->
@@ -2138,7 +2138,8 @@ document.addEventListener('DOMContentLoaded', initSupabase);
 // ── ROLE SWITCHING ──
 function switchRole(role) {
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  const activeBtn = document.getElementById('role-btn-' + role);
+  if (activeBtn) activeBtn.classList.add('active');
 
   document.querySelectorAll('nav[id^="nav-"]').forEach(n => n.style.display = 'none');
   document.getElementById('nav-' + role).style.display = 'block';
