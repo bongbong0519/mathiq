@@ -29,7 +29,7 @@
     document.getElementById('signupBtn').addEventListener('click', window.doSignup);
 
     // 한글 IME 처리 - 조합 중 Enter 방지
-    ['signupName','signupClass'].forEach(id => {
+    ['signupName'].forEach(id => {
       const el = document.getElementById(id);
       let composing = false;
       el.addEventListener('compositionstart', () => composing = true);
@@ -38,7 +38,21 @@
         if (e.key === 'Enter' && !composing) window.doSignup();
       });
     });
+
+    // 회원가입 탭 열릴 때 반 목록 로드
+    document.getElementById('tabSignup').addEventListener('click', loadClassesForSignup);
+    await loadClassesForSignup();
   });
+
+  // 회원가입용 반 목록 로드
+  async function loadClassesForSignup() {
+    const { data: classes } = await supabase.from('classes').select('*').order('created_at');
+    const sel = document.getElementById('signupClass');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">반 선택 (선택사항)</option>' +
+      (classes||[]).map(c => `<option value="${c.name}">${c.name}${c.grade?' ('+c.grade+')':''}</option>`).join('');
+  }
+  window.loadClassesForSignup = loadClassesForSignup;
 
   // ── 로그인 ──
   async function doLogin() {
@@ -198,9 +212,73 @@
     const c=document.getElementById('teacherContent');
     c.innerHTML=`<div style="padding:60px;text-align:center;color:var(--text3)">⏳ 불러오는 중...</div>`;
     if(page==='dashboard') await renderTDashboard();
+    else if(page==='classes') await renderTClasses();
     else if(page==='students') await renderTStudents();
     else if(page==='questions') await renderTQuestions();
     else if(page==='exams') await renderTExams();
+  }
+
+  // ── 반 관리 페이지 ──
+  async function renderTClasses() {
+    const { data: classes } = await supabase.from('classes').select('*, users(name)').order('created_at');
+    const cls = classes||[];
+    document.getElementById('teacherContent').innerHTML=`
+    <div style="padding:28px 32px">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+        <div><div class="page-title">반 관리</div><div class="page-sub">총 ${cls.length}개 반</div></div>
+        <button class="btn btn-blue" onclick="openAddClass()">+ 반 추가</button>
+      </div>
+      <div class="grid2">
+        ${cls.map(c => {
+          return `<div class="card" style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between">
+              <div>
+                <div style="font-size:17px;font-weight:900">${c.name}</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">${c.grade||'학년 미지정'}</div>
+                ${c.description?`<div style="font-size:12px;color:var(--text3);margin-top:4px">${c.description}</div>`:''}
+              </div>
+              <button class="btn btn-ghost btn-xs" onclick="deleteClass('${c.id}')">삭제</button>
+            </div>
+          </div>`;
+        }).join('')}
+        ${!cls.length?'<div class="card" style="grid-column:span 2"><div style="color:var(--text3);text-align:center;padding:40px">등록된 반이 없습니다. 반을 추가해보세요!</div></div>':''}
+      </div>
+    </div>`;
+  }
+
+  window.openAddClass = function() {
+    document.getElementById('modalTitle').textContent = '반 추가';
+    document.getElementById('modalBody').innerHTML = `
+      <div class="fg"><label>반 이름 *</label><input type="text" id="clsName" placeholder="예) 고1-A, 중2 수학반"></div>
+      <div class="fg"><label>학년</label><input type="text" id="clsGrade" placeholder="예) 고1, 중2"></div>
+      <div class="fg"><label>설명 (선택)</label><textarea id="clsDesc" style="min-height:60px" placeholder="반에 대한 설명..."></textarea></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+        <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+        <button class="btn btn-blue" onclick="saveNewClass()">저장</button>
+      </div>`;
+    openModal();
+  }
+
+  window.saveNewClass = async function() {
+    const name = document.getElementById('clsName').value.trim();
+    if (!name) { toast('반 이름을 입력하세요','error'); return; }
+    const { error } = await supabase.from('classes').insert({
+      teacher_id: window.currentUser.id,
+      name,
+      grade: document.getElementById('clsGrade').value.trim()||null,
+      description: document.getElementById('clsDesc').value.trim()||null
+    });
+    if (error) { toast('오류: '+error.message,'error'); return; }
+    closeModal();
+    await renderTClasses();
+    toast('반이 추가되었습니다 🎉','success');
+  }
+
+  window.deleteClass = async function(id) {
+    if (!confirm('반을 삭제할까요?')) return;
+    await supabase.from('classes').delete().eq('id', id);
+    await renderTClasses();
+    toast('삭제되었습니다');
   }
 
   async function renderTDashboard() {
@@ -376,14 +454,59 @@
     else if(page==='history') await renderSHistory();
   }
 
+  // ── 학생 내 정보 수정 ──
+  window.openEditProfile = async function() {
+    const { data: classes } = await supabase.from('classes').select('*').order('created_at');
+    const cls = classes||[];
+    document.getElementById('modalTitle').textContent = '내 정보 수정';
+    document.getElementById('modalBody').innerHTML = `
+      <div class="fg">
+        <label>이름</label>
+        <input type="text" id="editName" value="${window.currentUser.name}" lang="ko">
+      </div>
+      <div class="fg">
+        <label>반 선택</label>
+        <select id="editClass">
+          <option value="">반 선택</option>
+          ${cls.map(c=>`<option value="${c.name}" ${window.currentUser.class===c.name?'selected':''}>${c.name}${c.grade?' ('+c.grade+')':''}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+        <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+        <button class="btn btn-blue" onclick="saveEditProfile()">저장</button>
+      </div>`;
+    openModal();
+  }
+
+  window.saveEditProfile = async function() {
+    const name = document.getElementById('editName').value.trim();
+    const cls = document.getElementById('editClass').value;
+    if (!name) { toast('이름을 입력하세요','error'); return; }
+    const { error } = await supabase.from('users')
+      .update({ name, class: cls||null })
+      .eq('id', window.currentUser.id);
+    if (error) { toast('오류: '+error.message,'error'); return; }
+    window.currentUser.name = name;
+    window.currentUser.class = cls||null;
+    document.getElementById('studentBadge').textContent = (window.currentUser.avatar||'👤')+' '+name;
+    closeModal();
+    await sNav('home');
+    toast('정보가 수정되었습니다 ✅','success');
+  }
+
   async function renderSHome() {
     const ana=await analyzeStudent(window.currentUser.id);
     const { data: exams } = await supabase.from('exams').select('*').eq('status','active');
     const color=ana.accuracy>=70?'var(--green)':ana.accuracy>=50?'var(--orange)':'var(--red)';
     document.getElementById('studentContent').innerHTML=`
       <div style="margin-bottom:28px">
-        <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;margin-bottom:4px">안녕하세요, ${window.currentUser.name}님! 👋</div>
-        <div style="font-size:13px;color:var(--text2)">오늘도 수학 실력을 키워봐요</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;margin-bottom:4px">안녕하세요, ${window.currentUser.name}님! 👋</div>
+            <div style="font-size:13px;color:var(--text2)">오늘도 수학 실력을 키워봐요 · <span style="color:var(--blue2)">${window.currentUser.class||'반 미지정'}</span></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="openEditProfile()">✏️ 내 정보 수정</button>
+        </div>
       </div>
       <div class="grid3" style="margin-bottom:24px">
         <div class="stat-card blue"><div class="stat-label">현재 수준</div><div class="stat-value" style="font-size:20px;color:${color}">${ana.level}</div><div class="stat-sub">정답률 ${ana.accuracy}%</div></div>
@@ -921,7 +1044,11 @@ tr:hover td{background:var(--surface2);}
           <option value="student">학생</option>
         </select>
       </div>
-      <div class="login-input-group"><input type="text" id="signupClass" placeholder="반 (예: 고1-A)" lang="ko" autocomplete="off"></div>
+      <div class="login-input-group">
+        <select id="signupClass">
+          <option value="">반 선택 (선택사항)</option>
+        </select>
+      </div>
       <button class="btn-login" id="signupBtn">가입하기</button>
     </div>
   </div>
@@ -934,6 +1061,7 @@ tr:hover td{background:var(--surface2);}
     <div style="display:flex;align-items:center;gap:16px">
       <div style="display:flex;gap:4px">
         <div class="tnav active" onclick="tNav('dashboard')">대시보드</div>
+        <div class="tnav" onclick="tNav('classes')">반 관리</div>
         <div class="tnav" onclick="tNav('students')">학생 분석</div>
         <div class="tnav" onclick="tNav('questions')">문제 관리</div>
         <div class="tnav" onclick="tNav('exams')">시험 출제</div>
