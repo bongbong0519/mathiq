@@ -2035,6 +2035,12 @@ async function loadProfile() {
 function showApp() {
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('appWrapper').style.display = 'flex';
+  setTimeout(() => {
+    if (sbClient) {
+      loadDashboard();
+      loadStudents();
+    }
+  }, 300);
 }
 
 // ── 탭 전환 ──
@@ -2892,25 +2898,15 @@ async function uploadExamFile(file) {
 
 // ── showView 후크: 뷰 전환 시 데이터 로드 ──
 const _origShowView = showView;
-function showView(viewId) {
+showView = function(viewId) {
   _origShowView(viewId);
   if (!sbClient) return;
   if (viewId === 'dashboard') loadDashboard();
   if (viewId === 'students') loadStudents();
   if (viewId === 'exams') loadExams();
-}
+};
 
-// ── 앱 진입 시 데이터 로드 ──
-const _origShowApp = showApp;
-function showApp() {
-  _origShowApp();
-  setTimeout(() => {
-    if (sbClient) {
-      loadDashboard();
-      loadStudents();
-    }
-  }, 300);
-}
+// ── 앱 진입 시 데이터 로드는 showApp 내부에서 처리 ──
 
 function sgEsc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
