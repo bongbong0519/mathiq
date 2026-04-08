@@ -2410,22 +2410,38 @@ function sgProcessUpload(file, type) {
     };
     reader.readAsDataURL(file);
   } else {
-    sg.fileAttached = true;
+    sg.pdfData = null;
+    sg.fileAttached = false;
     document.getElementById('sg-file-name').textContent = file.name;
     document.getElementById('sg-file-size').textContent = sgFmtSize(file.size);
     document.getElementById('sg-file-preview').style.display = 'flex';
     document.getElementById('sg-file-dropzone').style.display = 'none';
-    document.getElementById('sg-extracted-wrap').style.display = 'block';
-    if (file.name.endsWith('.txt')) {
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      // PDF → base64로 Claude API에 직접 전달
+      document.getElementById('sg-extracted-wrap').style.display = 'none';
+      const reader = new FileReader();
+      reader.onload = ev => {
+        sg.pdfData = ev.target.result.split(',')[1];
+        sg.fileAttached = true;
+        sgUpdateBtn();
+      };
+      reader.readAsDataURL(file);
+    } else if (ext === 'txt') {
+      document.getElementById('sg-extracted-wrap').style.display = 'block';
       const reader = new FileReader();
       reader.onload = ev => {
         document.getElementById('sg-extracted-text').value = ev.target.result;
+        sg.fileAttached = true;
         sgUpdateBtn();
       };
       reader.readAsText(file);
     } else {
+      document.getElementById('sg-extracted-wrap').style.display = 'block';
+      document.getElementById('sg-extracted-text').value = '';
       document.getElementById('sg-extracted-text').placeholder =
-        'PDF/HWP는 자동 추출이 제한됩니다.\n문제 텍스트를 여기에 직접 붙여넣거나,\n이미지 탭을 이용하세요.';
+        'HWP 파일은 자동 추출이 제한됩니다.\n문제 텍스트를 여기에 직접 붙여넣으세요.';
     }
     sgUpdateBtn();
   }
@@ -2463,6 +2479,7 @@ function sgGetInput() {
     return sg.imageData ? { type: 'image', data: sg.imageData, mediaType: sg.imageType } : null;
   }
   if (sg.mode === 'file') {
+    if (sg.pdfData) return { type: 'pdf', data: sg.pdfData };
     const t = document.getElementById('sg-extracted-text').value.trim();
     if (t) return { type: 'text', content: t };
     return null;
@@ -2553,6 +2570,11 @@ choices는 객관식일 때만, hint는 "${hintMap[hint]}" 기준으로 처리�
     messages = [{ role:'user', content:[
       { type:'image', source:{ type:'base64', media_type:input.mediaType, data:input.data }},
       { type:'text', text:`이 시험지를 분석해 ${diffMap[diff]} 난이도의 ${typeMap[type]}으로 ${count}문제 생성. ${hintMap[hint]}.` }
+    ]}];
+  } else if (input.type === 'pdf') {
+    messages = [{ role:'user', content:[
+      { type:'document', source:{ type:'base64', media_type:'application/pdf', data:input.data }},
+      { type:'text', text:`이 시험지 PDF를 분석해 ${diffMap[diff]} 난이도의 ${typeMap[type]}으로 ${count}문제 생성. ${hintMap[hint]}.` }
     ]}];
   } else {
     messages = [{ role:'user', content:
