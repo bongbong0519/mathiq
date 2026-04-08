@@ -161,6 +161,7 @@
     flex: 1;
     padding: 28px 32px;
     min-height: 100vh;
+    overflow-y: auto;
   }
 
   /* ── PAGE HEADER ── */
@@ -1126,11 +1127,11 @@
       <div class="page-header">
         <div>
           <div class="page-title">학생 관리</div>
-          <div class="page-sub">3학년 2반 · 32명</div>
+          <div class="page-sub" id="student-page-sub">학생을 추가해주세요</div>
         </div>
         <div class="header-actions">
           <button class="btn btn-ghost btn-sm">📥 엑셀 내보내기</button>
-          <button class="btn btn-primary btn-sm">+ 학생 추가</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddStudentModal()">+ 학생 추가</button>
         </div>
       </div>
       <div class="student-grid" id="student-grid">
@@ -2006,8 +2007,8 @@ async function checkSession() {
   const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     currentUser = session.user;
-    await loadProfile();
     showApp();
+    await loadProfile();
   } else {
     document.getElementById('authOverlay').style.display = 'flex';
   }
@@ -2085,8 +2086,8 @@ async function handleLogin() {
 
   if (error) { showAuthError('loginError', '이메일 또는 비밀번호가 올바르지 않습니다'); return; }
   currentUser = data.user;
-  await loadProfile();
   showApp();
+  await loadProfile();
 }
 
 // ── 회원가입 ──
