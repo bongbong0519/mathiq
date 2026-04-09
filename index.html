@@ -2625,7 +2625,36 @@ function sgUpdateBtn() {
   const key = document.getElementById('sg-api-key').value.trim();
   const hasInput = sgGetInput() !== null;
   const btn = document.getElementById('sg-gen-btn');
-  const ready = key.startsWith('sk-ant-') && key.length > 30 && hasInput;
+
+  // PDF 파일 탭일 때 메타데이터 필수 체크
+  let metaOk = true;
+  if (sg.mode === 'file' && sg.pdfData) {
+    const region = document.getElementById('sg-meta-region')?.value;
+    const school = document.getElementById('sg-meta-school')?.value.trim();
+    const grade = document.getElementById('sg-meta-grade')?.value;
+    const examType = document.getElementById('sg-meta-type')?.value;
+    metaOk = !!(region && school && grade && examType);
+
+    // 미입력 항목 표시
+    const metaWrap = document.getElementById('sg-meta-wrap');
+    if (metaWrap) {
+      metaWrap.style.borderColor = metaOk ? 'var(--border)' : 'var(--red)';
+      const hint = document.getElementById('sg-meta-hint');
+      if (!metaOk) {
+        if (!hint) {
+          const el = document.createElement('div');
+          el.id = 'sg-meta-hint';
+          el.style.cssText = 'font-size:11px;color:var(--red);margin-top:6px';
+          el.textContent = '⚠️ 지역, 학교명, 학년·학기, 시험유형을 모두 입력해야 생성할 수 있습니다';
+          metaWrap.appendChild(el);
+        }
+      } else {
+        hint?.remove();
+      }
+    }
+  }
+
+  const ready = key.startsWith('sk-ant-') && key.length > 30 && hasInput && metaOk;
   btn.disabled = !ready;
   btn.style.opacity = ready ? '1' : '0.45';
   btn.style.cursor = ready ? 'pointer' : 'not-allowed';
@@ -3068,7 +3097,14 @@ async function deleteExam(id) {
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
   if (!sbClient || !currentUser) return null;
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const ext = file.name.split('.').pop();
+  const parts = [
+    meta.region,
+    meta.school,
+    meta.grade,
+    meta.exam_type
+  ].filter(Boolean).join('_').replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
+  const safeName = parts ? `${parts}.${ext}` : file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const path = `uploads/${currentUser.id}/${Date.now()}_${safeName}`;
 
   const { error } = await sbClient.storage
@@ -3303,13 +3339,19 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// 지역 변경 시 학교 초기화
+// 지역 변경 시 학교 초기화 + 버튼 상태 업데이트
 document.addEventListener('DOMContentLoaded', () => {
   const regionEl = document.getElementById('sg-meta-region');
   if (regionEl) regionEl.addEventListener('change', () => {
     document.getElementById('sg-meta-school').value = '';
     document.getElementById('sg-school-dropdown').style.display = 'none';
     document.getElementById('sg-meta-school').placeholder = '학교명 검색 (2글자 이상)';
+    sgUpdateBtn();
+  });
+
+  ['sg-meta-grade','sg-meta-type'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', sgUpdateBtn);
   });
 });
 
