@@ -3129,7 +3129,7 @@ async function sgSearchSchool(query) {
 
     try {
       const code = NEIS_REGION_CODE[region] || '';
-      const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=demo&Type=json&pSize=20&ATPT_OFCDC_SC_CODE=${code}&SCHUL_NM=${encodeURIComponent(query)}`;
+      const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=8d5460eef86c8d028f199bd303fa77db1cef348190d6d40e9aed768fd592809f&Type=json&pSize=20&ATPT_OFCDC_SC_CODE=${code}&SCHUL_NM=${encodeURIComponent(query)}`;
       const res = await fetch(url);
       const data = await res.json();
 
