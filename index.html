@@ -1566,8 +1566,10 @@
           <div id="sg-out-results" style="display:none;flex-direction:column;gap:12px;overflow-y:auto;flex:1">
             <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border)">
               <div id="sg-result-meta" style="font-size:12px;color:var(--text3)">—</div>
-              <div style="display:flex;gap:7px">
+              <div style="display:flex;gap:7px;flex-wrap:wrap">
                 <button class="btn btn-ghost btn-sm" onclick="sgCopyAll()">📋 전체 복사</button>
+                <button class="btn btn-green btn-sm" onclick="sgExportPDF()">📄 PDF 저장</button>
+                <button class="btn btn-ghost btn-sm" onclick="sgExportWord()">📝 워드 저장</button>
                 <button class="btn btn-accent btn-sm" onclick="sgGenerate()">🔄 재생성</button>
               </div>
             </div>
@@ -3094,6 +3096,143 @@ async function uploadExamFileWithMeta(file, meta = {}) {
 // ── 앱 진입 시 데이터 로드는 showApp 내부에서 처리 ──
 
 
+
+
+// ═══════════════════════════════════════
+//  유사문제 내보내기 (PDF / Word)
+// ═══════════════════════════════════════
+
+function sgExportPDF() {
+  const problems = sg.lastProblems;
+  if (!problems?.length) return;
+
+  const meta = document.getElementById('sg-result-meta').textContent;
+  const date = new Date().toLocaleDateString('ko-KR');
+
+  let html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: 'Malgun Gothic', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; }
+  h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 6px; }
+  .meta { font-size: 12px; color: #666; margin-bottom: 30px; }
+  .problem { margin-bottom: 28px; page-break-inside: avoid; }
+  .problem-num { font-size: 15px; font-weight: bold; color: #2563eb; margin-bottom: 8px; }
+  .problem-text { font-size: 14px; line-height: 1.8; margin-bottom: 10px; }
+  .choices { margin-left: 10px; }
+  .choice { font-size: 13px; line-height: 1.9; }
+  .choice.answer { font-weight: bold; color: #059669; }
+  .hint { margin-top: 8px; padding: 8px 12px; background: #f0f9ff; border-left: 3px solid #3b82f6; font-size: 12px; color: #1e40af; }
+  .answer-box { margin-top: 8px; padding: 6px 12px; background: #f0fdf4; border-left: 3px solid #059669; font-size: 12px; }
+  .divider { border: none; border-top: 1px dashed #ccc; margin: 20px 0; }
+  @media print { body { padding: 20px; } }
+</style>
+</head>
+<body>
+  <h1>MathIQ 유사문제</h1>
+  <div class="meta">${meta} · 생성일: ${date}</div>`;
+
+  problems.forEach((p, i) => {
+    const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
+    const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '';
+    html += `
+  <div class="problem">
+    <div class="problem-num">▶ 유사문제 ${i+1}번 <span style="font-size:12px;font-weight:normal;color:#666">[${typeLabel}${diffLabel ? ' · ' + diffLabel : ''}]</span></div>
+    <div class="problem-text">${(p.question || '').replace(/
+/g,'<br>')}</div>`;
+
+    if (p.type === 'multiple' && p.choices?.length) {
+      html += '<div class="choices">';
+      p.choices.forEach((c, ci) => {
+        const isAns = ci === p.answer_index;
+        html += `<div class="choice ${isAns ? 'answer' : ''}">${ci+1}. ${c.replace(/^[①②③④⑤]\s*/,'')}${isAns ? ' ✓' : ''}</div>`;
+      });
+      html += '</div>';
+    } else if (p.answer) {
+      html += `<div class="answer-box">정답: ${p.answer}</div>`;
+    }
+
+    if (p.hint) {
+      html += `<div class="hint">💡 ${p.hint}</div>`;
+    }
+
+    if (i < problems.length - 1) html += '<hr class="divider">';
+    html += '</div>';
+  });
+
+  html += '</body></html>';
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (win) {
+    win.onload = () => {
+      setTimeout(() => { win.print(); }, 500);
+    };
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function sgExportWord() {
+  const problems = sg.lastProblems;
+  if (!problems?.length) return;
+
+  const meta = document.getElementById('sg-result-meta').textContent;
+  const date = new Date().toLocaleDateString('ko-KR');
+
+  let text = `MathIQ 유사문제\n`;
+  text += `${meta} · 생성일: ${date}\n`;
+  text += '='.repeat(50) + '\n\n';
+
+  problems.forEach((p, i) => {
+    const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
+    text += `[유사문제 ${i+1}번] (${typeLabel})\n`;
+    text += `${p.question}\n\n`;
+
+    if (p.type === 'multiple' && p.choices?.length) {
+      p.choices.forEach((c, ci) => {
+        const isAns = ci === p.answer_index;
+        text += `  ${ci+1}. ${c.replace(/^[①②③④⑤]\s*/,'')}${isAns ? '  ← 정답' : ''}\n`;
+      });
+    } else if (p.answer) {
+      text += `정답: ${p.answer}\n`;
+    }
+
+    if (p.hint) text += `\n힌트: ${p.hint}\n`;
+    text += '\n' + '-'.repeat(40) + '\n\n';
+  });
+
+  // Word 형식 (.doc) HTML 방식
+  const wordHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><style>body{font-family:맑은고딕,sans-serif;font-size:11pt;line-height:1.8} h1{font-size:14pt} .num{color:#2563eb;font-weight:bold} .ans{color:#059669;font-weight:bold} .hint{color:#1e40af;font-size:10pt}</style></head><body>` +
+    `<h1>MathIQ 유사문제</h1><p style="color:#666;font-size:10pt">${meta} · 생성일: ${date}</p><hr>` +
+    problems.map((p,i) => {
+      const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
+      let html = `<p class="num">▶ 유사문제 ${i+1}번 [${typeLabel}]</p>`;
+      html += `<p>${(p.question||'').replace(/
+/g,'<br>')}</p>`;
+      if (p.type === 'multiple' && p.choices?.length) {
+        p.choices.forEach((c,ci) => {
+          const isAns = ci === p.answer_index;
+          html += `<p ${isAns?'class="ans"':''}>&nbsp;&nbsp;${ci+1}. ${c.replace(/^[①②③④⑤]\s*/,'')}${isAns?' ✓':''}</p>`;
+        });
+      } else if (p.answer) {
+        html += `<p class="ans">정답: ${p.answer}</p>`;
+      }
+      if (p.hint) html += `<p class="hint">💡 ${p.hint}</p>`;
+      html += '<hr>';
+      return html;
+    }).join('') + '</body></html>';
+
+  const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `MathIQ_유사문제_${date.replace(/\./g,'')}.doc`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  showToast('워드 파일이 다운로드되었습니다', '📝');
+}
 
 // ═══════════════════════════════════════
 //  NEIS 전국 학교 검색
