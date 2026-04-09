@@ -1360,6 +1360,7 @@
               <div id="sg-meta-wrap" style="display:none;margin-top:12px;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm)">
                 <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">📋 시험지 정보 (운영자 저장용)</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+
                   <div>
                     <div style="font-size:11px;color:var(--text3);margin-bottom:4px">지역</div>
                     <select class="form-input" id="sg-meta-region" style="font-size:12px;padding:7px 10px">
@@ -1372,18 +1373,57 @@
                       <option>경남</option><option>제주</option>
                     </select>
                   </div>
+
                   <div>
                     <div style="font-size:11px;color:var(--text3);margin-bottom:4px">학교명</div>
-                    <input type="text" class="form-input" id="sg-meta-school" placeholder="○○중학교" style="font-size:12px;padding:7px 10px">
+                    <input type="text" class="form-input" id="sg-meta-school"
+                      placeholder="학교명 입력 또는 선택"
+                      list="school-datalist"
+                      style="font-size:12px;padding:7px 10px">
+                    <datalist id="school-datalist">
+                      <option value="○○초등학교">
+                      <option value="○○중학교">
+                      <option value="○○고등학교">
+                    </datalist>
                   </div>
+
                   <div>
-                    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">학년</div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">학년 · 학기</div>
                     <select class="form-input" id="sg-meta-grade" style="font-size:12px;padding:7px 10px">
                       <option value="">선택</option>
-                      <option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option>
-                      <option value="고1">고1</option><option value="고2">고2</option><option value="고3">고3</option>
+                      <optgroup label="초등학교">
+                        <option value="초1-1학기">초1 - 1학기</option>
+                        <option value="초1-2학기">초1 - 2학기</option>
+                        <option value="초2-1학기">초2 - 1학기</option>
+                        <option value="초2-2학기">초2 - 2학기</option>
+                        <option value="초3-1학기">초3 - 1학기</option>
+                        <option value="초3-2학기">초3 - 2학기</option>
+                        <option value="초4-1학기">초4 - 1학기</option>
+                        <option value="초4-2학기">초4 - 2학기</option>
+                        <option value="초5-1학기">초5 - 1학기</option>
+                        <option value="초5-2학기">초5 - 2학기</option>
+                        <option value="초6-1학기">초6 - 1학기</option>
+                        <option value="초6-2학기">초6 - 2학기</option>
+                      </optgroup>
+                      <optgroup label="중학교">
+                        <option value="중1-1학기">중1 - 1학기</option>
+                        <option value="중1-2학기">중1 - 2학기</option>
+                        <option value="중2-1학기">중2 - 1학기</option>
+                        <option value="중2-2학기">중2 - 2학기</option>
+                        <option value="중3-1학기">중3 - 1학기</option>
+                        <option value="중3-2학기">중3 - 2학기</option>
+                      </optgroup>
+                      <optgroup label="고등학교">
+                        <option value="고1-1학기">고1 - 1학기</option>
+                        <option value="고1-2학기">고1 - 2학기</option>
+                        <option value="고2-1학기">고2 - 1학기</option>
+                        <option value="고2-2학기">고2 - 2학기</option>
+                        <option value="고3-1학기">고3 - 1학기</option>
+                        <option value="고3-2학기">고3 - 2학기</option>
+                      </optgroup>
                     </select>
                   </div>
+
                   <div>
                     <div style="font-size:11px;color:var(--text3);margin-bottom:4px">시험 유형</div>
                     <select class="form-input" id="sg-meta-type" style="font-size:12px;padding:7px 10px">
@@ -1392,9 +1432,10 @@
                       <option>쪽지시험</option><option>수행평가</option><option>모의고사</option>
                     </select>
                   </div>
+
                 </div>
-                <div style="margin-top:6px;font-size:10px;color:var(--text3)">
-                  ℹ️ 파일은 운영자 전용 저장소에 자동 업로드됩니다
+                <div style="margin-top:8px;font-size:10px;color:var(--text3)">
+                  ℹ️ 파일은 유사문제 생성과 동시에 운영자 전용 저장소에 자동 저장됩니다
                 </div>
               </div>
 
