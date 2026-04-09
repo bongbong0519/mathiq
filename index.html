@@ -3095,14 +3095,24 @@ async function deleteExam(id) {
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
   if (!sbClient || !currentUser) return null;
-  const ext = file.name.split('.').pop();
-  const parts = [
-    meta.region,
-    meta.school,
-    meta.grade,
-    meta.exam_type
-  ].filter(Boolean).join('_').replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
-  const safeName = parts ? `${parts}.${ext}` : file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const ext = file.name.split('.').pop().toLowerCase();
+  // 한글 포함 메타데이터를 영문/숫자 조합으로 변환
+  const regionMap = {
+    '서울':'Seoul','부산':'Busan','대구':'Daegu','인천':'Incheon',
+    '광주':'Gwangju','대전':'Daejeon','울산':'Ulsan','세종':'Sejong',
+    '경기':'Gyeonggi','강원':'Gangwon','충북':'Chungbuk','충남':'Chungnam',
+    '전북':'Jeonbuk','전남':'Jeonnam','경북':'Gyeongbuk','경남':'Gyeongnam','제주':'Jeju'
+  };
+  const typeMap = {
+    '중간고사':'Midterm','기말고사':'Final','단원평가':'Unit','쪽지시험':'Quiz',
+    '수행평가':'Performance','모의고사':'Mock'
+  };
+  const regionEn = regionMap[meta.region] || (meta.region || '');
+  const schoolEn = (meta.school || '').replace(/[^a-zA-Z0-9]/g, '');
+  const gradeEn = (meta.grade || '').replace(/[^a-zA-Z0-9-]/g, '');
+  const typeEn = typeMap[meta.exam_type] || (meta.exam_type || '');
+  const parts = [regionEn, schoolEn, gradeEn, typeEn].filter(Boolean).join('_');
+  const safeName = parts ? `${parts}.${ext}` : `exam_${Date.now()}.${ext}`;
   const path = `uploads/${currentUser.id}/${Date.now()}_${safeName}`;
 
   const { error } = await sbClient.storage
