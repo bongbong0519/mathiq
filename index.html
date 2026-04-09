@@ -1587,7 +1587,12 @@
     </div>
 
 
-
+<!-- ══ VIEW: STUDENT ══ -->
+    <div id="view-student" class="view">
+      <div id="student-view-wrap">
+        <div style="text-align:center;padding:60px;color:var(--text3)">불러오는 중...</div>
+      </div>
+    </div>
 
     <!-- ══ VIEW: ADMIN OVERVIEW ══ (NEW) -->
     <div id="view-admin-overview" class="view">
@@ -2051,6 +2056,18 @@ async function loadProfile() {
     currentProfile = data;
 
     // 승인 상태 체크
+    // 학생이면 학생 뷰로 이동
+    if (data.role === 'student') {
+      document.getElementById('appWrapper').style.display = 'flex';
+      document.getElementById('authOverlay').style.display = 'none';
+      document.querySelector('.sidebar').style.display = 'none';
+      document.querySelector('.main-content').style.marginLeft = '0';
+      document.getElementById('userName').textContent = data.name || currentUser.email;
+      document.getElementById('userAvatar').textContent = (data.name || '?')[0];
+      showView('student');
+      loadStudentView();
+      return;
+    }
     if (data.role === 'teacher' && data.status !== 'approved') {
       document.getElementById('authOverlay').style.display = 'none';
       document.getElementById('appWrapper').style.display = 'none';
@@ -3660,6 +3677,106 @@ async function rejectTeacher(id) {
 
 function sgEsc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+  // ═══════════════════════════════════════
+//  학생 전용 뷰
+// ═══════════════════════════════════════
+async function loadStudentView() {
+  if (!sbClient || !currentUser) return;
+
+  const { data: student } = await sbClient
+    .from('students')
+    .select('*')
+    .eq('email', currentUser.email)
+    .single();
+
+  if (!student) return;
+
+  // 성적 불러오기
+  const { data: results } = await sbClient
+    .from('exam_results')
+    .select('*, exams(title, exam_date, unit)')
+    .eq('student_id', student.id)
+    .order('created_at', { ascending: false });
+
+  // 코멘트 불러오기
+  const { data: comment } = await sbClient
+    .from('teacher_comments')
+    .select('*')
+    .eq('student_id', student.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  const scores = (results || []).map(r => r.score).filter(v => v != null);
+  const avg = scores.length ? (scores.reduce((a,b) => a+b,0) / scores.length).toFixed(1) : null;
+
+  const wrap = document.getElementById('student-view-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = `
+    <div style="max-width:900px;margin:0 auto;padding:20px">
+      <!-- 헤더 -->
+      <div style="background:linear-gradient(135deg,#4f8ef7,#6c6ef5);border-radius:16px;padding:28px;color:#fff;margin-bottom:20px">
+        <div style="font-size:22px;font-weight:800">안녕하세요, ${student.name} 학생! 👋</div>
+        <div style="margin-top:6px;opacity:0.8;font-size:14px">${student.school || ''} · ${student.grade || ''}</div>
+      </div>
+
+      <!-- 요약 카드 3개 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">📝</div>
+          <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${(results||[]).length}회</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">응시한 시험</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">📊</div>
+          <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${avg ? avg+'점' : '—'}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">평균 점수</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">🎯</div>
+          <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${results?.[0]?.score != null ? results[0].score+'점' : '—'}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">최근 점수</div>
+        </div>
+      </div>
+
+      <!-- 선생님 코멘트 -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px">💬 선생님 코멘트</div>
+        ${comment
+          ? `<div style="font-size:14px;line-height:1.8;color:var(--text)">${comment.comment}</div>
+             <div style="font-size:11px;color:var(--text3);margin-top:10px">${new Date(comment.created_at).toLocaleDateString('ko-KR')}</div>`
+          : `<div style="text-align:center;padding:20px;color:var(--text3)">아직 코멘트가 없습니다</div>`
+        }
+      </div>
+
+      <!-- 성적 목록 -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px">📋 시험 성적</div>
+        ${!results || results.length === 0
+          ? `<div style="text-align:center;padding:30px;color:var(--text3)">아직 입력된 성적이 없습니다</div>`
+          : `<table style="width:100%;border-collapse:collapse">
+              <thead><tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:10px;text-align:left;font-size:12px;color:var(--text3)">시험명</th>
+                <th style="padding:10px;text-align:left;font-size:12px;color:var(--text3)">날짜</th>
+                <th style="padding:10px;text-align:left;font-size:12px;color:var(--text3)">단원</th>
+                <th style="padding:10px;text-align:right;font-size:12px;color:var(--text3)">점수</th>
+              </tr></thead>
+              <tbody>
+                ${results.map(r => `
+                  <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:12px 10px;font-size:14px;font-weight:600">${r.exams?.title || '—'}</td>
+                    <td style="padding:12px 10px;font-size:13px;color:var(--text3)">${r.exams?.exam_date || '—'}</td>
+                    <td style="padding:12px 10px;font-size:13px;color:var(--text3)">${r.exams?.unit || '—'}</td>
+                    <td style="padding:12px 10px;text-align:right;font-size:18px;font-weight:800;font-family:'Space Mono',monospace;color:${r.score>=80?'var(--green)':r.score>=60?'var(--yellow)':'var(--red)'}">${r.score != null ? r.score+'점' : '—'}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>`
+        }
+      </div>
+    </div>
+  `;
 }
 </script>
 </body>
