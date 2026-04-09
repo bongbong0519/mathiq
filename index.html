@@ -1956,16 +1956,23 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">학년</label>
-        <select class="form-input" id="stu-grade">
-          <option value="1">1학년</option>
-          <option value="2">2학년</option>
-          <option value="3">3학년</option>
-        </select>
+        <label class="form-label">학교명</label>
+        <input type="text" class="form-input" id="stu-school" placeholder="○○중학교">
       </div>
       <div class="form-group">
-        <label class="form-label">반</label>
-        <input type="text" class="form-input" id="stu-class" placeholder="2반">
+        <label class="form-label">학년</label>
+        <select class="form-input" id="stu-grade">
+          <optgroup label="초등학교">
+            <option value="초1">초1</option><option value="초2">초2</option><option value="초3">초3</option>
+            <option value="초4">초4</option><option value="초5">초5</option><option value="초6">초6</option>
+          </optgroup>
+          <optgroup label="중학교">
+            <option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option>
+          </optgroup>
+          <optgroup label="고등학교">
+            <option value="고1">고1</option><option value="고2">고2</option><option value="고3">고3</option>
+          </optgroup>
+        </select>
       </div>
       <div id="stu-error" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px"></div>
       <button class="btn btn-primary w-full" onclick="submitAddStudent()">추가하기</button>
@@ -2998,8 +3005,8 @@ async function submitAddStudent() {
   const name = document.getElementById('stu-name').value.trim();
   const email = document.getElementById('stu-email').value.trim();
   const password = document.getElementById('stu-password').value.trim();
+  const school = document.getElementById('stu-school').value.trim();
   const grade = document.getElementById('stu-grade').value;
-  const className = document.getElementById('stu-class').value.trim();
   const errEl = document.getElementById('stu-error');
 
   if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.style.display = 'block'; return; }
@@ -3015,7 +3022,7 @@ async function submitAddStudent() {
     const res = await fetch('/api/create-student', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name, grade, class_name: className, teacher_id: currentUser.id })
+      body: JSON.stringify({ email, password, name, school, grade, teacher_id: currentUser.id })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '계정 생성 실패');
