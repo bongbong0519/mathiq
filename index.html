@@ -1163,13 +1163,134 @@
     <!-- ══ VIEW: UPLOAD ══ -->
     <div id="view-upload" class="view">
       <div class="page-header">
-        <div><div class="page-title">파일 업로드</div><div class="page-sub">학습 자료 · 시험지 · 분석 데이터</div></div>
+        <div>
+          <div class="page-title">시험지 업로드</div>
+          <div class="page-sub">시험지 정보를 먼저 선택한 후 파일을 업로드해주세요</div>
+        </div>
       </div>
-      <div class="card">
-        <div style="border:2px dashed var(--border2);border-radius:var(--radius);padding:48px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
-          <div style="font-size:36px;margin-bottom:12px">📤</div>
-          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">파일을 드래그하거나 클릭하여 업로드</div>
-          <div style="font-size:12px;color:var(--text3)">PDF, XLSX, HWP, JPG, PNG 지원 · 최대 50MB</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+        <!-- 메타데이터 입력 -->
+        <div class="card">
+          <div class="card-title">📋 시험지 정보</div>
+
+          <div class="form-group">
+            <label class="form-label">지역</label>
+            <select class="form-input" id="up-region">
+              <option value="">선택해주세요</option>
+              <option>서울</option><option>경기</option><option>인천</option>
+              <option>부산</option><option>대구</option><option>광주</option>
+              <option>대전</option><option>울산</option><option>세종</option>
+              <option>강원</option><option>충북</option><option>충남</option>
+              <option>전북</option><option>전남</option><option>경북</option>
+              <option>경남</option><option>제주</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">학교명</label>
+            <input type="text" class="form-input" id="up-school" placeholder="예) ○○중학교">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">학년</label>
+            <select class="form-input" id="up-grade">
+              <option value="">선택해주세요</option>
+              <option value="중1">중학교 1학년</option>
+              <option value="중2">중학교 2학년</option>
+              <option value="중3">중학교 3학년</option>
+              <option value="고1">고등학교 1학년</option>
+              <option value="고2">고등학교 2학년</option>
+              <option value="고3">고등학교 3학년</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">시험 유형</label>
+            <select class="form-input" id="up-exam-type">
+              <option value="">선택해주세요</option>
+              <option>중간고사</option>
+              <option>기말고사</option>
+              <option>단원평가</option>
+              <option>쪽지시험</option>
+              <option>수행평가</option>
+              <option>모의고사</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">단원</label>
+            <select class="form-input" id="up-unit">
+              <option value="">선택해주세요 (선택사항)</option>
+              <option>수와 연산</option>
+              <option>문자와 식</option>
+              <option>함수</option>
+              <option>기하</option>
+              <option>확률과 통계</option>
+              <option>복합 단원</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">난이도</label>
+            <select class="form-input" id="up-difficulty">
+              <option value="">선택해주세요 (선택사항)</option>
+              <option value="easy">기본 (쉬움)</option>
+              <option value="normal">표준 (보통)</option>
+              <option value="hard">도전 (어려움)</option>
+              <option value="expert">심화 (최상위)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">메모 (선택사항)</label>
+            <textarea class="form-input" id="up-memo" rows="2" placeholder="특이사항이나 출제 의도를 간단히 적어주세요"></textarea>
+          </div>
+        </div>
+
+        <!-- 파일 업로드 -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-title">📎 파일 선택</div>
+            <div id="up-dropzone"
+              ondragover="upDragOver(event)" ondragleave="upDragLeave()" ondrop="upDrop(event)"
+              style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:36px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);position:relative">
+              <input type="file" id="up-file-input" accept=".pdf,.hwp,.docx,.jpg,.jpeg,.png,.xlsx"
+                onchange="upHandleFile(event)"
+                style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%">
+              <div style="font-size:32px;margin-bottom:10px">📄</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px">파일을 드래그하거나 클릭</div>
+              <div style="font-size:11px;color:var(--text3)">PDF · HWP · DOCX · JPG · PNG · XLSX</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">최대 50MB</div>
+            </div>
+
+            <!-- 파일 미리보기 -->
+            <div id="up-file-preview" style="display:none;margin-top:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;align-items:center;gap:10px">
+              <div style="font-size:24px" id="up-file-icon">📄</div>
+              <div style="flex:1;min-width:0">
+                <div id="up-file-name" style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+                <div id="up-file-size" style="font-size:11px;color:var(--text3);margin-top:2px">—</div>
+              </div>
+              <button onclick="upRemoveFile()" style="background:rgba(245,101,101,0.1);border:1px solid rgba(245,101,101,0.2);color:var(--red);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px">✕</button>
+            </div>
+          </div>
+
+          <!-- 업로드 요약 -->
+          <div class="card" id="up-summary" style="display:none">
+            <div class="card-title">✅ 업로드 정보 확인</div>
+            <div id="up-summary-content" style="font-size:13px;color:var(--text2);line-height:2"></div>
+          </div>
+
+          <!-- 업로드 버튼 -->
+          <button id="up-submit-btn" onclick="submitUpload()" disabled
+            style="width:100%;padding:14px;border-radius:var(--radius);border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;font-family:inherit;opacity:0.45">
+            📤 시험지 업로드
+          </button>
+
+          <div style="font-size:11px;color:var(--text3);text-align:center">
+            업로드된 파일은 운영자만 열람할 수 있습니다
+          </div>
         </div>
       </div>
     </div>
@@ -2876,6 +2997,149 @@ async function uploadExamFile(file) {
 
 
 // ── 앱 진입 시 데이터 로드는 showApp 내부에서 처리 ──
+
+
+// ═══════════════════════════════════════
+//  파일 업로드 폼
+// ═══════════════════════════════════════
+let upFile = null;
+
+function upDragOver(e) {
+  e.preventDefault();
+  document.getElementById('up-dropzone').style.borderColor = 'var(--accent)';
+  document.getElementById('up-dropzone').style.background = 'rgba(79,142,247,0.04)';
+}
+function upDragLeave() {
+  document.getElementById('up-dropzone').style.borderColor = 'var(--border2)';
+  document.getElementById('up-dropzone').style.background = 'var(--bg3)';
+}
+function upDrop(e) {
+  e.preventDefault();
+  upDragLeave();
+  if (e.dataTransfer.files[0]) upSetFile(e.dataTransfer.files[0]);
+}
+function upHandleFile(e) {
+  if (e.target.files[0]) upSetFile(e.target.files[0]);
+}
+
+function upSetFile(file) {
+  upFile = file;
+  const icons = { pdf:'📄', hwp:'📝', docx:'📝', jpg:'🖼', jpeg:'🖼', png:'🖼', xlsx:'📊' };
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('up-file-icon').textContent = icons[ext] || '📄';
+  document.getElementById('up-file-name').textContent = file.name;
+  document.getElementById('up-file-size').textContent = upFmtSize(file.size);
+  document.getElementById('up-file-preview').style.display = 'flex';
+  document.getElementById('up-dropzone').style.display = 'none';
+  upCheckReady();
+}
+
+function upRemoveFile() {
+  upFile = null;
+  document.getElementById('up-file-preview').style.display = 'none';
+  document.getElementById('up-dropzone').style.display = 'block';
+  document.getElementById('up-file-input').value = '';
+  upCheckReady();
+}
+
+function upFmtSize(b) {
+  if (b < 1024) return b + 'B';
+  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
+  return (b/1048576).toFixed(1) + 'MB';
+}
+
+function upCheckReady() {
+  const region = document.getElementById('up-region').value;
+  const school = document.getElementById('up-school').value.trim();
+  const grade = document.getElementById('up-grade').value;
+  const examType = document.getElementById('up-exam-type').value;
+  const ready = region && school && grade && examType && upFile;
+
+  const btn = document.getElementById('up-submit-btn');
+  btn.disabled = !ready;
+  btn.style.opacity = ready ? '1' : '0.45';
+  btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+
+  // 요약 카드 업데이트
+  const summary = document.getElementById('up-summary');
+  if (ready) {
+    const unit = document.getElementById('up-unit').value;
+    const diff = document.getElementById('up-difficulty').value;
+    const diffLabel = { easy:'기본', normal:'표준', hard:'도전', expert:'심화' };
+    summary.style.display = 'block';
+    document.getElementById('up-summary-content').innerHTML = `
+      📍 <strong>${region}</strong> · ${school} · ${grade}<br>
+      📝 <strong>${examType}</strong>${unit ? ' · ' + unit : ''}${diff ? ' · ' + diffLabel[diff] : ''}<br>
+      📎 <strong>${upFile.name}</strong> (${upFmtSize(upFile.size)})
+    `;
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+// 입력 변경 시 체크
+['up-region','up-school','up-grade','up-exam-type','up-unit','up-difficulty'].forEach(id => {
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', upCheckReady);
+    if (el) el.addEventListener('input', upCheckReady);
+  });
+});
+
+async function submitUpload() {
+  if (!upFile || !sbClient || !currentUser) return;
+
+  const region = document.getElementById('up-region').value;
+  const school = document.getElementById('up-school').value.trim();
+  const grade = document.getElementById('up-grade').value;
+  const examType = document.getElementById('up-exam-type').value;
+  const unit = document.getElementById('up-unit').value;
+  const difficulty = document.getElementById('up-difficulty').value;
+  const memo = document.getElementById('up-memo').value.trim();
+
+  const btn = document.getElementById('up-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 업로드 중...';
+
+  try {
+    const path = `uploads/${currentUser.id}/${Date.now()}_${upFile.name}`;
+    const { error: storageError } = await sbClient.storage
+      .from('exam-files')
+      .upload(path, upFile, { upsert: false });
+
+    if (storageError) throw storageError;
+
+    await sbClient.from('uploaded_files').insert({
+      teacher_id: currentUser.id,
+      file_name: upFile.name,
+      file_path: path,
+      file_size: upFile.size,
+      status: 'pending',
+      region, school, grade,
+      exam_type: examType,
+      unit: unit || null,
+      difficulty: difficulty || null,
+      memo: memo || null
+    }).catch(() => {});
+
+    showToast('시험지가 업로드되었습니다!', '✅');
+
+    // 초기화
+    upRemoveFile();
+    ['up-region','up-school','up-grade','up-exam-type','up-unit','up-difficulty','up-memo'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    upCheckReady();
+
+  } catch(e) {
+    showToast('업로드 실패: ' + e.message, '❌');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 시험지 업로드';
+    upCheckReady();
+  }
+}
 
 function sgEsc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
