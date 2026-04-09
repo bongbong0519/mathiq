@@ -1,5 +1,8 @@
 {
   "rewrites": [
-    { "source": "/api/proxy", "destination": "/api/proxy.js" }
-  ]
+    { "source": "/api/proxy", "destination": "/api/proxy.js" },
+    { "source": "/api/school", "destination": "/api/school.js" },
+    { "source": "/api/create-student", "destination": "/api/create-student.js" }
+  ],
+  "installCommand": "npm install"
 }
