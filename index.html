@@ -904,7 +904,6 @@
     <!-- Role Switcher -->
     <div class="role-switcher">
       <button class="role-btn active" id="role-btn-teacher" onclick="switchRole('teacher')">선생님</button>
-      <button class="role-btn" id="role-btn-parent" onclick="switchRole('parent')">학부모</button>
       <button class="role-btn" id="role-btn-admin" onclick="switchRole('admin')">운영자</button>
     </div>
 
@@ -933,26 +932,6 @@
         </div>
         <div class="nav-item" onclick="showView('similar')">
           <span class="icon">🧩</span> 유사문제 생성
-        </div>
-      </div>
-    </nav>
-
-    <!-- Parent Nav -->
-    <nav id="nav-parent" style="display:none">
-      <div class="nav-section">
-        <div class="nav-label">우리 아이</div>
-        <div class="nav-item active" onclick="showView('parent-home')">
-          <span class="icon">🏠</span> 홈
-        </div>
-        <div class="nav-item" onclick="showView('parent-progress')">
-          <span class="icon">📈</span> 학습 현황
-        </div>
-        <div class="nav-item" onclick="showView('parent-reports')">
-          <span class="icon">📋</span> 받은 리포트
-          <span class="badge">2</span>
-        </div>
-        <div class="nav-item" onclick="showView('parent-consult')">
-          <span class="icon">💬</span> 상담 요청
         </div>
       </div>
     </nav>
@@ -1590,24 +1569,22 @@
               <span style="font-size:13px;color:var(--green);font-weight:600">✅ 클립보드에 복사되었습니다</span>
               <button class="btn btn-ghost btn-xs" onclick="document.getElementById('sg-copy-bar').style.display='none'">✕</button>
             </div>
+
+            <!-- 역량 분석 차트 -->
+            <div id="sg-competency-wrap" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:4px">
+              <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">🧠 문제 역량 분석 (평균)</div>
+              <div style="display:flex;align-items:center;gap:16px">
+                <canvas id="sg-radar-chart" width="180" height="180" style="flex-shrink:0"></canvas>
+                <div id="sg-competency-bars" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
+              </div>
+            </div>
+
             <div id="sg-problem-list"></div>
           </div>
 
         </div>
       </div>
     </div>
-
-    <!-- ══ VIEW: PARENT HOME ══ (NEW) -->
-    <div id="view-parent-home" class="view">
-      <div class="parent-welcome">
-        <div class="child-avatar-lg">민</div>
-        <div class="parent-welcome-text">
-          <h2>안녕하세요, 김민준 학부모님 👋</h2>
-          <p>아이의 이번 주 수학 학습 현황을 확인하세요.</p>
-          <div class="last-update">마지막 업데이트: 2025.04.08 (봉쌤 작성)</div>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="showToast('상담 요청이 전송되었습니다', '📬')">💬 상담 요청</button>
-      </div>
 
       <div class="insight-cards">
         <div class="insight-card">
@@ -1659,89 +1636,6 @@
             <span class="chip yellow">🟡 수와 연산 — 보완 권장</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- ══ VIEW: PARENT PROGRESS ══ -->
-    <div id="view-parent-progress" class="view">
-      <div class="page-header">
-        <div><div class="page-title">학습 현황</div><div class="page-sub">단원별 성취도 상세</div></div>
-      </div>
-      <div class="card mb-24">
-        <div class="card-title">📊 단원별 점수 추이</div>
-        <div class="subject-breakdown">
-          <div class="subject-row"><div class="subject-name">수와 연산</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill yellow" style="width:55%"></div></div></div><div class="subject-score">55</div></div>
-          <div class="subject-row"><div class="subject-name">문자와 식</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div></div><div class="subject-score">62</div></div>
-          <div class="subject-row"><div class="subject-name">함수</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill red" style="width:34%"></div></div></div><div class="subject-score">34</div></div>
-          <div class="subject-row"><div class="subject-name">기하</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill green" style="width:78%"></div></div></div><div class="subject-score">78</div></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">📋 시험 이력</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>시험명</th><th>날짜</th><th>난이도</th><th>점수</th><th>반 평균</th></tr></thead>
-            <tbody>
-              <tr><td>방정식 단원평가</td><td class="text-muted">04.01</td><td><div class="diff-badge normal">●● 보통</div></td><td><span class="font-mono" style="color:var(--yellow)">58</span></td><td class="font-mono text-muted">72.4</td></tr>
-              <tr><td>부등식 쪽지시험</td><td class="text-muted">03.24</td><td><div class="diff-badge easy">● 쉬움</div></td><td><span class="font-mono" style="color:var(--accent)">72</span></td><td class="font-mono text-muted">84.1</td></tr>
-              <tr><td>함수 중간고사</td><td class="text-muted">03.15</td><td><div class="diff-badge hard">●●● 어려움</div></td><td><span class="font-mono" style="color:var(--red)">34</span></td><td class="font-mono text-muted">61.8</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ VIEW: PARENT REPORTS ══ -->
-    <div id="view-parent-reports" class="view">
-      <div class="page-header">
-        <div><div class="page-title">받은 리포트</div><div class="page-sub">선생님이 공유한 리포트</div></div>
-      </div>
-      <div class="report-card">
-        <div class="report-card-head">
-          <div class="report-card-info">
-            <div class="report-type-badge" style="background:rgba(62,207,142,0.1)">📊</div>
-            <div>
-              <div class="report-name">4월 월간 성취도 리포트</div>
-              <div class="report-meta">봉쌤 · 2025.04.05 공유 · <span style="color:var(--green)">새 리포트</span></div>
-            </div>
-          </div>
-          <button class="btn btn-primary btn-xs">열람하기</button>
-        </div>
-        <div class="report-card-body">
-          <div class="mini-stat"><div class="mini-stat-val font-mono" style="color:var(--yellow)">58</div><div class="mini-stat-lbl">내 점수</div></div>
-          <div style="width:1px;height:40px;background:var(--border)"></div>
-          <div class="mini-stat"><div class="mini-stat-val font-mono">72</div><div class="mini-stat-lbl">반 평균</div></div>
-        </div>
-      </div>
-      <div class="report-card">
-        <div class="report-card-head">
-          <div class="report-card-info">
-            <div class="report-type-badge" style="background:rgba(183,148,244,0.1)">👤</div>
-            <div>
-              <div class="report-name">김민준 개인 성취 분석</div>
-              <div class="report-meta">봉쌤 · 2025.04.03 공유 · 열람함</div>
-            </div>
-          </div>
-          <button class="btn btn-ghost btn-xs">다시 보기</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ VIEW: PARENT CONSULT ══ -->
-    <div id="view-parent-consult" class="view">
-      <div class="page-header">
-        <div><div class="page-title">상담 요청</div><div class="page-sub">봉쌤에게 메시지 보내기</div></div>
-      </div>
-      <div class="card" style="max-width:560px">
-        <div class="form-group">
-          <label class="form-label">상담 유형</label>
-          <select class="form-input"><option>학습 부진 관련</option><option>태도/출석 관련</option><option>시험 결과 문의</option><option>기타</option></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">문의 내용</label>
-          <textarea class="form-input" rows="5" placeholder="선생님께 전하고 싶은 내용을 적어주세요..."></textarea>
-        </div>
-        <button class="btn btn-primary" onclick="showToast('상담 요청이 봉쌤께 전달되었습니다', '✅')">📨 상담 요청 보내기</button>
       </div>
     </div>
 
@@ -2200,7 +2094,7 @@ async function loadProfile() {
     document.getElementById('userName').textContent = data.name || currentUser.email;
     document.getElementById('userRoleTag').textContent =
       data.role === 'teacher' ? `수학 교사 · ${data.region || ''}` :
-      data.role === 'parent' ? '학부모' : '플랫폼 관리자';
+'플랫폼 관리자';
     document.getElementById('userAvatar').textContent = (data.name || '?')[0];
 
     // 역할에 따라 버튼 표시 제어
@@ -2214,18 +2108,11 @@ async function loadProfile() {
     if (data.role === 'admin') {
       // 운영자는 모든 탭 볼 수 있음
       if (teacherBtn) teacherBtn.style.display = '';
-      if (parentBtn) parentBtn.style.display = '';
-      if (adminBtn) adminBtn.style.display = '';
+        if (adminBtn) adminBtn.style.display = '';
     } else if (data.role === 'teacher') {
       // 선생님은 선생님 탭만
       if (teacherBtn) teacherBtn.style.display = '';
-      if (parentBtn) parentBtn.style.display = 'none';
-      if (adminBtn) adminBtn.style.display = 'none';
-    } else if (data.role === 'parent') {
-      // 학부모는 학부모 탭만
-      if (teacherBtn) teacherBtn.style.display = 'none';
-      if (parentBtn) parentBtn.style.display = '';
-      if (adminBtn) adminBtn.style.display = 'none';
+        if (adminBtn) adminBtn.style.display = 'none';
     }
 
     document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
@@ -2349,10 +2236,9 @@ function switchRole(role) {
   const roleTagEl = document.getElementById('userRoleTag');
 
   // 이름/아바타는 그대로 유지, 역할 태그만 변경
-  const viewMap = { teacher: 'dashboard', parent: 'parent-home', admin: 'admin-overview' };
+  const viewMap = { teacher: 'dashboard', admin: 'admin-overview' };
   const roleTagMap = {
     teacher: currentProfile ? `수학 교사 · ${currentProfile.region || ''}` : '수학 교사',
-    parent: '학부모',
     admin: '플랫폼 관리자'
   };
   roleTagEl.textContent = roleTagMap[role];
@@ -2788,9 +2674,16 @@ async function sgGenerate() {
     : `정확히 ${count}문제를 생성하세요.`;
 
   const systemPrompt = `당신은 대한민국 중학교 수학 전문 교사입니다.
-주어진 문제를 분석해 유사한 수학 문제를 생성합니다.
+주어진 문제를 분석해 유사한 수학 문제를 생성하고, 각 문제의 수학적 역량을 분석합니다.
 반드시 아래 JSON만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.
-{"original_topic":"파악된 단원","problems":[{"number":1,"question":"문제 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트"}]}
+{"original_topic":"파악된 단원","problems":[{"number":1,"question":"문제 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트","competencies":{"problem_solving":80,"reasoning":60,"communication":40,"connection":50,"info_processing":70,"attitude":30}}]}
+competencies는 각 문제가 요구하는 2022 개정 교육과정 수학적 역량 점수(0-100)입니다:
+- problem_solving(문제해결): 문제 해결 전략 수립 및 실행
+- reasoning(추론): 논리적 사고, 귀납/연역적 추론
+- communication(의사소통): 수학적 개념 표현 및 설명
+- connection(연결): 수학 개념 간, 타 교과와의 연결
+- info_processing(정보처리): 데이터 수집, 분석, 계산 처리
+- attitude(태도·실천): 수학적 태도, 끈기, 창의성
 choices는 객관식일 때만, hint는 "${hintMap[hint]}" 기준으로 처리하세요.`;
 
   let messages;
@@ -2868,6 +2761,32 @@ function sgRenderResults(data, hintMode) {
   const list = document.getElementById('sg-problem-list');
   list.innerHTML = '';
 
+  // 역량 평균 계산 및 차트 표시
+  const compProblems = problems.filter(p => p.competencies);
+  if (compProblems.length > 0) {
+    const avg = {};
+    Object.keys(COMPETENCY_LABELS).forEach(k => {
+      avg[k] = Math.round(compProblems.reduce((sum, p) => sum + (p.competencies[k] || 0), 0) / compProblems.length);
+    });
+
+    document.getElementById('sg-competency-wrap').style.display = 'block';
+    setTimeout(() => drawRadarChart('sg-radar-chart', avg), 100);
+
+    // 막대 차트
+    const barsEl = document.getElementById('sg-competency-bars');
+    barsEl.innerHTML = Object.entries(avg).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:11px;color:var(--text2);width:64px;flex-shrink:0">${COMPETENCY_LABELS[k]}</div>
+        <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${v}%;background:${COMPETENCY_COLORS[k]};border-radius:3px;transition:width 0.6s ease"></div>
+        </div>
+        <div style="font-size:11px;font-family:'Space Mono',monospace;color:${COMPETENCY_COLORS[k]};width:28px;text-align:right">${v}</div>
+      </div>
+    `).join('');
+  } else {
+    document.getElementById('sg-competency-wrap').style.display = 'none';
+  }
+
   problems.forEach((p, i) => {
     const isMulti = p.type === 'multiple' && p.choices?.length;
     const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '표준';
@@ -2895,9 +2814,10 @@ function sgRenderResults(data, hintMode) {
           <div style="width:21px;height:21px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace">${i+1}</div>
           유사문제 ${i+1}번
         </div>
-        <div style="display:flex;gap:5px">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
           <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${typeLabel}</span>
           <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(0,0,0,0.2);color:${diffColor};border:1px solid ${diffColor}33">${diffLabel}</span>
+          ${p.competencies ? sgTopCompetency(p.competencies) : ''}
         </div>
       </div>
       <div style="padding:14px">
@@ -2905,7 +2825,12 @@ function sgRenderResults(data, hintMode) {
         ${choicesHtml}
         ${hintHtml}
       </div>
-      <div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+      <div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        ${p.competencies ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${Object.entries(p.competencies).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v]) =>
+            `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${COMPETENCY_COLORS[k]}22;color:${COMPETENCY_COLORS[k]};border:1px solid ${COMPETENCY_COLORS[k]}33">${COMPETENCY_LABELS[k]} ${v}</span>`
+          ).join('')}
+        </div>` : '<div></div>'}
         <button class="btn btn-ghost btn-xs" onclick="sgCopyOne(${i})">📋 복사</button>
       </div>`;
     list.appendChild(card);
@@ -3194,6 +3119,123 @@ async function uploadExamFileWithMeta(file, meta = {}) {
 
 
 
+
+
+// ═══════════════════════════════════════
+//  수학적 역량 분석
+// ═══════════════════════════════════════
+const COMPETENCY_LABELS = {
+  problem_solving: '문제해결',
+  reasoning: '추론',
+  communication: '의사소통',
+  connection: '연결',
+  info_processing: '정보처리',
+  attitude: '태도·실천'
+};
+
+const COMPETENCY_COLORS = {
+  problem_solving: '#4f8ef7',
+  reasoning: '#3ecf8e',
+  communication: '#f6ad55',
+  connection: '#b794f4',
+  info_processing: '#63b3ed',
+  attitude: '#f687b3'
+};
+
+function sgTopCompetency(comp) {
+  if (!comp) return '';
+  const top = Object.entries(comp).sort((a,b) => b[1]-a[1])[0];
+  const label = COMPETENCY_LABELS[top[0]] || top[0];
+  const color = COMPETENCY_COLORS[top[0]] || 'var(--accent)';
+  return `<span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44">🧠 ${label}</span>`;
+}
+
+function drawRadarChart(canvasId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const r = Math.min(cx, cy) - 30;
+  const keys = Object.keys(COMPETENCY_LABELS);
+  const n = keys.length;
+  const angle = (2 * Math.PI) / n;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 배경 그리드
+  for (let level = 1; level <= 4; level++) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI/2 + i * angle;
+      const x = cx + (r * level/4) * Math.cos(a);
+      const y = cy + (r * level/4) * Math.sin(a);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // 축
+  keys.forEach((_, i) => {
+    const a = -Math.PI/2 + i * angle;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.stroke();
+  });
+
+  // 데이터 영역
+  ctx.beginPath();
+  keys.forEach((key, i) => {
+    const val = (data[key] || 0) / 100;
+    const a = -Math.PI/2 + i * angle;
+    const x = cx + r * val * Math.cos(a);
+    const y = cy + r * val * Math.sin(a);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(79,142,247,0.2)';
+  ctx.fill();
+  ctx.strokeStyle = '#4f8ef7';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 레이블
+  keys.forEach((key, i) => {
+    const a = -Math.PI/2 + i * angle;
+    const lx = cx + (r + 20) * Math.cos(a);
+    const ly = cy + (r + 20) * Math.sin(a);
+    ctx.fillStyle = '#8b92a0';
+    ctx.font = 'bold 10px Pretendard, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(COMPETENCY_LABELS[key], lx, ly);
+
+    // 점수
+    const val = data[key] || 0;
+    const vx = cx + (r * val/100 + 12) * Math.cos(a);
+    const vy = cy + (r * val/100 + 12) * Math.sin(a);
+    ctx.fillStyle = '#4f8ef7';
+    ctx.font = 'bold 9px Space Mono, monospace';
+    ctx.fillText(val, vx, vy);
+  });
+
+  // 점
+  keys.forEach((key, i) => {
+    const val = (data[key] || 0) / 100;
+    const a = -Math.PI/2 + i * angle;
+    const x = cx + r * val * Math.cos(a);
+    const y = cy + r * val * Math.sin(a);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, 2*Math.PI);
+    ctx.fillStyle = '#4f8ef7';
+    ctx.fill();
+  });
+}
 
 // ═══════════════════════════════════════
 //  유사문제 내보내기 (PDF / Word)
