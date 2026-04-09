@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
       name,
       school: school || null,
       status: 'approved'
-    });
+    }); 
 
     await supabaseAdmin.from('students').insert({
       teacher_id,
