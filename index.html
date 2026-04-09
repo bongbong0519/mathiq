@@ -1376,15 +1376,14 @@
 
                   <div>
                     <div style="font-size:11px;color:var(--text3);margin-bottom:4px">학교명</div>
-                    <input type="text" class="form-input" id="sg-meta-school"
-                      placeholder="학교명 입력 또는 선택"
-                      list="school-datalist"
-                      style="font-size:12px;padding:7px 10px">
-                    <datalist id="school-datalist">
-                      <option value="○○초등학교">
-                      <option value="○○중학교">
-                      <option value="○○고등학교">
-                    </datalist>
+                    <div style="position:relative">
+                      <input type="text" class="form-input" id="sg-meta-school"
+                        placeholder="지역 먼저 선택 후 학교명 검색"
+                        oninput="sgSearchSchool(this.value)"
+                        autocomplete="off"
+                        style="font-size:12px;padding:7px 10px">
+                      <div id="sg-school-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);z-index:200;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)"></div>
+                    </div>
                   </div>
 
                   <div>
@@ -3094,6 +3093,90 @@ async function uploadExamFileWithMeta(file, meta = {}) {
 
 // ── 앱 진입 시 데이터 로드는 showApp 내부에서 처리 ──
 
+
+
+// ═══════════════════════════════════════
+//  NEIS 전국 학교 검색
+// ═══════════════════════════════════════
+const NEIS_REGION_CODE = {
+  '서울':'B10','부산':'C10','대구':'D10','인천':'E10',
+  '광주':'F10','대전':'G10','울산':'H10','세종':'I10',
+  '경기':'J10','강원':'K10','충북':'M10','충남':'N10',
+  '전북':'P10','전남':'Q10','경북':'R10','경남':'S10','제주':'T10'
+};
+
+let sgSchoolTimer = null;
+
+async function sgSearchSchool(query) {
+  const region = document.getElementById('sg-meta-region').value;
+  const dropdown = document.getElementById('sg-school-dropdown');
+
+  if (!query || query.length < 1) {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  if (!region) {
+    dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--yellow)">⚠️ 지역을 먼저 선택해주세요</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  clearTimeout(sgSchoolTimer);
+  sgSchoolTimer = setTimeout(async () => {
+    dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">🔍 검색 중...</div>';
+    dropdown.style.display = 'block';
+
+    try {
+      const code = NEIS_REGION_CODE[region] || '';
+      const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=demo&Type=json&pSize=20&ATPT_OFCDC_SC_CODE=${code}&SCHUL_NM=${encodeURIComponent(query)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const schools = data?.schoolInfo?.[1]?.row || [];
+
+      if (schools.length === 0) {
+        dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">검색 결과가 없습니다</div>';
+        return;
+      }
+
+      dropdown.innerHTML = schools.map(s => `
+        <div onclick="sgSelectSchool('${s.SCHUL_NM.replace(/'/g,"\'")} (${s.SCHUL_KND_SC_NM})')"
+          style="padding:9px 12px;font-size:12px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s"
+          onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+          <span style="font-weight:700">${s.SCHUL_NM}</span>
+          <span style="color:var(--text3);margin-left:6px;font-size:11px">${s.SCHUL_KND_SC_NM}</span>
+        </div>
+      `).join('');
+
+    } catch(e) {
+      dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--red)">검색 오류. 직접 입력해주세요</div>';
+    }
+  }, 300);
+}
+
+function sgSelectSchool(name) {
+  document.getElementById('sg-meta-school').value = name;
+  document.getElementById('sg-school-dropdown').style.display = 'none';
+}
+
+// 외부 클릭 시 드롭다운 닫기
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#sg-meta-school') && !e.target.closest('#sg-school-dropdown')) {
+    const dd = document.getElementById('sg-school-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
+
+// 지역 변경 시 학교 초기화
+document.addEventListener('DOMContentLoaded', () => {
+  const regionEl = document.getElementById('sg-meta-region');
+  if (regionEl) regionEl.addEventListener('change', () => {
+    document.getElementById('sg-meta-school').value = '';
+    document.getElementById('sg-school-dropdown').style.display = 'none';
+    document.getElementById('sg-meta-school').placeholder = '학교명 검색 (2글자 이상)';
+  });
+});
 
 // ═══════════════════════════════════════
 //  파일 업로드 폼
