@@ -1538,44 +1538,39 @@
       <div class="stat-grid">
         <div class="stat-card" style="--accent-color:var(--purple)">
           <div class="stat-label">등록 선생님</div>
-          <div class="stat-value">847</div>
-          <div class="stat-delta up">↑ 이번 달 +62명</div>
+          <div class="stat-value">0</div>
+          <div class="stat-delta" style="color:var(--text3)">등록된 선생님</div>
         </div>
         <div class="stat-card" style="--accent-color:var(--accent)">
           <div class="stat-label">등록 학생</div>
-          <div class="stat-value">24.3K</div>
-          <div class="stat-delta up">↑ +1,240명</div>
+          <div class="stat-value">0</div>
+          <div class="stat-delta" style="color:var(--text3)">등록된 학생</div>
         </div>
         <div class="stat-card" style="--accent-color:var(--green)">
           <div class="stat-label">업로드 파일</div>
-          <div class="stat-value">5,912</div>
-          <div class="stat-delta up">↑ 이번 주 +187</div>
+          <div class="stat-value">0</div>
+          <div class="stat-delta" style="color:var(--text3)">업로드 파일</div>
         </div>
         <div class="stat-card" style="--accent-color:var(--yellow)">
           <div class="stat-label">공유 리포트</div>
-          <div class="stat-value">18.7K</div>
-          <div class="stat-delta up">↑ +890건</div>
+          <div class="stat-value">0</div>
+          <div class="stat-delta" style="color:var(--text3)">공유 리포트</div>
         </div>
       </div>
 
       <div class="grid-2">
         <div class="card">
           <div class="card-title">🏆 활성 지역 TOP 5</div>
-          <div class="subject-breakdown">
-            <div class="subject-row"><div class="subject-name">서울</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:95%"></div></div></div><div class="subject-score" style="font-size:12px">248명</div></div>
-            <div class="subject-row"><div class="subject-name">경기</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:82%"></div></div></div><div class="subject-score" style="font-size:12px">201명</div></div>
-            <div class="subject-row"><div class="subject-name">광주</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill purple" style="width:44%;background:var(--purple)"></div></div></div><div class="subject-score" style="font-size:12px">108명</div></div>
-            <div class="subject-row"><div class="subject-name">부산</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:38%"></div></div></div><div class="subject-score" style="font-size:12px">93명</div></div>
-            <div class="subject-row"><div class="subject-name">대구</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:32%"></div></div></div><div class="subject-score" style="font-size:12px">78명</div></div>
+          <div class="empty-state" style="padding:30px 20px">
+            <div class="empty-state-icon">🗺️</div>
+            <div class="empty-state-text">선생님이 가입하면 여기에 표시됩니다</div>
           </div>
         </div>
         <div class="card">
           <div class="card-title">📊 콘텐츠 유형 분포</div>
-          <div class="subject-breakdown">
-            <div class="subject-row"><div class="subject-name">시험지</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div></div><div class="subject-score" style="font-size:12px">3,665</div></div>
-            <div class="subject-row"><div class="subject-name">학습자료</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill green" style="width:22%"></div></div></div><div class="subject-score" style="font-size:12px">1,301</div></div>
-            <div class="subject-row"><div class="subject-name">분석결과</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill yellow" style="width:10%"></div></div></div><div class="subject-score" style="font-size:12px">591</div></div>
-            <div class="subject-row"><div class="subject-name">기타</div><div class="subject-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:6%;background:var(--text3)"></div></div></div><div class="subject-score" style="font-size:12px">355</div></div>
+          <div class="empty-state" style="padding:30px 20px">
+            <div class="empty-state-icon">📁</div>
+            <div class="empty-state-text">파일이 업로드되면 여기에 표시됩니다</div>
           </div>
         </div>
       </div>
@@ -1592,62 +1587,9 @@
       </div>
 
       <div class="card">
-        <div class="table-wrap uploaded-files-table">
-          <table>
-            <thead><tr><th></th><th>파일명</th><th>업로더</th><th>지역</th><th>유형</th><th>업로드일</th><th>상태</th><th>액션</th></tr></thead>
-            <tbody>
-              <tr>
-                <td class="file-icon">📄</td>
-                <td class="font-bold">중1_정수와유리수_시험지.pdf</td>
-                <td>이민영 선생님</td>
-                <td><span class="chip">서울</span></td>
-                <td><span class="chip blue">시험지</span></td>
-                <td class="text-muted text-sm">04.08</td>
-                <td><span class="file-status pending">⏳ 검토 대기</span></td>
-                <td><button class="btn btn-primary btn-xs">검토</button></td>
-              </tr>
-              <tr>
-                <td class="file-icon">📊</td>
-                <td class="font-bold">3반_4월_성취분석.xlsx</td>
-                <td>박찬호 선생님</td>
-                <td><span class="chip">경기</span></td>
-                <td><span class="chip green">분석</span></td>
-                <td class="text-muted text-sm">04.07</td>
-                <td><span class="file-status reviewed">✅ 검토 완료</span></td>
-                <td><button class="btn btn-ghost btn-xs">보기</button></td>
-              </tr>
-              <tr>
-                <td class="file-icon">📝</td>
-                <td class="font-bold">함수단원_보충학습지.hwp</td>
-                <td>봉쌤</td>
-                <td><span class="chip purple">광주</span></td>
-                <td><span class="chip yellow">학습자료</span></td>
-                <td class="text-muted text-sm">04.06</td>
-                <td><span class="file-status reviewed">✅ 검토 완료</span></td>
-                <td><button class="btn btn-ghost btn-xs">보기</button></td>
-              </tr>
-              <tr>
-                <td class="file-icon">📄</td>
-                <td class="font-bold">2학년_방정식_기출변형.pdf</td>
-                <td>김현숙 선생님</td>
-                <td><span class="chip">부산</span></td>
-                <td><span class="chip blue">시험지</span></td>
-                <td class="text-muted text-sm">04.05</td>
-                <td><span class="file-status flagged">🚩 검토 필요</span></td>
-                <td><button class="btn btn-red btn-xs">확인</button></td>
-              </tr>
-              <tr>
-                <td class="file-icon">🖼</td>
-                <td class="font-bold">수업판서_기하단원.jpg</td>
-                <td>오태양 선생님</td>
-                <td><span class="chip">대구</span></td>
-                <td><span class="chip">기타</span></td>
-                <td class="text-muted text-sm">04.04</td>
-                <td><span class="file-status pending">⏳ 검토 대기</span></td>
-                <td><button class="btn btn-primary btn-xs">검토</button></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="empty-state" style="padding:40px">
+          <div class="empty-state-icon">📁</div>
+          <div class="empty-state-text">업로드된 파일이 없습니다</div>
         </div>
       </div>
 
@@ -1785,16 +1727,9 @@
         <div><div class="page-title">선생님 현황</div><div class="page-sub">전국 등록 교사 관리</div></div>
       </div>
       <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>이름</th><th>학교</th><th>지역</th><th>업로드</th><th>공유 리포트</th><th>최근 활동</th><th>상태</th></tr></thead>
-            <tbody>
-              <tr><td class="font-bold">봉쌤</td><td>○○중학교</td><td><span class="chip purple">광주</span></td><td>23</td><td>18</td><td class="text-muted text-sm">오늘</td><td><span class="chip green">활성</span></td></tr>
-              <tr><td class="font-bold">이민영</td><td>△△중학교</td><td><span class="chip">서울</span></td><td>41</td><td>35</td><td class="text-muted text-sm">어제</td><td><span class="chip green">활성</span></td></tr>
-              <tr><td class="font-bold">박찬호</td><td>□□중학교</td><td><span class="chip">경기</span></td><td>17</td><td>12</td><td class="text-muted text-sm">3일 전</td><td><span class="chip green">활성</span></td></tr>
-              <tr><td class="font-bold">김현숙</td><td>◇◇중학교</td><td><span class="chip">부산</span></td><td>8</td><td>5</td><td class="text-muted text-sm">1주일 전</td><td><span class="chip yellow">비활성</span></td></tr>
-            </tbody>
-          </table>
+        <div class="empty-state" style="padding:40px">
+          <div class="empty-state-icon">🏫</div>
+          <div class="empty-state-text">가입한 선생님이 없습니다</div>
         </div>
       </div>
     </div>
@@ -2161,17 +2096,15 @@ function switchRole(role) {
   const nameEl = document.getElementById('userName');
   const roleTagEl = document.getElementById('userRoleTag');
 
-  const configs = {
-    teacher: { name: '봉쌤', role: '수학 교사 · 광주', avatar: '봉', view: 'dashboard' },
-    parent: { name: '김민준 부모님', role: '학부모 · 광주', avatar: '부', view: 'parent-home' },
-    admin: { name: '봉쌤 (운영자)', role: '플랫폼 관리자', avatar: '관', view: 'admin-overview' }
+  // 이름/아바타는 그대로 유지, 역할 태그만 변경
+  const viewMap = { teacher: 'dashboard', parent: 'parent-home', admin: 'admin-overview' };
+  const roleTagMap = {
+    teacher: currentProfile ? `수학 교사 · ${currentProfile.region || ''}` : '수학 교사',
+    parent: '학부모',
+    admin: '플랫폼 관리자'
   };
-  const c = configs[role];
-  avatarEl.textContent = c.avatar;
-  nameEl.textContent = c.name;
-  roleTagEl.textContent = c.role;
-
-  showView(c.view);
+  roleTagEl.textContent = roleTagMap[role];
+  showView(viewMap[role]);
 
   // Update nav active state
   document.querySelectorAll('#nav-' + role + ' .nav-item').forEach(item => item.classList.remove('active'));
