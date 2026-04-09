@@ -3128,12 +3128,9 @@ async function sgSearchSchool(query) {
     dropdown.style.display = 'block';
 
     try {
-      const code = NEIS_REGION_CODE[region] || '';
-      const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=8d5460eef86c8d028f199bd303fa77db1cef348190d6d40e9aed768fd592809f&Type=json&pSize=20&ATPT_OFCDC_SC_CODE=${code}&SCHUL_NM=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
+      const res = await fetch(`/api/school?region=${encodeURIComponent(region)}&name=${encodeURIComponent(query)}`);
       const data = await res.json();
-
-      const schools = data?.schoolInfo?.[1]?.row || [];
+      const schools = data?.schools || [];
 
       if (schools.length === 0) {
         dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">검색 결과가 없습니다</div>';
