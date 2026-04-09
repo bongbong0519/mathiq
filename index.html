@@ -3540,7 +3540,7 @@ async function loadAdminTeachers() {
   if (!sbClient || !currentUser) return;
   const { data: teachers } = await sbClient.from('profiles')
     .select('*')
-    .eq('role', 'teacher')
+    .in('role', ['teacher', 'admin'])
     .order('created_at', { ascending: false });
 
   const wrap = document.getElementById('admin-teachers-wrap');
