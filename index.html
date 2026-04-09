@@ -1925,12 +1925,14 @@
     <!-- ══ VIEW: ADMIN TEACHERS ══ -->
     <div id="view-admin-teachers" class="view">
       <div class="page-header">
-        <div><div class="page-title">선생님 현황</div><div class="page-sub">전국 등록 교사 관리</div></div>
+        <div><div class="page-title">선생님 현황</div><div class="page-sub">가입 승인 및 교사 관리</div></div>
       </div>
       <div class="card">
-        <div class="empty-state" style="padding:40px">
-          <div class="empty-state-icon">🏫</div>
-          <div class="empty-state-text">가입한 선생님이 없습니다</div>
+        <div id="admin-teachers-wrap">
+          <div class="empty-state" style="padding:40px">
+            <div class="empty-state-icon">🏫</div>
+            <div class="empty-state-text">가입한 선생님이 없습니다</div>
+          </div>
         </div>
       </div>
     </div>
@@ -2170,6 +2172,15 @@ async function loadProfile() {
   }
   if (data) {
     currentProfile = data;
+
+    // 승인 상태 체크
+    if (data.role === 'teacher' && data.status !== 'approved') {
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('appWrapper').style.display = 'none';
+      document.getElementById('pendingOverlay').style.display = 'flex';
+      return;
+    }
+
     // UI 업데이트
     document.getElementById('userName').textContent = data.name || currentUser.email;
     document.getElementById('userRoleTag').textContent =
@@ -2257,7 +2268,8 @@ async function handleSignup() {
     role: selectedRole,
     name,
     school: selectedRole === 'teacher' ? school : null,
-    region: null
+    region: null,
+    status: selectedRole === 'teacher' ? 'pending' : 'approved'
   });
 
   btn.disabled = false; btn.textContent = '✨ 회원가입';
@@ -2276,6 +2288,7 @@ async function handleLogout() {
   if (sbClient) await sbClient.auth.signOut();
   currentUser = null; currentProfile = null;
   document.getElementById('appWrapper').style.display = 'none';
+  document.getElementById('pendingOverlay').style.display = 'none';
   document.getElementById('authOverlay').style.display = 'flex';
 }
 
@@ -2343,6 +2356,7 @@ function showView(viewId) {
         if (viewId === 'dashboard') loadDashboard().catch(() => {});
         if (viewId === 'students') loadStudents().catch(() => {});
         if (viewId === 'exams') loadExams().catch(() => {});
+        if (viewId === 'admin-teachers') loadAdminTeachers().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -3503,6 +3517,63 @@ async function submitUpload() {
     btn.textContent = '📤 시험지 업로드';
     upCheckReady();
   }
+}
+
+
+// ── 운영자: 선생님 목록 로드 ──
+async function loadAdminTeachers() {
+  if (!sbClient || !currentUser) return;
+  const { data: teachers } = await sbClient.from('profiles')
+    .select('*')
+    .eq('role', 'teacher')
+    .order('created_at', { ascending: false });
+
+  const wrap = document.getElementById('admin-teachers-wrap');
+  if (!wrap) return;
+
+  if (!teachers || teachers.length === 0) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">🏫</div><div class="empty-state-text">가입한 선생님이 없습니다</div></div>';
+    return;
+  }
+
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>학교</th><th>이메일</th><th>가입일</th><th>상태</th><th>승인</th></tr></thead><tbody>' +
+    teachers.map(t => {
+      const statusBadge = t.status === 'approved'
+        ? '<span class="chip green">✅ 승인됨</span>'
+        : t.status === 'rejected'
+        ? '<span class="chip red">❌ 거절됨</span>'
+        : '<span class="chip yellow">⏳ 대기중</span>';
+      const actionBtn = t.status === 'pending'
+        ? `<div style="display:flex;gap:6px">
+            <button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">✅ 승인</button>
+            <button class="btn btn-red btn-xs" onclick="rejectTeacher('${t.id}')">❌ 거절</button>
+           </div>`
+        : t.status === 'approved'
+        ? `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${t.id}')">취소</button>`
+        : `<button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">✅ 승인</button>`;
+
+      return `<tr>
+        <td class="font-bold">${t.name || '—'}</td>
+        <td>${t.school || '—'}</td>
+        <td class="text-muted text-sm">${t.id.slice(0,8)}...</td>
+        <td class="text-muted text-sm">${new Date(t.created_at).toLocaleDateString('ko-KR')}</td>
+        <td>${statusBadge}</td>
+        <td>${actionBtn}</td>
+      </tr>`;
+    }).join('') +
+  '</tbody></table></div>';
+}
+
+async function approveTeacher(id) {
+  await sbClient.from('profiles').update({ status: 'approved' }).eq('id', id);
+  showToast('승인되었습니다', '✅');
+  loadAdminTeachers();
+}
+
+async function rejectTeacher(id) {
+  await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', id);
+  showToast('거절되었습니다', '❌');
+  loadAdminTeachers();
 }
 
 function sgEsc(s) {
