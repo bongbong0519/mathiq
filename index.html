@@ -2101,7 +2101,7 @@ async function loadProfile() {
     currentProfile = data;
 
     // 승인 상태 체크
-    if (data.role === 'teacher' && data.status !== 'approved') {
+    if (data.role === 'teacher' && data.status !== 'approved' && data.role !== 'student') {
       document.getElementById('authOverlay').style.display = 'none';
       document.getElementById('appWrapper').style.display = 'none';
       document.getElementById('pendingOverlay').style.display = 'flex';
