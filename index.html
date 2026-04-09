@@ -3139,8 +3139,7 @@ function sgExportPDF() {
     html += `
   <div class="problem">
     <div class="problem-num">▶ 유사문제 ${i+1}번 <span style="font-size:12px;font-weight:normal;color:#666">[${typeLabel}${diffLabel ? ' · ' + diffLabel : ''}]</span></div>
-    <div class="problem-text">${(p.question || '').replace(/
-/g,'<br>')}</div>`;
+    <div class="problem-text">${(p.question || '').replace(/\n/g,'<br>')}</div>`;
 
     if (p.type === 'multiple' && p.choices?.length) {
       html += '<div class="choices">';
@@ -3209,12 +3208,11 @@ function sgExportWord() {
     problems.map((p,i) => {
       const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
       let html = `<p class="num">▶ 유사문제 ${i+1}번 [${typeLabel}]</p>`;
-      html += `<p>${(p.question||'').replace(/
-/g,'<br>')}</p>`;
+      html += `<p>${(p.question||'').replace(/\n/g,'<br>')}</p>`;
       if (p.type === 'multiple' && p.choices?.length) {
         p.choices.forEach((c,ci) => {
           const isAns = ci === p.answer_index;
-          html += `<p ${isAns?'class="ans"':''}>&nbsp;&nbsp;${ci+1}. ${c.replace(/^[①②③④⑤]\s*/,'')}${isAns?' ✓':''}</p>`;
+          html += '<p ' + (isAns ? 'class="ans"' : '') + '>&nbsp;&nbsp;' + (ci+1) + '. ' + c.replace(/^[①②③④⑤]\s*/,'') + (isAns ? ' ✓' : '') + '</p>';
         });
       } else if (p.answer) {
         html += `<p class="ans">정답: ${p.answer}</p>`;
@@ -3228,7 +3226,7 @@ function sgExportWord() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `MathIQ_유사문제_${date.replace(/\./g,'')}.doc`;
+  a.download = 'MathIQ_유사문제_' + date.replace(/[.]/g,'') + '.doc';
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 3000);
   showToast('워드 파일이 다운로드되었습니다', '📝');
