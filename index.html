@@ -2203,8 +2203,31 @@ async function loadProfile() {
       data.role === 'parent' ? '학부모' : '플랫폼 관리자';
     document.getElementById('userAvatar').textContent = (data.name || '?')[0];
 
-    // 역할에 따라 네비게이션만 전환 (뷰는 유지)
+    // 역할에 따라 버튼 표시 제어
     const roleForNav = data.role === 'parent' ? 'parent' : data.role === 'admin' ? 'admin' : 'teacher';
+
+    // 역할 버튼 권한 제어
+    const teacherBtn = document.getElementById('role-btn-teacher');
+    const parentBtn = document.getElementById('role-btn-parent');
+    const adminBtn = document.getElementById('role-btn-admin');
+
+    if (data.role === 'admin') {
+      // 운영자는 모든 탭 볼 수 있음
+      if (teacherBtn) teacherBtn.style.display = '';
+      if (parentBtn) parentBtn.style.display = '';
+      if (adminBtn) adminBtn.style.display = '';
+    } else if (data.role === 'teacher') {
+      // 선생님은 선생님 탭만
+      if (teacherBtn) teacherBtn.style.display = '';
+      if (parentBtn) parentBtn.style.display = 'none';
+      if (adminBtn) adminBtn.style.display = 'none';
+    } else if (data.role === 'parent') {
+      // 학부모는 학부모 탭만
+      if (teacherBtn) teacherBtn.style.display = 'none';
+      if (parentBtn) parentBtn.style.display = '';
+      if (adminBtn) adminBtn.style.display = 'none';
+    }
+
     document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById('role-btn-' + roleForNav);
     if (activeBtn) activeBtn.classList.add('active');
