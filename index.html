@@ -3068,7 +3068,8 @@ async function deleteExam(id) {
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
   if (!sbClient || !currentUser) return null;
-  const path = `uploads/${currentUser.id}/${Date.now()}_${file.name}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `uploads/${currentUser.id}/${Date.now()}_${safeName}`;
 
   const { error } = await sbClient.storage
     .from('exam-files')
