@@ -1945,6 +1945,17 @@
         <input type="text" class="form-input" id="stu-name" placeholder="홍길동">
       </div>
       <div class="form-group">
+        <label class="form-label">이메일 (로그인용)</label>
+        <input type="email" class="form-input" id="stu-email" placeholder="student@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">임시 비밀번호</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-input" id="stu-password" placeholder="임시 비밀번호 (8자 이상)">
+          <button class="btn btn-ghost btn-sm" onclick="stuGenPassword()" style="white-space:nowrap">🔀 자동생성</button>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">학년</label>
         <select class="form-input" id="stu-grade">
           <option value="1">1학년</option>
@@ -2976,25 +2987,60 @@ function openAddStudentModal() {
   document.getElementById('stu-error').style.display = 'none';
 }
 
+function stuGenPassword() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let pw = '';
+  for (let i = 0; i < 8; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('stu-password').value = pw;
+}
+
 async function submitAddStudent() {
   const name = document.getElementById('stu-name').value.trim();
+  const email = document.getElementById('stu-email').value.trim();
+  const password = document.getElementById('stu-password').value.trim();
   const grade = document.getElementById('stu-grade').value;
   const className = document.getElementById('stu-class').value.trim();
   const errEl = document.getElementById('stu-error');
 
   if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.style.display = 'block'; return; }
+  if (!email) { errEl.textContent = '이메일을 입력해주세요'; errEl.style.display = 'block'; return; }
+  if (!password || password.length < 8) { errEl.textContent = '비밀번호는 8자 이상이어야 합니다'; errEl.style.display = 'block'; return; }
 
-  const { error } = await sbClient.from('students').insert({
-    teacher_id: currentUser.id,
-    name, grade: parseInt(grade), class_name: className
-  });
+  errEl.style.display = 'none';
+  const btn = document.querySelector('#addStudentModal .btn-primary');
+  btn.textContent = '생성 중...'; btn.disabled = true;
 
-  if (error) { errEl.textContent = '오류: ' + error.message; errEl.style.display = 'block'; return; }
+  try {
+    // Supabase Auth에 학생 계정 생성 (Admin API 필요 → 서버 프록시 사용)
+    const res = await fetch('/api/create-student', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name, grade, class_name: className, teacher_id: currentUser.id })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '계정 생성 실패');
 
-  closeModal('addStudentModal');
-  showToast('학생이 추가되었습니다', '👤');
-  loadStudents();
-  loadDashboard();
+    closeModal('addStudentModal');
+    showToast(`${name} 학생 계정이 생성되었습니다`, '👤');
+
+    // 임시 비밀번호 표시
+    setTimeout(() => {
+      alert(`✅ 학생 계정 생성 완료
+
+이메일: ${email}
+임시 비밀번호: ${password}
+
+학생에게 전달해주세요!`);
+    }, 300);
+
+    loadStudents();
+    loadDashboard();
+  } catch(e) {
+    errEl.textContent = '오류: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.textContent = '추가하기'; btn.disabled = false;
+  }
 }
 
 // ── 학생 삭제 ──
