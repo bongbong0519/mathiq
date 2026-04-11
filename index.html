@@ -3192,7 +3192,6 @@ async function removeAssignment(assignmentId, examId, title) {
   showToast('배정이 취소되었습니다', '🗑');
   loadExamQuestions(examId, title);
 }
-}
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
   if (!sbClient || !currentUser) return null;
