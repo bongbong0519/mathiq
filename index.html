@@ -3682,7 +3682,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sgUpdateBtn();
   });
 
-  ['sg-meta-grade','sg-meta-type'].forEach(id => {
+  ['sg-meta-grade','sg-meta-type','sg-meta-year'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', sgUpdateBtn);
   });
