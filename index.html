@@ -3525,7 +3525,8 @@ async function sgExportPDF() {
   <h1>MathIQ 유사문제</h1>
   <div class="meta">${meta} · 생성일: ${date}</div>`;
 
-  problems.forEach((p, i) => {
+  for (let i = 0; i < problems.length; i++) {
+    const p = problems[i];
     const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
     const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '';
     // 그래프 이미지 캡처
