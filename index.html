@@ -3888,7 +3888,7 @@ async function loadAdminStudents() {
         <tbody>
           ${students.map(s => `
             ${students.map(s => `
-            <tr style="cursor:pointer" onclick="openAssignTeacherModal('${s.id}','${s.name}','${s.teacher_id||''}')">
+            <tr style="cursor:pointer" onclick="openAssignTeacherModal('${s.id}','${s.name.replace(/'/g,'')}','${s.teacher_id||''}')"
               <td class="font-bold">${s.name}</td>
               <td>${s.grade || '—'}</td>
               <td>${s.school || '—'}</td>
