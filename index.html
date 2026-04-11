@@ -3493,7 +3493,7 @@ function drawRadarChart(canvasId, data) {
 //  유사문제 내보내기 (PDF / Word)
 // ═══════════════════════════════════════
 
-function sgExportPDF() {
+async function sgExportPDF() {
   const problems = sg.lastProblems;
   if (!problems?.length) return;
 
