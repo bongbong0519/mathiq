@@ -3531,14 +3531,18 @@ async function sgExportPDF() {
     const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '';
     // 그래프 이미지 캡처
     let graphImgHtml = '';
-    if (p.graph && p.graph.expressions?.length > 0 && window._desmosCalcs?.[i]) {
-      try {
-        const imgData = await new Promise(resolve => {
-          window._desmosCalcs[i].screenshot({ width: 600, height: 300, targetPixelRatio: 1 }, resolve);
-        });
-        graphImgHtml = `<div style="margin:12px 0"><img src="${imgData}" style="max-width:100%;border:1px solid #ccc;border-radius:6px"></div>`;
-      } catch(e) {}
-    }
+    // 수정 (타임아웃 추가)
+if (p.graph && p.graph.expressions?.length > 0 && window._desmosCalcs?.[i]) {
+  try {
+    const imgData = await Promise.race([
+      new Promise(resolve => {
+        window._desmosCalcs[i].screenshot({ width: 600, height: 300, targetPixelRatio: 1 }, resolve);
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+    ]);
+    graphImgHtml = `<div style="margin:12px 0"><img src="${imgData}" style="max-width:100%;border:1px solid #ccc;border-radius:6px"></div>`;
+  } catch(e) {}
+}
 
     html += `
   <div class="problem">
