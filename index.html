@@ -2668,7 +2668,9 @@ async function sgGenerate() {
   const diffMap = { same:'원본과 동일한', easier:'한 단계 쉬운', harder:'한 단계 어려운', mixed:'다양한 난이도의' };
   const typeMap = { multiple:'객관식(5지선다)', short:'단답형', essay:'서술형', mixed:'혼합 유형' };
   const hintMap = { yes:'힌트와 정답 포함', answer:'정답만 포함', no:'힌트 없이 문제만' };
-  const countInstruction = count === 'auto'
+ const countInstruction = count === 'auto'
+  ? `시험지의 문제 수를 3번 반복해서 직접 세어보세요. 첫 번째 세고, 다시 한번 세고, 마지막으로 한번 더 세어서 3번 모두 같은 숫자가 나왔을 때 그 수만큼만 유사문제를 생성하세요. 절대 그 수보다 많거나 적게 생성하지 마세요.`
+  : `정확히 ${count}문제를 생성하세요. 이 숫자는 절대 변경하지 마세요.`;
     ? '시험지에 있는 문제 수를 정확히 파악해서 그 수만큼 유사문제를 생성하세요.'
     : `정확히 ${count}문제를 생성하세요.`;
 
