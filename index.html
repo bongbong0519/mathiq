@@ -3192,6 +3192,39 @@ async function removeAssignment(assignmentId, examId, title) {
   showToast('배정이 취소되었습니다', '🗑');
   loadExamQuestions(examId, title);
 }
+  async function openAssignExamModal(studentId, studentName) {
+  const { data: exams } = await sbClient.from('exams')
+    .select('*').eq('teacher_id', currentUser.id).order('created_at', { ascending: false });
+  const { data: existing } = await sbClient.from('exam_assignments')
+    .select('exam_id').eq('student_id', studentId);
+  const assignedExamIds = (existing || []).map(a => a.exam_id);
+
+  const modal = document.getElementById('createExamModal');
+  modal.querySelector('.modal-title').textContent = `📝 ${studentName} 학생 시험 배정`;
+  modal.querySelector('.modal-body').innerHTML = !exams?.length
+    ? '<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">등록된 시험이 없습니다</div></div>'
+    : exams.map(e => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${e.title}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${e.unit || '—'} · ${e.exam_date || '—'}</div>
+        </div>
+        ${assignedExamIds.includes(e.id)
+          ? '<span class="chip green">✅ 배정됨</span>'
+          : `<button onclick="assignStudentToExam('${e.id}','${studentId}','${studentName}')" class="btn btn-green btn-xs">+ 배정</button>`
+        }
+      </div>`).join('');
+  modal.classList.add('open');
+}
+
+async function assignStudentToExam(examId, studentId, studentName) {
+  const { error } = await sbClient.from('exam_assignments').insert({
+    exam_id: examId, student_id: studentId
+  });
+  if (error) { showToast('배정 실패: ' + error.message, '❌'); return; }
+  showToast('시험이 배정되었습니다', '✅');
+  openAssignExamModal(studentId, studentName);
+}
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
   if (!sbClient || !currentUser) return null;
