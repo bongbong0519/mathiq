@@ -962,6 +962,9 @@
         <div class="nav-item" onclick="showView('admin-teachers')">
           <span class="icon">🏫</span> 선생님 현황
         </div>
+        <div class="nav-item" onclick="showView('admin-students')">
+          <span class="icon">👥</span> 전체 학생
+        </div>
       </div>
     </nav>
 
@@ -1796,6 +1799,21 @@
       </div>
     </div>
 
+    <!-- ══ VIEW: ADMIN STUDENTS ══ -->
+    <div id="view-admin-students" class="view">
+      <div class="page-header">
+        <div><div class="page-title">전체 학생 현황</div><div class="page-sub">플랫폼 전체 등록 학생</div></div>
+      </div>
+      <div class="card">
+        <div id="admin-students-wrap">
+          <div class="empty-state" style="padding:40px">
+            <div class="empty-state-icon">👥</div>
+            <div class="empty-state-text">불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ VIEW: ADMIN TEACHERS ══ -->
     <div id="view-admin-teachers" class="view">
       <div class="page-header">
@@ -2280,6 +2298,7 @@ function showView(viewId) {
         if (viewId === 'students') loadStudents().catch(() => {});
         if (viewId === 'exams') loadExams().catch(() => {});
         if (viewId === 'admin-teachers') loadAdminTeachers().catch(() => {});
+        if (viewId === 'admin-students') loadAdminStudents().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -3794,6 +3813,43 @@ async function submitUpload() {
 }
 
 // ── 운영자: 선생님 목록 로드 ──
+async function loadAdminStudents() {
+  if (!sbClient || !currentUser) return;
+  const { data: students } = await sbClient
+    .from('students')
+    .select('*, profiles:teacher_id(name, school)')
+    .order('created_at', { ascending: false });
+
+  const wrap = document.getElementById('admin-students-wrap');
+  if (!wrap) return;
+
+  if (!students || students.length === 0) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">👥</div><div class="empty-state-text">등록된 학생이 없습니다</div></div>';
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div style="font-size:13px;color:var(--text3);margin-bottom:14px">총 ${students.length}명</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>이름</th><th>학년</th><th>학교</th><th>담당 선생님</th><th>가입일</th>
+        </tr></thead>
+        <tbody>
+          ${students.map(s => `
+            <tr>
+              <td class="font-bold">${s.name}</td>
+              <td>${s.grade || '—'}</td>
+              <td>${s.school || '—'}</td>
+              <td>${s.profiles?.name || '—'} <span class="text-muted text-xs">(${s.profiles?.school || ''})</span></td>
+              <td class="text-muted text-sm">${new Date(s.created_at).toLocaleDateString('ko-KR')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 async function loadAdminTeachers() {
   if (!sbClient || !currentUser) return;
   const { data: teachers } = await sbClient.from('profiles')
