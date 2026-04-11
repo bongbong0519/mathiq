@@ -2726,15 +2726,17 @@ async function sgGenerate() {
 8. 정답은 추측하지 말고 반드시 풀이를 통해 도출된 값만 써야 합니다.
 9. 객관식의 경우 오답 선지도 그럴듯하되, 정답과 혼동되지 않는 값으로 직접 계산해서 넣으세요.
 10. 그림이 필요한 문제는 그림의 핵심 정보(좌표, 길이, 각도 등)를 문제 텍스트 안에 조건으로 명시하고, graph 필드에 Desmos 수식으로 표현하세요. 그래프가 필요없는 문제는 graph 필드를 생략하세요.
-11. Desmos graph 필드 작성법:
+11. 좌표평면, 도형, 그래프가 필요한 문제는 반드시 graph 필드를 포함해야 합니다. 그림 없이는 풀 수 없는 문제를 그림 없이 내는 것은 절대 금지입니다.
+12. Desmos graph 필드 작성법:
    - 점 찍기: {"id":"A","latex":"(2,3)","color":"#4f8ef7","label":"A"}
+   - 원점: {"id":"O","latex":"(0,0)","color":"#000000","label":"O"}
    - 함수 그래프: {"id":"f1","latex":"y=2x+3","color":"#4f8ef7"}
-   - 선분: {"id":"AB","latex":"\\operatorname{polygon}\\left((2,3),(4,1)\\right)","color":"#3ecf8e"}
+   - 선분(두 점 연결): {"id":"OA","latex":"\\operatorname{polygon}\\left((0,0),(2,3)\\right)","color":"#3ecf8e"}
    - 원: {"id":"c1","latex":"x^2+y^2=13","color":"#f56565"}
    - 도형(다각형): {"id":"tri","latex":"\\operatorname{polygon}\\left((0,0),(3,0),(0,4)\\right)","color":"#b794f4"}
-   - xRange, yRange는 문제에 맞게 적절히 설정하세요. 예: "xRange":[-5,8],"yRange":[-5,8]
-   - label로 점 이름을 표시할 수 있어요: "label":"A"
-   - 원점 O는 {"id":"O","latex":"(0,0)","label":"O"} 로 표시하세요.
+   - xRange, yRange는 문제에 맞게 설정. 예: "xRange":[-5,8],"yRange":[-5,8]
+   - 문제에 등장하는 모든 점, 선분, 도형을 graph 필드에 빠짐없이 표현하세요.
+   - 좌표평면 문제에서 점의 좌표는 반드시 문제 텍스트에도 명시하세요.
 
 반드시 아래 JSON만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.
 {"original_topic":"파악된 단원","problems":[{"number":1,"question":"문제 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트","graph":{"expressions":[{"id":"f1","latex":"y=2x+3","color":"#4f8ef7"}],"xRange":[-10,10],"yRange":[-10,10]},"competencies":{"problem_solving":80,"reasoning":60,"communication":40,"connection":50,"info_processing":70,"attitude":30}}]}
