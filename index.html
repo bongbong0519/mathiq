@@ -3111,7 +3111,7 @@ async function loadExams() {
   const diffDots  = { easy:'●', normal:'●●', hard:'●●●', expert:'●●●●' };
 
   wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>시험명</th><th>단원</th><th>날짜</th><th>난이도</th><th>삭제</th></tr></thead><tbody>' +
-    exams.map(e => `<tr>
+    exams.map(e => `<tr style="cursor:pointer" onclick="loadExamQuestions('${e.id}', '${e.title}')">
       <td class="font-bold">${e.title}</td>
       <td><span class="chip">${e.unit || '—'}</span></td>
       <td class="text-muted text-sm">${e.exam_date || '—'}</td>
@@ -3129,7 +3129,28 @@ async function deleteExam(id) {
   loadExams();
   loadDashboard();
 }
+async function loadExamQuestions(examId, title) {
+  const { data: questions } = await sbClient
+    .from('exam_questions')
+    .select('*')
+    .eq('exam_id', examId)
+    .order('question_number');
 
+  const modal = document.getElementById('createExamModal');
+  modal.querySelector('.modal-title').textContent = '📝 ' + title;
+  modal.querySelector('.modal-body').innerHTML = !questions?.length
+    ? '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">저장된 문제가 없습니다</div></div>'
+    : questions.map((q, i) => `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${i+1}번 문제</div>
+        <div style="font-size:14px;line-height:1.8;color:var(--text)">${sgEsc(q.question)}</div>
+        ${q.choices ? q.choices.map((c,ci) => `<div style="font-size:13px;padding:4px 0;color:${ci===q.answer_index?'var(--green)':'var(--text2)'}">${ci+1}. ${sgEsc(c)}</div>`).join('') : ''}
+        ${q.answer ? `<div style="font-size:12px;color:var(--green);margin-top:6px">✅ 정답: ${sgEsc(q.answer)}</div>` : ''}
+        ${q.hint ? `<div style="font-size:12px;color:var(--purple);margin-top:4px">💡 ${sgEsc(q.hint)}</div>` : ''}
+      </div>`).join('');
+
+  modal.classList.add('open');
+}
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
   if (!sbClient || !currentUser) return null;
