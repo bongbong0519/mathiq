@@ -1440,9 +1440,14 @@
 
                   <div style="grid-column:span 2">
                     <div style="font-size:11px;color:var(--text3);margin-bottom:4px">연도</div>
-                   <select class="form-input" id="sg-meta-year" style="font-size:12px;padding:7px 10px">
+                  <select class="form-input" id="sg-meta-year" style="font-size:12px;padding:7px 10px">
                       <option value="">선택</option>
-                      ${Array.from({length: 26}, (_,i) => 2026-i).map(y => `<option>${y}</option>`).join('')}
+                      <option>2026</option><option>2025</option><option>2024</option>
+                      <option>2023</option><option>2022</option><option>2021</option>
+                      <option>2020</option><option>2019</option><option>2018</option>
+                      <option>2017</option><option>2016</option><option>2015</option>
+                      <option>2014</option><option>2013</option><option>2012</option>
+                      <option>2011</option>
                     </select>
                   </div>
 
