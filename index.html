@@ -3581,10 +3581,12 @@ async function sgExportPDF() {
 
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+ const a = document.createElement('a');
 a.href = url;
 a.download = 'MathIQ_유사문제_' + date.replace(/\./g,'').replace(/\s/g,'') + '.html';
+document.body.appendChild(a);
 a.click();
+document.body.removeChild(a);
 setTimeout(() => URL.revokeObjectURL(url), 5000);
 showToast('📄 HTML 다운로드! 브라우저에서 열고 Ctrl+P로 인쇄하세요', '📄');
 }
