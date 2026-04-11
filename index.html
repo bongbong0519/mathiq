@@ -2850,7 +2850,8 @@ function sgRenderResults(data, hintMode) {
     document.getElementById('sg-competency-wrap').style.display = 'none';
   }
 
-  problems.forEach((p, i) => {
+for (let i = 0; i < problems.length; i++) {
+    const p = problems[i];
     const isMulti = p.type === 'multiple' && p.choices?.length;
     const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '표준';
     const diffColor = { easy:'var(--green)', normal:'var(--accent)', hard:'var(--red)' }[p.difficulty] || 'var(--accent)';
@@ -3573,7 +3574,7 @@ async function sgExportPDF() {
 
     if (i < problems.length - 1) html += '<hr class="divider">';
     html += '</div>';
-  });
+  }
 
   html += '</body></html>';
 
