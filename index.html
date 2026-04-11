@@ -2879,6 +2879,7 @@ function sgRenderResults(data, hintMode) {
       </div>
       <div style="padding:14px">
         <div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:keep-all">${sgEsc(p.question)}</div>
+        ${hasGraph ? `<div id="${graphId}" style="width:100%;height:240px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border)"></div>` : ''}
         ${choicesHtml}
         ${hintHtml}
       </div>
