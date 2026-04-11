@@ -2892,6 +2892,29 @@ function sgRenderResults(data, hintMode) {
         <button class="btn btn-ghost btn-xs" onclick="sgCopyOne(${i})">📋 복사</button>
       </div>`;
     list.appendChild(card);
+
+    // Desmos 그래프 렌더링
+    if (hasGraph && typeof Desmos !== 'undefined') {
+      setTimeout(() => {
+        const el = document.getElementById(graphId);
+        if (!el) return;
+        const calc = Desmos.GraphingCalculator(el, {
+          expressionList: false,
+          settingsMenu: false,
+          zoomButtons: true,
+          lockViewport: false,
+          backgroundColor: '#181c23',
+          textColor: '#e8eaf0',
+          border: false
+        });
+        const xR = p.graph.xRange || [-10, 10];
+        const yR = p.graph.yRange || [-10, 10];
+        calc.setMathBounds({ left: xR[0], right: xR[1], bottom: yR[0], top: yR[1] });
+        (p.graph.expressions || []).forEach(expr => {
+          calc.setExpression({ id: expr.id, latex: expr.latex, color: expr.color || '#4f8ef7' });
+        });
+      }, 300);
+    }
   });
   if (typeof renderMathInElement !== 'undefined') {
   renderMathInElement(list, {
