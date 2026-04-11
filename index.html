@@ -3814,6 +3814,53 @@ async function submitUpload() {
   
 
 // ── 운영자: 선생님 목록 로드 ──
+async function openAssignTeacherModal(studentId, studentName, currentTeacherId) {
+  const { data: teachers } = await sbClient
+    .from('profiles')
+    .select('id, name, school')
+    .eq('role', 'teacher')
+    .eq('status', 'approved')
+    .order('name');
+
+  const modal = document.getElementById('createExamModal');
+  modal.querySelector('.modal-title').textContent = `👤 ${studentName} 담당 선생님 지정`;
+  modal.querySelector('.modal-body').innerHTML = `
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px">
+      현재 담당: <strong style="color:var(--text)">${
+        teachers?.find(t => t.id === currentTeacherId)?.name || '미지정'
+      }</strong>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${!teachers?.length
+        ? '<div class="empty-state"><div class="empty-state-icon">🏫</div><div class="empty-state-text">승인된 선생님이 없습니다</div></div>'
+        : teachers.map(t => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${t.id === currentTeacherId ? 'rgba(79,142,247,0.08)' : 'var(--bg3)'};border:1px solid ${t.id === currentTeacherId ? 'var(--accent)' : 'var(--border)'};border-radius:8px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${t.name}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">${t.school || '—'}</div>
+            </div>
+            ${t.id === currentTeacherId
+              ? '<span class="chip green">✅ 현재 담당</span>'
+              : `<button onclick="assignTeacherToStudent('${studentId}','${t.id}','${studentName}')" class="btn btn-primary btn-xs">지정</button>`
+            }
+          </div>`).join('')
+      }
+    </div>`;
+  modal.classList.add('open');
+}
+
+async function assignTeacherToStudent(studentId, teacherId, studentName) {
+  const { error } = await sbClient
+    .from('students')
+    .update({ teacher_id: teacherId })
+    .eq('id', studentId);
+
+  if (error) { showToast('지정 실패: ' + error.message, '❌'); return; }
+  showToast(`${studentName} 학생 담당 선생님이 지정됐습니다`, '✅');
+  closeModal('createExamModal');
+  loadAdminStudents();
+}
+
 async function loadAdminStudents() {
   if (!sbClient || !currentUser) return;
   const { data: students, error } = await sbClient
@@ -3840,7 +3887,8 @@ async function loadAdminStudents() {
         </tr></thead>
         <tbody>
           ${students.map(s => `
-            <tr>
+            ${students.map(s => `
+            <tr style="cursor:pointer" onclick="openAssignTeacherModal('${s.id}','${s.name}','${s.teacher_id||''}')">
               <td class="font-bold">${s.name}</td>
               <td>${s.grade || '—'}</td>
               <td>${s.school || '—'}</td>
