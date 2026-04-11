@@ -2933,7 +2933,7 @@ async function loadDashboard() {
       const diffLabel = { easy:'● 쉬움', normal:'●● 보통', hard:'●●● 어려움', expert:'●●●● 심화' };
       const diffClass = { easy:'easy', normal:'normal', hard:'hard', expert:'expert' };
       examListEl.innerHTML = '<div class="table-wrap"><table><thead><tr><th>시험명</th><th>난이도</th><th>날짜</th></tr></thead><tbody>' +
-exams.map(e => `<tr style="cursor:pointer" onclick="loadExamQuestions('${e.id}', '${e.title}')">
+recentExams.map(e => `<tr style="cursor:pointer" onclick="loadExamQuestions('${e.id}', '${e.title}')">
   <td class="font-bold">${e.title}</td>
           <td><div class="diff-badge ${diffClass[e.difficulty]||'normal'}">${diffLabel[e.difficulty]||'보통'}</div></td>
           <td class="text-muted text-sm">${e.exam_date || '—'}</td>
