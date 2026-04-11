@@ -2957,7 +2957,10 @@ async function loadStudents() {
             <div class="student-name">${s.name}</div>
             <div class="student-meta">${s.grade}학년 ${s.class_name || ''}</div>
           </div>
-          <button onclick="deleteStudent('${s.id}')" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="삭제">🗑</button>
+          <div style="margin-left:auto;display:flex;gap:6px">
+  <button onclick="openAssignExamModal('${s.id}','${s.name}')" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;font-weight:600">📝 시험배정</button>
+  <button onclick="deleteStudent('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="삭제">🗑</button>
+</div>
         </div>
       </div>`;
     });
@@ -3108,26 +3111,87 @@ async function deleteExam(id) {
   loadDashboard();
 }
 async function loadExamQuestions(examId, title) {
-  const { data: questions } = await sbClient
-    .from('exam_questions')
-    .select('*')
-    .eq('exam_id', examId)
-    .order('question_number');
+  const [{ data: questions }, { data: assignments }, { data: allStudents }] = await Promise.all([
+    sbClient.from('exam_questions').select('*').eq('exam_id', examId).order('question_number'),
+    sbClient.from('exam_assignments').select('*, students(name, grade, school)').eq('exam_id', examId),
+    sbClient.from('students').select('*').eq('teacher_id', currentUser.id)
+  ]);
+
+  const assignedIds = (assignments || []).map(a => a.student_id);
+  const unassigned = (allStudents || []).filter(s => !assignedIds.includes(s.id));
 
   const modal = document.getElementById('createExamModal');
   modal.querySelector('.modal-title').textContent = '📝 ' + title;
-  modal.querySelector('.modal-body').innerHTML = !questions?.length
-    ? '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">저장된 문제가 없습니다</div></div>'
-    : questions.map((q, i) => `
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${i+1}번 문제</div>
-        <div style="font-size:14px;line-height:1.8;color:var(--text)">${sgEsc(q.question)}</div>
-        ${q.choices ? q.choices.map((c,ci) => `<div style="font-size:13px;padding:4px 0;color:${ci===q.answer_index?'var(--green)':'var(--text2)'}">${ci+1}. ${sgEsc(c)}</div>`).join('') : ''}
-        ${q.answer ? `<div style="font-size:12px;color:var(--green);margin-top:6px">✅ 정답: ${sgEsc(q.answer)}</div>` : ''}
-        ${q.hint ? `<div style="font-size:12px;color:var(--purple);margin-top:4px">💡 ${sgEsc(q.hint)}</div>` : ''}
-      </div>`).join('');
+  modal.querySelector('.modal-body').innerHTML = `
+    <!-- 배정된 학생 -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">👥 배정된 학생</div>
+      ${!assignments?.length
+        ? '<div style="font-size:13px;color:var(--text3);padding:10px 0">배정된 학생이 없습니다</div>'
+        : assignments.map(a => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+            <div>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">${a.students?.name || '—'}</span>
+              <span style="font-size:11px;color:var(--text3);margin-left:8px">${a.students?.grade || ''} · ${a.students?.school || ''}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="chip ${a.status === 'completed' ? 'green' : a.status === 'in_progress' ? 'yellow' : ''}">${a.status === 'completed' ? '✅ 완료' : a.status === 'in_progress' ? '⏳ 진행중' : '⏸ 대기'}</span>
+              <button onclick="removeAssignment('${a.id}', '${examId}', '${title}')" class="btn btn-ghost btn-xs" style="color:var(--red)">✕</button>
+            </div>
+          </div>`).join('')
+      }
+    </div>
+
+    <!-- 학생 추가 -->
+    ${unassigned.length > 0 ? `
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">➕ 학생 추가</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${unassigned.map(s => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
+            <div>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">${s.name}</span>
+              <span style="font-size:11px;color:var(--text3);margin-left:8px">${s.grade || ''} · ${s.school || ''}</span>
+            </div>
+            <button onclick="assignStudent('${examId}', '${s.id}', '${title}')" class="btn btn-green btn-xs">+ 배정</button>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="divider"></div>
+
+    <!-- 문제 목록 -->
+    <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">📋 문제 목록 (${questions?.length || 0}문제)</div>
+    ${!questions?.length
+      ? '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">저장된 문제가 없습니다</div></div>'
+      : questions.map((q, i) => `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${i+1}번 문제</div>
+          <div style="font-size:14px;line-height:1.8;color:var(--text)">${sgEsc(q.question)}</div>
+          ${q.choices ? q.choices.map((c,ci) => `<div style="font-size:13px;padding:4px 0;color:${ci===q.answer_index?'var(--green)':'var(--text2)'}">${ci+1}. ${sgEsc(c)}</div>`).join('') : ''}
+          ${q.answer ? `<div style="font-size:12px;color:var(--green);margin-top:6px">✅ 정답: ${sgEsc(q.answer)}</div>` : ''}
+        </div>`).join('')
+    }`;
 
   modal.classList.add('open');
+}
+
+async function assignStudent(examId, studentId, title) {
+  const { error } = await sbClient.from('exam_assignments').insert({
+    exam_id: examId,
+    student_id: studentId
+  });
+  if (error) { showToast('배정 실패: ' + error.message, '❌'); return; }
+  showToast('학생이 배정되었습니다', '✅');
+  loadExamQuestions(examId, title);
+}
+
+async function removeAssignment(assignmentId, examId, title) {
+  if (!confirm('배정을 취소하시겠습니까?')) return;
+  await sbClient.from('exam_assignments').delete().eq('id', assignmentId);
+  showToast('배정이 취소되었습니다', '🗑');
+  loadExamQuestions(examId, title);
+}
 }
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
