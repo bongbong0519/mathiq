@@ -3815,10 +3815,12 @@ async function submitUpload() {
 // ── 운영자: 선생님 목록 로드 ──
 async function loadAdminStudents() {
   if (!sbClient || !currentUser) return;
-  const { data: students } = await sbClient
+  const { data: students, error } = await sbClient
     .from('students')
-    .select('*, profiles:teacher_id(name, school)')
+    .select('*')
     .order('created_at', { ascending: false });
+
+  console.log('admin students:', students, 'error:', error);
 
   const wrap = document.getElementById('admin-students-wrap');
   if (!wrap) return;
