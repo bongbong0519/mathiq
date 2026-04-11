@@ -38,10 +38,12 @@ export default async function handler(req, res) {
     });
 
     await supabaseAdmin.from('students').insert({
+      id: userId,
       teacher_id,
       name,
+      email,
+      school: school || null,
       grade: grade || null,
-      class_name: school || null
     });
 
     return res.status(200).json({ success: true, userId });
