@@ -3530,6 +3530,18 @@ function sgExportPDF() {
     <div class="problem-num">▶ 유사문제 ${i+1}번 <span style="font-size:12px;font-weight:normal;color:#666">[${typeLabel}${diffLabel ? ' · ' + diffLabel : ''}]</span></div>
     <div class="problem-text">${(p.question || '').replace(/\n/g,'<br>')}</div>`;
 
+    // Desmos 그래프 이미지 캡처
+    if (p.graph && p.graph.expressions?.length > 0) {
+      const graphEl = document.getElementById(`desmos-${i}-${Object.keys(window._desmosCalcs || {})[i]}`);
+      const canvas = graphEl?.querySelector('canvas');
+      if (canvas) {
+        try {
+          const imgData = canvas.toDataURL('image/png');
+          html += `<div style="margin:12px 0"><img src="${imgData}" style="max-width:100%;border:1px solid #ccc;border-radius:6px"></div>`;
+        } catch(e) {}
+      }
+    }
+
     if (p.type === 'multiple' && p.choices?.length) {
       html += '<div class="choices">';
       p.choices.forEach((c, ci) => {
