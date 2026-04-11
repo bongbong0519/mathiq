@@ -2907,6 +2907,7 @@ function sgRenderResults(data, hintMode) {
       setTimeout(() => {
         const el = document.getElementById(graphId);
         if (!el) return;
+        if (!window._desmosCalcs) window._desmosCalcs = {};
         const calc = Desmos.GraphingCalculator(el, {
           expressionList: false,
           settingsMenu: false,
