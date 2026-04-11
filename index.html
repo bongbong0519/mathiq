@@ -3581,7 +3581,7 @@ async function sgExportPDF() {
 
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  cconst a = document.createElement('a');
+  const a = document.createElement('a');
 a.href = url;
 a.download = 'MathIQ_유사문제_' + date.replace(/\./g,'').replace(/\s/g,'') + '.html';
 a.click();
