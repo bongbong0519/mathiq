@@ -2066,6 +2066,10 @@ async function loadProfile() {
 
     // 승인 상태 체크
     // 학생이면 학생 뷰로 이동
+    // admin은 바로 통과
+if (data.role === 'admin') {
+  // 아래 UI 업데이트로 그냥 진행
+}
     if (data.role === 'student') {
       document.getElementById('appWrapper').style.display = 'flex';
       document.getElementById('authOverlay').style.display = 'none';
