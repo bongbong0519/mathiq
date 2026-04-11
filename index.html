@@ -2596,8 +2596,8 @@ function sgUpdateBtn() {
     const school = document.getElementById('sg-meta-school')?.value.trim();
     const grade = document.getElementById('sg-meta-grade')?.value;
     const examType = document.getElementById('sg-meta-type')?.value;
-    metaOk = !!(region && school && grade && examType);
-
+    const year = document.getElementById('sg-meta-year')?.value;
+    metaOk = !!(region && school && grade && examType && year);
     // 미입력 항목 표시
     const metaWrap = document.getElementById('sg-meta-wrap');
     if (metaWrap) {
