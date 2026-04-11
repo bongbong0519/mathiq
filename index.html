@@ -3886,9 +3886,8 @@ async function loadAdminStudents() {
           <th>이름</th><th>학년</th><th>학교</th><th>담당 선생님</th><th>가입일</th>
         </tr></thead>
         <tbody>
-          ${students.map(s => `
-            ${students.map(s => `
-            <tr style="cursor:pointer" onclick="openAssignTeacherModal('${s.id}','${s.name.replace(/'/g,'')}','${s.teacher_id||''}')"
+         ${students.map(s => `
+          <tr style="cursor:pointer" onclick="openAssignTeacherModal('${s.id}','${s.name.replace(/'/g,'')}','${s.teacher_id||''}')"
               <td class="font-bold">${s.name}</td>
               <td>${s.grade || '—'}</td>
               <td>${s.school || '—'}</td>
