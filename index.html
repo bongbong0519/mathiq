@@ -3796,47 +3796,6 @@ async function submitUpload() {
 
 // ── 운영자: 선생님 목록 로드 ──
 async function loadAdminTeachers() {
-  if (!sbClient || !currentUser) return;
-  const { data: teachers } = await sbClient.from('profiles')
-    .select('*')
-    .in('role', ['teacher', 'admin'])
-    .order('created_at', { ascending: false });
-
-  const wrap = document.getElementById('admin-teachers-wrap');
-  if (!wrap) return;
-
-  if (!teachers || teachers.length === 0) {
-    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">🏫</div><div class="empty-state-text">가입한 선생님이 없습니다</div></div>';
-    return;
-  }
-
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>학교</th><th>이메일</th><th>가입일</th><th>상태</th><th>승인</th></tr></thead><tbody>' +
-    teachers.map(t => {
-      const statusBadge = t.status === 'approved'
-        ? '<span class="chip green">✅ 승인됨</span>'
-        : t.status === 'rejected'
-        ? '<span class="chip red">❌ 거절됨</span>'
-        : '<span class="chip yellow">⏳ 대기중</span>';
-      const actionBtn = t.status === 'pending'
-        ? `<div style="display:flex;gap:6px">
-            <button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">✅ 승인</button>
-            <button class="btn btn-red btn-xs" onclick="rejectTeacher('${t.id}')">❌ 거절</button>
-           </div>`
-        : t.status === 'approved'
-        ? `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${t.id}')">취소</button>`
-        : `<button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">✅ 승인</button>`;
-
-      return `<tr>
-        <td class="font-bold">${t.name || '—'}</td>
-        <td>${t.school || '—'}</td>
-        <td class="text-muted text-sm">${t.id.slice(0,8)}...</td>
-        <td class="text-muted text-sm">${new Date(t.created_at).toLocaleDateString('ko-KR')}</td>
-        <td>${statusBadge}</td>
-        <td>${actionBtn}</td>
-      </tr>`;
-    }).join('') +
-  '</tbody></table></div>';
-}
 
 async function approveTeacher(id) {
   await sbClient.from('profiles').update({ status: 'approved' }).eq('id', id);
