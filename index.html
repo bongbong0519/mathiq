@@ -2922,7 +2922,30 @@ exams.map(e => `<tr style="cursor:pointer" onclick="loadExamQuestions('${e.id}',
     }
   }
 }
+async function loadExamQuestions(examId, title) {
+  const { data: questions } = await sbClient
+    .from('exam_questions')
+    .select('*')
+    .eq('exam_id', examId)
+    .order('question_number');
 
+  const modal = document.getElementById('createExamModal');
+  const modalTitle = modal.querySelector('.modal-title');
+  const modalBody = modal.querySelector('.modal-body');
+
+  modalTitle.textContent = '📝 ' + title;
+  modalBody.innerHTML = !questions?.length
+    ? '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">저장된 문제가 없습니다</div></div>'
+    : questions.map((q, i) => `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${i+1}번 문제</div>
+        <div style="font-size:14px;line-height:1.8;color:var(--text)">${q.question}</div>
+        ${q.choices ? q.choices.map((c,ci) => `<div style="font-size:13px;padding:4px 0;color:${ci===q.answer_index?'var(--green)':'var(--text2)'}">${ci+1}. ${c}</div>`).join('') : ''}
+        ${q.answer ? `<div style="font-size:12px;color:var(--green);margin-top:6px">정답: ${q.answer}</div>` : ''}
+      </div>`).join('');
+
+  modal.classList.add('open');
+}
 // ── 학생 목록 로드 ──
 async function loadStudents() {
   if (!sbClient || !currentUser) return;
