@@ -1569,9 +1569,10 @@
               <div id="sg-result-meta" style="font-size:12px;color:var(--text3)">—</div>
               <div style="display:flex;gap:7px;flex-wrap:wrap">
                 <button class="btn btn-ghost btn-sm" onclick="sgCopyAll()">📋 전체 복사</button>
-                <button class="btn btn-green btn-sm" onclick="sgExportPDF()">📄 PDF 저장</button>
-                <button class="btn btn-ghost btn-sm" onclick="sgExportWord()">📝 워드 저장</button>
-                <button class="btn btn-accent btn-sm" onclick="sgGenerate()">🔄 재생성</button>
+               <button class="btn btn-green btn-sm" onclick="sgExportPDF()">📄 PDF 저장</button>
+<button class="btn btn-ghost btn-sm" onclick="sgExportWord()">📝 워드 저장</button>
+<button class="btn btn-primary btn-sm" onclick="sgSaveAsExam()">💾 시험으로 저장</button>
+<button class="btn btn-accent btn-sm" onclick="sgGenerate()">🔄 재생성</button>
               </div>
             </div>
             <div id="sg-copy-bar" style="display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(62,207,142,0.07);border:1px solid rgba(62,207,142,0.2);border-radius:var(--radius-sm)">
@@ -3406,6 +3407,44 @@ function sgExportWord() {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 3000);
   showToast('워드 파일이 다운로드되었습니다', '📝');
+}
+  async function sgSaveAsExam() {
+  if (!sg.lastProblems.length) return;
+  if (!sbClient || !currentUser) return;
+
+  const title = prompt('시험 이름을 입력해주세요:', '유사문제 시험');
+  if (!title) return;
+
+  // 시험 등록
+  const { data: exam, error } = await sbClient.from('exams').insert({
+    teacher_id: currentUser.id,
+    title,
+    unit: document.getElementById('sg-result-meta').textContent.split('·')[0].trim(),
+    difficulty: sg.lastProblems[0]?.difficulty || 'normal',
+    exam_date: new Date().toISOString().split('T')[0]
+  }).select().single();
+
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+
+  // 문제 저장
+  const questions = sg.lastProblems.map((p, i) => ({
+    exam_id: exam.id,
+    question_number: i + 1,
+    question: p.question,
+    type: p.type,
+    difficulty: p.difficulty,
+    choices: p.choices || null,
+    answer: p.answer,
+    answer_index: p.answer_index ?? null,
+    hint: p.hint || null,
+    competencies: p.competencies || null
+  }));
+
+  const { error: qError } = await sbClient.from('exam_questions').insert(questions);
+
+  if (qError) { showToast('문제 저장 실패: ' + qError.message, '❌'); return; }
+
+  showToast(`"${title}" 시험으로 저장되었습니다!`, '✅');
 }
 
 // ═══════════════════════════════════════
