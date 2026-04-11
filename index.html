@@ -2666,7 +2666,8 @@ async function sgGenerate() {
       region: document.getElementById('sg-meta-region')?.value || '',
       school: document.getElementById('sg-meta-school')?.value || '',
       grade: document.getElementById('sg-meta-grade')?.value || '',
-      exam_type: document.getElementById('sg-meta-type')?.value || ''
+      exam_type: document.getElementById('sg-meta-type')?.value || '',
+      year: document.getElementById('sg-meta-year')?.value || ''
     };
     uploadExamFileWithMeta(sg.pendingFile, meta).catch(() => {});
     sg.pendingFile = null;
