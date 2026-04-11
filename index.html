@@ -2923,6 +2923,7 @@ function sgRenderResults(data, hintMode) {
         (p.graph.expressions || []).forEach(expr => {
           calc.setExpression({ id: expr.id, latex: expr.latex, color: expr.color || '#4f8ef7' });
         });
+        window._desmosCalcs[i] = calc;
       }, 300);
     }
   });
