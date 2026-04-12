@@ -1029,47 +1029,15 @@
   <!-- 요금제 -->
   <section class="landing-section">
     <div class="landing-section-title">요금제</div>
-    <div class="landing-section-sub">필요한 만큼만, 부담 없이 시작하세요</div>
-    <div class="landing-pricing">
-      <div class="landing-plan">
-        <h3>Free</h3>
-        <div class="plan-price">₩0 <span>/ 월</span></div>
-        <div class="plan-desc">개인 과외 선생님에게 딱 맞는</div>
-        <ul>
-          <li>학생 5명까지 관리</li>
-          <li>시험 등록 및 성적 분석</li>
-          <li>AI 유사문제 월 30회</li>
-          <li>PDF/워드 내보내기</li>
-        </ul>
-        <button class="landing-plan-btn outline" onclick="openAuthFromLanding('signup')">무료로 시작</button>
+    <div class="landing-section-sub">합리적인 가격으로 곧 찾아갑니다</div>
+    <div style="text-align:center;padding:48px 20px">
+      <div style="font-size:48px;margin-bottom:16px">🚀</div>
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:12px">요금제 추후 공개</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.8;max-width:400px;margin:0 auto 28px">
+        현재 모든 기능을 무료로 체험하실 수 있습니다.<br>
+        정식 요금제는 준비 중이며, 곧 안내드리겠습니다.
       </div>
-      <div class="landing-plan featured">
-        <div class="landing-plan-badge">인기</div>
-        <h3>Standard</h3>
-        <div class="plan-price">₩19,900 <span>/ 월</span></div>
-        <div class="plan-desc">소규모 학원 · 공부방 운영자용</div>
-        <ul>
-          <li>학생 50명까지 관리</li>
-          <li>선생님 계정 3개 포함</li>
-          <li>AI 유사문제 무제한</li>
-          <li>학부모 리포트 공유</li>
-          <li>역량 분석 레이더 차트</li>
-        </ul>
-        <button class="landing-plan-btn primary" onclick="openAuthFromLanding('signup')">시작하기</button>
-      </div>
-      <div class="landing-plan">
-        <h3>Premium</h3>
-        <div class="plan-price">₩49,900 <span>/ 월</span></div>
-        <div class="plan-desc">중대형 학원 · 교습소용</div>
-        <ul>
-          <li>학생 무제한</li>
-          <li>선생님 계정 무제한</li>
-          <li>AI 유사문제 무제한</li>
-          <li>전용 상담 채널</li>
-          <li>커스터마이징 지원</li>
-        </ul>
-        <button class="landing-plan-btn outline" onclick="openAuthFromLanding('signup')">문의하기</button>
-      </div>
+      <button class="landing-hero-btn primary" onclick="openAuthFromLanding('signup')">무료로 체험하기</button>
     </div>
   </section>
 
@@ -1101,7 +1069,7 @@
       <div class="landing-role" onclick="openRoleModal('parent')">
         <div class="landing-role-icon">👨‍👩‍👧</div>
         <h4>학부모</h4>
-        <p>��녀 성적 리포트<br>학습 현황 확인</p>
+        <p>커뮤니티 · 입시정보<br>자녀 학습 현황</p>
       </div>
     </div>
   </section>
@@ -2381,8 +2349,8 @@ const ROLE_DATA = {
   },
   parent: {
     icon: '👨‍👩‍👧', title: '학부모',
-    desc: '자녀의 학습 현황과 성적 리포트를 실시간으로 확인합니다. 선생님과의 소통 채널도 제공됩니다.',
-    features: ['자녀 성적 리포트 확인','단원별 취약점 분석 열람','시험 결과 ��시간 알림','선생님 코멘트 확인','학습 진도 추이 그래프']
+    desc: '학부모 커뮤니티와 입시 정보를 통해 자녀 교육을 지원합니다. 자녀의 학습 현황도 확인할 수 있습니다.',
+    features: ['학부모 커뮤니티 참여','입시 정보 및 교육 뉴스','자녀 성적 리포트 확인','선생님 코멘트 확인','학습 진도 추이 그래프']
   }
 };
 
