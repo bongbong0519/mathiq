@@ -851,7 +851,8 @@
     transition: all 0.25s;
   }
   .landing-feature:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.3); }
-  .landing-feature-icon { font-size: 36px; margin-bottom: 16px; }
+  .landing-feature-icon { margin-bottom: 16px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 12px; }
+  .landing-feature-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .landing-feature h3 { font-size: 17px; font-weight: 800; margin: 0 0 10px; }
   .landing-feature p { font-size: 13px; color: var(--text2); line-height: 1.7; margin: 0; }
 
@@ -894,7 +895,8 @@
     padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.25s;
   }
   .landing-role:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.3); }
-  .landing-role-icon { font-size: 40px; margin-bottom: 12px; }
+  .landing-role-icon { margin-bottom: 12px; width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center; background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 14px; }
+  .landing-role-icon svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .landing-role h4 { font-size: 15px; font-weight: 800; margin: 0 0 6px; }
   .landing-role p { font-size: 12px; color: var(--text3); line-height: 1.6; margin: 0; }
 
@@ -910,7 +912,8 @@
     padding: 40px; width: 480px; max-width: 92vw; max-height: 85vh; overflow-y: auto;
     box-shadow: 0 24px 80px rgba(0,0,0,0.6); animation: slideUp 0.3s ease;
   }
-  .role-modal-icon { font-size: 48px; margin-bottom: 12px; }
+  .role-modal-icon { margin-bottom: 12px; width: 56px; height: 56px; display: inline-flex; align-items: center; justify-content: center; background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 16px; }
+  .role-modal-icon svg { width: 28px; height: 28px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .role-modal h2 { font-size: 22px; font-weight: 800; margin: 0 0 8px; }
   .role-modal .role-desc { font-size: 13px; color: var(--text2); line-height: 1.8; margin-bottom: 20px; }
   .role-modal .role-features { list-style: none; padding: 0; margin: 0 0 28px; }
@@ -1004,22 +1007,22 @@
     <div class="landing-section-sub">현직 수학 선생님이 직접 만든, 진짜 현장 중심 플랫폼</div>
     <div class="landing-features">
       <div class="landing-feature">
-        <div class="landing-feature-icon">💰</div>
+        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <h3>합리적인 가격</h3>
         <p>비싼 학원 프로그램 없이도 체계적인 학습 관리가 가능합니다. 소규모 학원과 개인 과외에 최적화된 가격 정책.</p>
       </div>
       <div class="landing-feature">
-        <div class="landing-feature-icon">👨‍🏫</div>
+        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <h3>현역 선생님이 설계</h3>
         <p>교육 현장을 잘 아는 현직 수학 교사가 직접 기획하고 만들었습니다. 이론이 아닌 실전 중심 설계.</p>
       </div>
       <div class="landing-feature">
-        <div class="landing-feature-icon">🤖</div>
+        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-2 4-4 4s-4-2.05-4-4a4 4 0 0 1 4-4z"/><path d="M12 14c-4 0-7 1-7 3v1h14v-1c0-2-3-3-7-3z"/><path d="M9 2h6M12 6v4"/><circle cx="18" cy="16" r="3"/><path d="M18 15v2l1.5.75"/></svg></div>
         <h3>AI 유사문제 생성</h3>
         <p>틀린 문제와 유사한 문제를 AI가 자동으로 생성합니다. 취약 단원을 반복 학습하여 완전 학습을 달성.</p>
       </div>
       <div class="landing-feature">
-        <div class="landing-feature-icon">🎯</div>
+        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
         <h3>선생님 중심 설계</h3>
         <p>학생 관리, 시험 등록, 성적 분석까지 선생님 업무 흐름에 맞춘 직관적 인터페이스.</p>
       </div>
@@ -1031,7 +1034,7 @@
     <div class="landing-section-title">요금제</div>
     <div class="landing-section-sub">합리적인 가격으로 곧 찾아갑니다</div>
     <div style="text-align:center;padding:48px 20px">
-      <div style="font-size:48px;margin-bottom:16px">🚀</div>
+      <div style="width:56px;height:56px;display:inline-flex;align-items:center;justify-content:center;background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.15);border-radius:16px;margin-bottom:16px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f8ef7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3"/></svg></div>
       <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:12px">요금제 추후 공개</div>
       <div style="font-size:14px;color:var(--text2);line-height:1.8;max-width:400px;margin:0 auto 28px">
         현재 모든 기능을 무료로 체험하실 수 있습니다.<br>
@@ -1047,27 +1050,27 @@
     <div class="landing-section-sub">각 역할별로 최적화된 기능을 제공합니다</div>
     <div class="landing-roles">
       <div class="landing-role" onclick="openRoleModal('admin')">
-        <div class="landing-role-icon">🛡️</div>
+        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
         <h4>운영자</h4>
         <p>전체 시스템 관리<br>회원 승인 · 통계</p>
       </div>
       <div class="landing-role" onclick="openRoleModal('director')">
-        <div class="landing-role-icon">🏫</div>
+        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
         <h4>원장님</h4>
         <p>학원 전체 현황 파악<br>선생님 · 학생 관리</p>
       </div>
       <div class="landing-role" onclick="openRoleModal('teacher')">
-        <div class="landing-role-icon">👨‍🏫</div>
+        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
         <h4>선생님</h4>
         <p>학생 관리 · 시험 등록<br>AI 유사문제 생성</p>
       </div>
       <div class="landing-role" onclick="openRoleModal('student')">
-        <div class="landing-role-icon">📚</div>
+        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/></svg></div>
         <h4>학생</h4>
         <p>내 성적 확인<br>오답 유사문제 풀기</p>
       </div>
       <div class="landing-role" onclick="openRoleModal('parent')">
-        <div class="landing-role-icon">👨‍👩‍👧</div>
+        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h4>학부모</h4>
         <p>커뮤니티 · 입시정보<br>자녀 학습 현황</p>
       </div>
@@ -2326,29 +2329,36 @@ let currentProfile = null;
 let selectedRole = 'teacher';
 
 // ── 랜딩 페이지 함수 ──
+const ROLE_SVG = {
+  admin: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  director: '<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  teacher: '<svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+  student: '<svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/></svg>',
+  parent: '<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+};
 const ROLE_DATA = {
   admin: {
-    icon: '🛡️', title: '운영자',
-    desc: 'MathIQ 전체 시스템을 관리하는 최고 권한 역할입니다. 선���님/학부모 가입 승인, 전체 사용자 관리, 시스템 통계 등을 담당합니다.',
+    title: '운영자',
+    desc: 'MathIQ 전체 시스템을 관리하는 최고 권한 역할입니다. 선생님/학부모 가입 승인, 전체 사용자 관리, 시스템 통계 등을 담당합니다.',
     features: ['선생님·학부모 가입 승인/거절','전체 사용자 목록 관리','시스템 운영 통계 대시보드','선생님-학생 배정 관리','학원 전체 데이터 관리']
   },
   director: {
-    icon: '🏫', title: '원장님',
-    desc: '학원 전���의 운영 현황을 한눈에 파악하고, 소속 선생님과 학생을 관리합니다. 경영에 필요한 핵심 데이터를 제공합니다.',
-    features: ['학원 전�� 학생 현황 파악','선생님별 담당 학생 배정','전체 성적 추이 및 통계','학부모 리포트 관리','매출/수강 현황 대시보드']
+    title: '원장님',
+    desc: '학원 전체의 운영 현황을 한눈에 파악하고, 소속 선생님과 학생을 관리합니다. 경영에 필요한 핵심 데이터를 제공합니다.',
+    features: ['학원 전체 학생 현황 파악','선생님별 담당 학생 배정','전체 성적 추이 및 통계','학부모 리포트 관리','매출/수강 현황 대시보드']
   },
   teacher: {
-    icon: '👨‍🏫', title: '선생님',
+    title: '선생님',
     desc: 'MathIQ의 핵심 사용자입니다. 담당 학생 관리, 시험 등록, 성적 분석, AI 유사문제 생성 등 수업에 필요한 모든 기능을 사용합니다.',
     features: ['담당 학생 등록 및 관리','시험 등록 · 성적 입력','학생별 취약점 분석 리포트','AI 유사문제 자동 생성','PDF/워드 시험지 내보내기']
   },
   student: {
-    icon: '📚', title: '학생',
+    title: '학생',
     desc: '선생님이 배정한 시험을 풀고, 내 성적과 취약 단원을 확인합니다. AI가 생성한 유사문제로 오답을 완전히 극복할 수 있습니다.',
     features: ['배정된 시험 응시','내 성적 및 등수 확인','단원별 취약점 분석','AI 유사문제 풀기','오답노트 자동 생성']
   },
   parent: {
-    icon: '👨‍👩‍👧', title: '학부모',
+    title: '학부모',
     desc: '학부모 커뮤니티와 입시 정보를 통해 자녀 교육을 지원합니다. 자녀의 학습 현황도 확인할 수 있습니다.',
     features: ['학부모 커뮤니티 참여','입시 정보 및 교육 뉴스','자녀 성적 리포트 확인','선생님 코멘트 확인','학습 진도 추이 그래프']
   }
@@ -2357,7 +2367,7 @@ const ROLE_DATA = {
 function openRoleModal(role) {
   const data = ROLE_DATA[role];
   if (!data) return;
-  document.getElementById('roleModalIcon').textContent = data.icon;
+  document.getElementById('roleModalIcon').innerHTML = ROLE_SVG[role] || '';
   document.getElementById('roleModalTitle').textContent = data.title;
   document.getElementById('roleModalDesc').textContent = data.desc;
   document.getElementById('roleModalFeatures').innerHTML = data.features.map(f => `<li>${f}</li>`).join('');
