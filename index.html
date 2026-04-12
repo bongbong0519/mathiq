@@ -3718,63 +3718,151 @@ async function sgExportPDF() {
   showToast('인쇄 창에서 "PDF로 저장"을 선택하세요!', '📄');
 }
 
-function sgExportWord() {
+async function sgExportWord() {
   const problems = sg.lastProblems;
   if (!problems?.length) return;
 
   const meta = document.getElementById('sg-result-meta').textContent;
   const date = new Date().toLocaleDateString('ko-KR');
 
-  let text = `MathIQ 유사문제\n`;
-  text += `${meta} · 생성일: ${date}\n`;
-  text += '='.repeat(50) + '\n\n';
+  function escXml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function wRun(text, opts = {}) {
+    const rPr = '<w:rPr>' +
+      '<w:rFonts w:eastAsia="\uB9D1\uC740 \uACE0\uB515" w:hint="eastAsia"/>' +
+      (opts.bold ? '<w:b/>' : '') +
+      (opts.color ? `<w:color w:val="${opts.color}"/>` : '') +
+      (opts.size ? `<w:sz w:val="${opts.size}"/><w:szCs w:val="${opts.size}"/>` : '') +
+      '</w:rPr>';
+    return `<w:r>${rPr}<w:t xml:space="preserve">${escXml(text)}</w:t></w:r>`;
+  }
+  function wPara(text, opts = {}) {
+    const pPr = '<w:pPr>' +
+      (opts.spacing ? `<w:spacing w:after="${opts.spacing}"/>` : '') +
+      (opts.indent ? `<w:ind w:left="${opts.indent}"/>` : '') +
+      '</w:pPr>';
+    const lines = text.split('\n');
+    const runs = lines.map((line, idx) =>
+      wRun(line, opts) + (idx < lines.length - 1 ? '<w:r><w:br/></w:r>' : '')
+    ).join('');
+    return `<w:p>${pPr}${runs}</w:p>`;
+  }
+  function wHr() {
+    return '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr><w:spacing w:after="200"/></w:pPr></w:p>';
+  }
+
+  let body = '';
+  body += wPara('MathIQ \uC720\uC0AC\uBB38\uC81C', { bold: true, size: 28, spacing: 60 });
+  body += wPara(`${meta}  \u00B7  \uC0DD\uC131\uC77C: ${date}`, { color: '666666', size: 18, spacing: 200 });
+  body += wHr();
 
   problems.forEach((p, i) => {
-    const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
-    text += `[유사문제 ${i+1}번] (${typeLabel})\n`;
-    text += `${p.question}\n\n`;
+    const typeLabel = { multiple:'\uAC1D\uAD00\uC2DD', short:'\uB2E8\uB2F5\uD615', essay:'\uC11C\uC220\uD615' }[p.type] || p.type;
+    const diffLabel = { easy:'\uAE30\uBCF8', normal:'\uD45C\uC900', hard:'\uC2EC\uD654' }[p.difficulty] || '';
+    const tag = `[${typeLabel}${diffLabel ? ' \u00B7 ' + diffLabel : ''}]`;
+
+    body += wPara(`\u25B6 \uC720\uC0AC\uBB38\uC81C ${i+1}\uBC88 ${tag}`, { bold: true, color: '2563EB', size: 22, spacing: 80 });
+    body += wPara(p.question || '', { size: 21, spacing: 120 });
 
     if (p.type === 'multiple' && p.choices?.length) {
       p.choices.forEach((c, ci) => {
         const isAns = ci === p.answer_index;
-        text += `  ${ci+1}. ${c.replace(/^[①②③④⑤]\s*/,'')}${isAns ? '  ← 정답' : ''}\n`;
+        const label = `${ci+1}. ${c.replace(/^[\u2460\u2461\u2462\u2463\u2464]\s*/,'')}${isAns ? '  \u2713' : ''}`;
+        body += wPara(label, { bold: isAns, color: isAns ? '059669' : '333333', size: 20, indent: 400 });
       });
     } else if (p.answer) {
-      text += `정답: ${p.answer}\n`;
+      body += wPara(`\uC815\uB2F5: ${p.answer}`, { bold: true, color: '059669', size: 20, spacing: 60 });
     }
 
-    if (p.hint) text += `\n힌트: ${p.hint}\n`;
-    text += '\n' + '-'.repeat(40) + '\n\n';
+    if (p.hint) {
+      body += wPara(`\uD78C\uD2B8: ${p.hint}`, { color: '1E40AF', size: 18, spacing: 60 });
+    }
+    if (i < problems.length - 1) body += wHr();
   });
 
-  // Word 형식 (.doc) HTML 방식
-  const wordHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><style>body{font-family:맑은고딕,sans-serif;font-size:11pt;line-height:1.8} h1{font-size:14pt} .num{color:#2563eb;font-weight:bold} .ans{color:#059669;font-weight:bold} .hint{color:#1e40af;font-size:10pt}</style></head><body>` +
-    `<h1>MathIQ 유사문제</h1><p style="color:#666;font-size:10pt">${meta} · 생성일: ${date}</p><hr>` +
-    problems.map((p,i) => {
-      const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
-      let html = `<p class="num">▶ 유사문제 ${i+1}번 [${typeLabel}]</p>`;
-      html += `<p>${(p.question||'').replace(/\n/g,'<br>')}</p>`;
-      if (p.type === 'multiple' && p.choices?.length) {
-        p.choices.forEach((c,ci) => {
-          const isAns = ci === p.answer_index;
-          html += '<p ' + (isAns ? 'class="ans"' : '') + '>&nbsp;&nbsp;' + (ci+1) + '. ' + c.replace(/^[①②③④⑤]\s*/,'') + (isAns ? ' ✓' : '') + '</p>';
-        });
-      } else if (p.answer) {
-        html += `<p class="ans">정답: ${p.answer}</p>`;
-      }
-      if (p.hint) html += `<p class="hint">💡 ${p.hint}</p>`;
-      html += '<hr>';
-      return html;
-    }).join('') + '</body></html>';
+  const contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+    '</Types>';
 
-  const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword;charset=utf-8' });
+  const relsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+    '</Relationships>';
+
+  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+    '<w:body>' + body +
+    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>' +
+    '</w:body></w:document>';
+
+  function strToU8(str) { return new TextEncoder().encode(str); }
+  function crc32(buf) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < buf.length; i++) {
+      c ^= buf[i];
+      for (let j = 0; j < 8; j++) c = (c >>> 1) ^ (c & 1 ? 0xEDB88320 : 0);
+    }
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function buildZip(files) {
+    const locals = [], centrals = [], datas = [];
+    let offset = 0;
+    files.forEach(({ name, data }) => {
+      const nb = strToU8(name), crc = crc32(data);
+      const lh = new Uint8Array(30 + nb.length);
+      const lv = new DataView(lh.buffer);
+      lv.setUint32(0,0x04034b50,true); lv.setUint16(4,20,true);
+      lv.setUint16(8,0,true); lv.setUint32(14,crc,true);
+      lv.setUint32(18,data.length,true); lv.setUint32(22,data.length,true);
+      lv.setUint16(26,nb.length,true); lh.set(nb,30);
+
+      const ch = new Uint8Array(46 + nb.length);
+      const cv = new DataView(ch.buffer);
+      cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true);
+      cv.setUint16(6,20,true); cv.setUint16(8,0,true); cv.setUint16(10,0,true);
+      cv.setUint32(16,crc,true); cv.setUint32(20,data.length,true);
+      cv.setUint32(24,data.length,true); cv.setUint16(28,nb.length,true);
+      cv.setUint32(42,offset,true); ch.set(nb,46);
+
+      locals.push(lh); datas.push(data); centrals.push(ch);
+      offset += lh.length + data.length;
+    });
+    let cdSize = 0;
+    centrals.forEach(c => cdSize += c.length);
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0,0x06054b50,true);
+    ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+    ev.setUint32(12,cdSize,true); ev.setUint32(16,offset,true);
+
+    const parts = [];
+    locals.forEach((lh,i) => { parts.push(lh); parts.push(datas[i]); });
+    centrals.forEach(c => parts.push(c));
+    parts.push(eocd);
+    let total = 0; parts.forEach(p => total += p.length);
+    const out = new Uint8Array(total);
+    let pos = 0; parts.forEach(p => { out.set(p, pos); pos += p.length; });
+    return out;
+  }
+
+  const zipData = buildZip([
+    { name: '[Content_Types].xml', data: strToU8(contentTypesXml) },
+    { name: '_rels/.rels', data: strToU8(relsXml) },
+    { name: 'word/document.xml', data: strToU8(documentXml) }
+  ]);
+
+  const blob = new Blob([zipData], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'MathIQ_유사문제_' + date.replace(/[.]/g,'') + '.doc';
-  a.click();
+  const dlLink = document.createElement('a');
+  dlLink.href = url;
+  dlLink.download = `MathIQ_\uC720\uC0AC\uBB38\uC81C_${date.replace(/[.]/g,'')}.docx`;
+  document.body.appendChild(dlLink);
+  dlLink.click();
+  document.body.removeChild(dlLink);
   setTimeout(() => URL.revokeObjectURL(url), 3000);
-  showToast('워드 파일이 다운로드되었습니다', '📝');
+  showToast('\uC6CC\uB4DC \uD30C\uC77C\uC774 \uB2E4\uC6B4\uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4!', '\uD83D\uDCDD');
 }
   async function sgSaveAsExam() {
   if (!sg.lastProblems.length) return;
