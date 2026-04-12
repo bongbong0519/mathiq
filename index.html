@@ -1227,6 +1227,9 @@
         <div class="nav-item" onclick="showView('teacher-materials')">
           <span class="icon">📁</span> 수업 자료
         </div>
+        <div class="nav-item" onclick="showView('materials')">
+          <span class="icon">📚</span> 자료실
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">계정</div>
@@ -1254,6 +1257,12 @@
         <div class="nav-label">경영</div>
         <div class="nav-item" onclick="showView('director-revenue')">
           <span class="icon">💰</span> 수익/결제 현황
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">자료</div>
+        <div class="nav-item" onclick="showView('materials')">
+          <span class="icon">📚</span> 자료실
         </div>
       </div>
       <div class="nav-section">
@@ -1288,6 +1297,12 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">자료</div>
+        <div class="nav-item" onclick="showView('materials')">
+          <span class="icon">📚</span> 자료실
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -1307,6 +1322,9 @@
         </div>
         <div class="nav-item" onclick="showView('student-materials')">
           <span class="icon">📁</span> 수업 자료
+        </div>
+        <div class="nav-item" onclick="showView('materials')">
+          <span class="icon">📚</span> 자료실
         </div>
       </div>
       <div class="nav-section">
@@ -1335,6 +1353,9 @@
         </div>
         <div class="nav-item" onclick="showView('parent-community')">
           <span class="icon">💬</span> 학부모 커뮤니티
+        </div>
+        <div class="nav-item" onclick="showView('materials')">
+          <span class="icon">📚</span> 자료실
         </div>
       </div>
       <div class="nav-section">
@@ -2120,6 +2141,61 @@
       <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">💬</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">교육 정보 공유, 학원 후기, 학부모 모임 기능이<br>곧 추가될 예정입니다.</div></div></div>
     </div>
 
+    <!-- ══ VIEW: MATERIALS (자료실) ══ -->
+    <div id="view-materials" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">자료실</h2>
+          <p class="page-subtitle">수학 학습 자료를 검색하고 다운로드하세요 (무료)</p>
+        </div>
+        <button class="btn btn-primary" id="materials-upload-btn" onclick="openUploadMaterialModal()" style="display:none">+ 자료 올리기</button>
+      </div>
+
+      <!-- 필터 영역 -->
+      <div class="card" style="margin-bottom:16px;padding:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
+          <select id="mat-filter-school" class="form-input" onchange="loadMaterials()">
+            <option value="">전체 학교급</option>
+            <option value="elementary">초등</option>
+            <option value="middle">중등</option>
+            <option value="high">고등</option>
+          </select>
+          <select id="mat-filter-grade" class="form-input" onchange="loadMaterials()">
+            <option value="">전체 학년</option>
+            <option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option>
+            <option value="4">4학년</option><option value="5">5학년</option><option value="6">6학년</option>
+          </select>
+          <select id="mat-filter-semester" class="form-input" onchange="loadMaterials()">
+            <option value="">전체 학기</option>
+            <option value="1">1학기</option>
+            <option value="2">2학기</option>
+          </select>
+          <select id="mat-filter-area" class="form-input" onchange="loadMaterials()">
+            <option value="">전체 영역</option>
+            <option value="수와 연산">수와 연산</option>
+            <option value="문자와 식">문자와 식</option>
+            <option value="함수">함수</option>
+            <option value="기하">기하</option>
+            <option value="확률과 통계">확률과 통계</option>
+            <option value="미적분">미적분</option>
+          </select>
+          <input type="text" id="mat-filter-unit" class="form-input" placeholder="단원 검색" onkeyup="if(event.key==='Enter')loadMaterials()">
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="mat-search" class="form-input" placeholder="제목/설명 검색..." style="flex:1" onkeyup="if(event.key==='Enter')loadMaterials()">
+          <button class="btn btn-primary" onclick="loadMaterials()">검색</button>
+          <button class="btn btn-ghost" onclick="resetMaterialFilters()">초기화</button>
+        </div>
+      </div>
+
+      <!-- 자료 목록 -->
+      <div class="card">
+        <div id="materials-list">
+          <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ VIEW: PROFILE (내 정보) ══ -->
     <div id="view-profile" class="view" style="display:none">
       <div class="page-header">
@@ -2510,6 +2586,78 @@
 <!-- ════════════════════ CREATE EXAM MODAL ════════════════════ -->
 <!-- 선생님 초대 모달 (원장님용) -->
 <!-- 기관 등록 모달 (운영자용) -->
+<!-- 자료 업로드 모달 -->
+<div class="modal-overlay" id="uploadMaterialModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">자료 올리기</div>
+      <button class="modal-close" onclick="closeModal('uploadMaterialModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">자료 제목 *</label>
+        <input type="text" class="form-input" id="matTitle" placeholder="예) 중2 1학기 일차함수 단원평가">
+      </div>
+      <div class="form-group">
+        <label class="form-label">설명</label>
+        <textarea class="form-input" id="matDesc" rows="2" placeholder="자료에 대한 간단한 설명"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">학교급 *</label>
+          <select class="form-input" id="matSchool">
+            <option value="elementary">초등</option>
+            <option value="middle" selected>중등</option>
+            <option value="high">고등</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">학년</label>
+          <select class="form-input" id="matGrade">
+            <option value="">선택</option>
+            <option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option>
+            <option value="4">4학년</option><option value="5">5학년</option><option value="6">6학년</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">학기</label>
+          <select class="form-input" id="matSemester">
+            <option value="">선택</option>
+            <option value="1">1학기</option>
+            <option value="2">2학기</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">영역</label>
+          <select class="form-input" id="matArea">
+            <option value="">선택</option>
+            <option value="수와 연산">수와 연산</option>
+            <option value="문자와 식">문자와 식</option>
+            <option value="함수">함수</option>
+            <option value="기하">기하</option>
+            <option value="확률과 통계">확률과 통계</option>
+            <option value="미적분">미적분</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">단원</label>
+        <input type="text" class="form-input" id="matUnit" placeholder="예) 일차함수와 그래프">
+      </div>
+      <div class="form-group">
+        <label class="form-label">파일 *</label>
+        <input type="file" class="form-input" id="matFile" accept=".pdf,.docx,.doc,.hwp,.zip,.png,.jpg,.jpeg">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF, Word, HWP, ZIP, 이미지 (최대 50MB)</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary w-full" id="matSubmitBtn" onclick="submitMaterialUpload()">업로드</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="addOrgModal">
   <div class="modal">
     <div class="modal-header">
@@ -3054,6 +3202,7 @@ function showView(viewId) {
         if (viewId === 'exams') loadExams().catch(() => {});
         if (viewId === 'student') { if (typeof loadStudentView === 'function') loadStudentView(); }
         if (viewId === 'profile') loadProfileView().catch(() => {});
+        if (viewId === 'materials') loadMaterialsView().catch(() => {});
         if (viewId === 'director-dashboard') loadDirectorDashboard().catch(() => {});
         if (viewId === 'director-teachers') loadDirectorTeachers().catch(() => {});
         if (viewId === 'director-students') loadDirectorStudents().catch(() => {});
@@ -5253,6 +5402,213 @@ function switchAdminMemberTab(btn, tabId) {
   document.getElementById(tabId).style.display = '';
   if (tabId === 'admin-tab-teachers') loadAdminTeacherTab();
   if (tabId === 'admin-tab-orgs') loadAdminOrgTab();
+}
+
+// ═══════════════════════════════════════
+//  자료실 (Materials)
+// ═══════════════════════════════════════
+
+const SCHOOL_LABEL = { elementary: '초', middle: '중', high: '고' };
+
+function canUploadMaterial() {
+  if (!currentProfile) return false;
+  return ['teacher', 'director', 'admin'].includes(currentProfile.role)
+    && currentProfile.status === 'approved';
+}
+
+async function loadMaterialsView() {
+  // 업로드 버튼 권한 제어
+  const btn = document.getElementById('materials-upload-btn');
+  if (btn) btn.style.display = canUploadMaterial() ? '' : 'none';
+  loadMaterials();
+}
+
+async function loadMaterials() {
+  if (!sbClient) return;
+  const wrap = document.getElementById('materials-list');
+  if (!wrap) return;
+
+  const school = document.getElementById('mat-filter-school')?.value;
+  const grade = document.getElementById('mat-filter-grade')?.value;
+  const semester = document.getElementById('mat-filter-semester')?.value;
+  const area = document.getElementById('mat-filter-area')?.value;
+  const unit = document.getElementById('mat-filter-unit')?.value.trim();
+  const search = document.getElementById('mat-search')?.value.trim();
+
+  let query = sbClient.from('materials').select('*').order('created_at', { ascending: false });
+  if (school) query = query.eq('school_level', school);
+  if (grade) query = query.eq('grade', parseInt(grade));
+  if (semester) query = query.eq('semester', parseInt(semester));
+  if (area) query = query.eq('area', area);
+  if (unit) query = query.ilike('unit', `%${unit}%`);
+  if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+
+  const { data: materials, error } = await query;
+  if (error) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오기 실패: ' + error.message + '</div></div>';
+    return;
+  }
+  if (!materials?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:12px">📚</div><div class="empty-state-text">자료가 없습니다</div></div>';
+    return;
+  }
+
+  function fmtSize(b) {
+    if (!b) return '—';
+    if (b < 1024) return b + 'B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + 'KB';
+    return (b / (1024 * 1024)).toFixed(1) + 'MB';
+  }
+
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>제목</th><th>분류</th><th>업로더</th><th>크기</th><th>다운로드</th><th>날짜</th><th>관리</th></tr></thead><tbody>' +
+    materials.map(m => {
+      const isOwner = currentUser && m.uploader_id === currentUser.id;
+      const isAdmin = currentProfile?.role === 'admin';
+      const cat = `${SCHOOL_LABEL[m.school_level] || ''}${m.grade ? m.grade : ''}${m.semester ? '-' + m.semester : ''}${m.area ? ' · ' + m.area : ''}`;
+      return `<tr>
+        <td>
+          <div class="font-bold">${m.title}</div>
+          ${m.unit ? `<div style="font-size:12px;color:var(--text3);margin-top:2px">${m.unit}</div>` : ''}
+        </td>
+        <td class="text-muted text-sm">${cat}</td>
+        <td class="text-muted text-sm">${m.uploader_name || '—'}</td>
+        <td class="text-muted text-sm">${fmtSize(m.file_size)}</td>
+        <td class="text-muted text-sm">${m.download_count || 0}회</td>
+        <td class="text-muted text-sm">${m.created_at ? new Date(m.created_at).toLocaleDateString('ko-KR') : '—'}</td>
+        <td>
+          <button class="btn btn-primary btn-xs" onclick="downloadMaterial('${m.id}','${m.file_path}','${(m.file_name || '').replace(/'/g,"\\'")}')">다운</button>
+          ${(isOwner || isAdmin) ? `<button class="btn btn-ghost btn-xs" onclick="deleteMaterial('${m.id}','${m.file_path}')">삭제</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+function resetMaterialFilters() {
+  ['mat-filter-school','mat-filter-grade','mat-filter-semester','mat-filter-area'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('mat-filter-unit').value = '';
+  document.getElementById('mat-search').value = '';
+  loadMaterials();
+}
+
+function openUploadMaterialModal() {
+  if (!canUploadMaterial()) {
+    showToast('자료 업로드 권한이 없습니다', '⚠️');
+    return;
+  }
+  ['matTitle','matDesc','matUnit'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('matSchool').value = 'middle';
+  ['matGrade','matSemester','matArea'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('matFile').value = '';
+  document.getElementById('uploadMaterialModal').style.display = 'flex';
+}
+
+async function submitMaterialUpload() {
+  const title = document.getElementById('matTitle').value.trim();
+  const description = document.getElementById('matDesc').value.trim();
+  const school_level = document.getElementById('matSchool').value;
+  const grade = document.getElementById('matGrade').value;
+  const semester = document.getElementById('matSemester').value;
+  const area = document.getElementById('matArea').value;
+  const unit = document.getElementById('matUnit').value.trim();
+  const fileEl = document.getElementById('matFile');
+  const file = fileEl.files[0];
+  const btn = document.getElementById('matSubmitBtn');
+
+  if (!title) { showToast('제목을 입력해주세요', '⚠️'); return; }
+  if (!file) { showToast('파일을 선택해주세요', '⚠️'); return; }
+  if (file.size > 50 * 1024 * 1024) { showToast('파일 크기는 최대 50MB까지 가능합니다', '⚠️'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '업로드 중...';
+
+  try {
+    // Storage 업로드 (uploader_id/timestamp_filename 구조)
+    const safeName = file.name.replace(/[^\w가-힣.\-]/g, '_');
+    const path = `${currentUser.id}/${Date.now()}_${safeName}`;
+    const { error: storageError } = await sbClient.storage
+      .from('materials')
+      .upload(path, file, { upsert: false });
+    if (storageError) throw storageError;
+
+    // DB insert
+    const { error: dbError } = await sbClient.from('materials').insert({
+      title, description: description || null,
+      school_level,
+      grade: grade ? parseInt(grade) : null,
+      semester: semester ? parseInt(semester) : null,
+      area: area || null,
+      unit: unit || null,
+      file_path: path,
+      file_name: file.name,
+      file_size: file.size,
+      uploader_id: currentUser.id,
+      uploader_name: currentProfile?.name || null
+    });
+    if (dbError) {
+      // 롤백: storage 파일 삭제
+      await sbClient.storage.from('materials').remove([path]);
+      throw dbError;
+    }
+
+    showToast('자료가 업로드되었습니다!', '✅');
+    closeModal('uploadMaterialModal');
+    loadMaterials();
+  } catch (e) {
+    console.error('Material upload error:', e);
+    showToast('업로드 실패: ' + e.message, '❌');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '업로드';
+  }
+}
+
+async function downloadMaterial(id, filePath, fileName) {
+  try {
+    const { data, error } = await sbClient.storage.from('materials').download(filePath);
+    if (error) throw error;
+
+    // 다운로드 카운트 증가 (RPC 또는 직접 update)
+    sbClient.rpc('increment_material_download', { material_id: id }).catch(() => {
+      // RPC 없으면 직접 +1
+      sbClient.from('materials').select('download_count').eq('id', id).single()
+        .then(({ data: cur }) => {
+          if (cur) sbClient.from('materials').update({ download_count: (cur.download_count || 0) + 1 }).eq('id', id);
+        });
+    });
+
+    // 브라우저 다운로드
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName || 'material';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('다운로드 시작', '📥');
+    setTimeout(() => loadMaterials(), 500);
+  } catch (e) {
+    console.error('Download error:', e);
+    showToast('다운로드 실패: ' + e.message, '❌');
+  }
+}
+
+async function deleteMaterial(id, filePath) {
+  if (!confirm('이 자료를 삭제하시겠습니까?')) return;
+  try {
+    await sbClient.storage.from('materials').remove([filePath]);
+    const { error } = await sbClient.from('materials').delete().eq('id', id);
+    if (error) throw error;
+    showToast('자료가 삭제되었습니다', '✅');
+    loadMaterials();
+  } catch (e) {
+    showToast('삭제 실패: ' + e.message, '❌');
+  }
 }
 
 // ═══════════════════════════════════════
