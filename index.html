@@ -1150,6 +1150,15 @@
         <label class="auth-label">학교명</label>
         <input type="text" class="auth-input" id="signupSchool" placeholder="○○중학교">
       </div>
+      <div class="auth-field" id="orgTypeField" style="display:none">
+        <label class="auth-label">기관 유형</label>
+        <select class="auth-input" id="signupOrgType">
+          <option value="academy">학원</option>
+          <option value="school">학교</option>
+          <option value="tutoring">교습소</option>
+          <option value="other">기타</option>
+        </select>
+      </div>
       <div class="auth-field">
         <label class="auth-label">이메일</label>
         <input type="email" class="auth-input" id="signupEmail" placeholder="example@email.com">
@@ -2196,16 +2205,15 @@
       </div>
     </div>
 
-    <!-- ══ VIEW: ADMIN TEACHERS (탭) ══ -->
+    <!-- ══ VIEW: ADMIN TEACHERS (2탭) ══ -->
     <div id="view-admin-teachers" class="view">
       <div class="page-header">
-        <div><div class="page-title">회원 현황</div><div class="page-sub">원장님 · 선생님 · 기관 가입 승인 및 관리</div></div>
+        <div><div class="page-title">회원 현황</div><div class="page-sub">선생님 · 기관(원장님) 가입 승인 및 관리</div></div>
       </div>
 
       <div class="tab-nav" style="display:flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;width:fit-content">
         <button class="tab-btn active" onclick="switchAdminMemberTab(this,'admin-tab-teachers')">선생님</button>
-        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-directors')">원장님</button>
-        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-orgs')">학교/학원/교습소</button>
+        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-orgs')">기관 관리</button>
       </div>
 
       <!-- 탭: 선생님 -->
@@ -2216,17 +2224,9 @@
         </div>
       </div>
 
-      <!-- 탭: 원장님 -->
-      <div id="admin-tab-directors" class="admin-member-tab" style="display:none">
-        <div class="card">
-          <div class="card-header"><h3 class="card-title">원장님 목록</h3></div>
-          <div id="admin-directors-wrap"></div>
-        </div>
-      </div>
-
-      <!-- 탭: 기관 -->
+      <!-- 탭: 기관 (원장님 통합) -->
       <div id="admin-tab-orgs" class="admin-member-tab" style="display:none">
-        <div class="card">
+        <div class="card" style="margin-bottom:24px">
           <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
             <h3 class="card-title">등록 기관</h3>
             <button class="btn btn-primary btn-sm" onclick="openAddOrgModal()">+ 기관 등록</button>
@@ -2703,16 +2703,20 @@ function selectRole(role) {
   const schoolField = document.getElementById('schoolField');
   const schoolLabel = schoolField.querySelector('.auth-label');
   const schoolInput = document.getElementById('signupSchool');
+  const orgTypeField = document.getElementById('orgTypeField');
   if (role === 'teacher') {
     schoolField.style.display = 'flex';
     schoolLabel.textContent = '학교명';
     schoolInput.placeholder = '○○중학교';
+    orgTypeField.style.display = 'none';
   } else if (role === 'director') {
     schoolField.style.display = 'flex';
-    schoolLabel.textContent = '학원명';
+    schoolLabel.textContent = '기관명';
     schoolInput.placeholder = '○○수학학원';
+    orgTypeField.style.display = 'flex';
   } else {
     schoolField.style.display = 'none';
+    orgTypeField.style.display = 'none';
   }
 }
 
@@ -2745,11 +2749,33 @@ async function handleSignup() {
   const btn = document.getElementById('signupBtn');
 
   if (!name || !email || !password) { showAuthError('signupError', '모든 항목을 입력해주세요'); return; }
+  if ((selectedRole === 'teacher' || selectedRole === 'director') && !school) {
+    showAuthError('signupError', selectedRole === 'director' ? '기관명을 입력해주세요' : '학교명을 입력해주세요'); return;
+  }
   if (password.length < 8) { showAuthError('signupError', '비밀번호는 8자 이상이어야 합니다'); return; }
 
   btn.disabled = true; btn.textContent = '가입 중...';
   const { data, error } = await sbClient.auth.signUp({ email, password });
   if (error) { btn.disabled = false; btn.textContent = '✨ 회원가입'; showAuthError('signupError', error.message); return; }
+
+  let orgId = null;
+
+  // 원장님이면 기관 먼저 생성
+  if (selectedRole === 'director') {
+    const orgType = document.getElementById('signupOrgType').value;
+    const { data: orgData, error: orgError } = await sbClient.from('organizations').insert({
+      name: school,
+      type: orgType,
+      owner_id: data.user.id,
+      contact_name: name,
+      status: 'pending'
+    }).select().single();
+    if (orgError) {
+      console.error('Organization insert error:', orgError);
+    } else {
+      orgId = orgData.id;
+    }
+  }
 
   // 프로필 저장
   const profileData = {
@@ -2758,15 +2784,14 @@ async function handleSignup() {
     name,
     email,
     school: (selectedRole === 'teacher' || selectedRole === 'director') ? school : null,
+    organization_id: orgId,
     region: null,
     status: (selectedRole === 'teacher' || selectedRole === 'director') ? 'pending' : 'approved'
   };
 
   const { error: profileError } = await sbClient.from('profiles').insert(profileData);
-
   if (profileError) {
     console.error('Profile insert error:', profileError);
-    // RLS 차단 시 service_role 없이 재시도: upsert
     const { error: retryError } = await sbClient.from('profiles').upsert(profileData);
     if (retryError) {
       console.error('Profile upsert retry error:', retryError);
@@ -4850,38 +4875,41 @@ async function loadAdminStudents() {
 //  원장님 전용 함수
 // ═══════════════════════════════════════
 
+// 원장님의 기관 ID 가져오기 헬퍼
+function getMyOrgId() {
+  return currentProfile?.organization_id || null;
+}
+
 async function loadDirectorDashboard() {
   if (!sbClient || !currentUser || !currentProfile) return;
-  const academy = currentProfile.school;
+  const orgId = getMyOrgId();
+  const orgName = currentProfile.school;
 
-  // 대시보드 제목에 학원명 표시
   const titleEl = document.getElementById('dir-dashboard-title');
-  if (titleEl) titleEl.textContent = academy ? `${academy} 현황` : '학원 현황';
+  if (titleEl) titleEl.textContent = orgName ? `${orgName} 현황` : '기관 현황';
   const subEl = document.getElementById('dir-dashboard-sub');
-  if (subEl) subEl.textContent = academy ? `${academy}의 선생님과 학생 현황을 한눈에 확인합니다` : '내 학원의 선생님과 학생 현황을 한눈에 확인합니다';
+  if (subEl) subEl.textContent = orgName ? `${orgName}의 선생님과 학생 현황을 한눈에 확인합니다` : '내 기관의 선생님과 학생 현황을 한눈에 확인합니다';
 
-  // 소속 선생님 전체 (승인 상태 무관)
-  const { data: allTeachers } = await sbClient.from('profiles')
-    .select('*').eq('role', 'teacher').eq('school', academy)
-    .order('created_at', { ascending: false });
+  // 소속 선생님 전체 (organization_id 기준)
+  let query = sbClient.from('profiles').select('*').eq('role', 'teacher').order('created_at', { ascending: false });
+  if (orgId) query = query.eq('organization_id', orgId);
+  else query = query.eq('school', orgName); // fallback
+  const { data: allTeachers } = await query;
 
   const teachers = allTeachers || [];
   const approvedTeachers = teachers.filter(t => t.status === 'approved');
   const pendingTeachers = teachers.filter(t => t.status === 'pending');
   const teacherIds = approvedTeachers.map(t => t.id);
 
-  // 통계: 선생님
   const el1 = document.getElementById('dir-stat-teachers');
   if (el1) el1.textContent = teachers.length;
   const el1sub = document.getElementById('dir-stat-teachers-sub');
   if (el1sub) el1sub.textContent = `승인 ${approvedTeachers.length} · 대기 ${pendingTeachers.length}`;
 
-  // 통계: 학생 수
   let students = [];
   if (teacherIds.length) {
     const { data } = await sbClient.from('students')
-      .select('*').in('teacher_id', teacherIds)
-      .order('created_at', { ascending: false });
+      .select('*').in('teacher_id', teacherIds).order('created_at', { ascending: false });
     students = data || [];
   }
   const el2 = document.getElementById('dir-stat-students');
@@ -4889,12 +4917,10 @@ async function loadDirectorDashboard() {
   const el2sub = document.getElementById('dir-stat-students-sub');
   if (el2sub) el2sub.textContent = `선생님 ${approvedTeachers.length}명이 관리 중`;
 
-  // 통계: 시험 수
   let eCount = 0;
   if (teacherIds.length) {
     const { count } = await sbClient.from('exams')
-      .select('*', { count: 'exact', head: true })
-      .in('teacher_id', teacherIds);
+      .select('*', { count: 'exact', head: true }).in('teacher_id', teacherIds);
     eCount = count || 0;
   }
   const el3 = document.getElementById('dir-stat-exams');
@@ -4906,16 +4932,15 @@ async function loadDirectorDashboard() {
     if (!teachers.length) {
       teacherWrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">소속 선생님이 없습니다</div></div>';
     } else {
-      const statusLabel = { approved: '활동중', pending: '승인 대기', rejected: '거절됨' };
-      const statusClass = { approved: 'approved', pending: 'pending', rejected: 'rejected' };
+      const sLabel = { approved: '활동중', pending: '승인 대기', rejected: '거절됨' };
+      const sClass = { approved: 'approved', pending: 'pending', rejected: 'rejected' };
       teacherWrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>상태</th><th>가입일</th></tr></thead><tbody>' +
         teachers.slice(0, 5).map(t => `<tr>
           <td class="font-bold">${t.name || '(이름 없음)'}</td>
           <td class="text-muted text-sm">${t.email || t.id.slice(0, 8) + '...'}</td>
-          <td><span class="status-badge ${statusClass[t.status] || ''}">${statusLabel[t.status] || t.status}</span></td>
+          <td><span class="status-badge ${sClass[t.status] || ''}">${sLabel[t.status] || t.status}</span></td>
           <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
-        </tr>`).join('') +
-        '</tbody></table></div>';
+        </tr>`).join('') + '</tbody></table></div>';
     }
   }
 
@@ -4933,17 +4958,18 @@ async function loadDirectorDashboard() {
           <td>${s.grade || '—'}학년</td>
           <td class="text-muted text-sm">${teacherMap[s.teacher_id] || '—'}</td>
           <td class="text-muted text-sm">${s.created_at ? new Date(s.created_at).toLocaleDateString('ko-KR') : '—'}</td>
-        </tr>`).join('') +
-        '</tbody></table></div>';
+        </tr>`).join('') + '</tbody></table></div>';
     }
   }
 }
 
 async function loadDirectorTeachers() {
   if (!sbClient || !currentUser || !currentProfile) return;
-  const academy = currentProfile.school;
-  const { data: teachers } = await sbClient.from('profiles')
-    .select('*').eq('role', 'teacher').eq('school', academy).order('created_at', { ascending: false });
+  const orgId = getMyOrgId();
+  let query = sbClient.from('profiles').select('*').eq('role', 'teacher').order('created_at', { ascending: false });
+  if (orgId) query = query.eq('organization_id', orgId);
+  else query = query.eq('school', currentProfile.school);
+  const { data: teachers } = await query;
 
   const wrap = document.getElementById('dir-teachers-list');
   if (!wrap) return;
@@ -4951,57 +4977,50 @@ async function loadDirectorTeachers() {
     wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">소속 선생님이 없습니다</div></div>';
     return;
   }
-  const statusLabel = { approved: '승인됨', pending: '대기중', rejected: '거절됨' };
-  const statusClass = { approved: 'approved', pending: 'pending', rejected: 'rejected' };
+  const sLabel = { approved: '승인됨', pending: '대기중', rejected: '거절됨' };
+  const sClass = { approved: 'approved', pending: 'pending', rejected: 'rejected' };
   wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
-    teachers.map(t => {
-      const email = t.email || t.id.slice(0, 8) + '...';
-      return `<tr>
-        <td class="font-bold">${t.name || '—'}</td>
-        <td class="text-muted text-sm">${email}</td>
-        <td><span class="status-badge ${statusClass[t.status] || ''}">${statusLabel[t.status] || t.status}</span></td>
-        <td>
-          ${t.status === 'pending' ? `<button class="btn btn-green btn-sm" onclick="dirApproveTeacher('${t.id}')">승인</button> <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="dirRejectTeacher('${t.id}')">거절</button>` : ''}
-          ${t.status === 'approved' ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;opacity:0.7" onclick="dirRemoveTeacher('${t.id}')">해제</button>` : ''}
-        </td>
-      </tr>`;
-    }).join('') +
-    '</tbody></table></div>';
+    teachers.map(t => `<tr>
+      <td class="font-bold">${t.name || '—'}</td>
+      <td class="text-muted text-sm">${t.email || t.id.slice(0, 8) + '...'}</td>
+      <td><span class="status-badge ${sClass[t.status] || ''}">${sLabel[t.status] || t.status}</span></td>
+      <td>
+        ${t.status === 'pending' ? `<button class="btn btn-green btn-sm" onclick="dirApproveTeacher('${t.id}')">승인</button> <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="dirRejectTeacher('${t.id}')">거절</button>` : ''}
+        ${t.status === 'approved' ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;opacity:0.7" onclick="dirRemoveTeacher('${t.id}')">해제</button>` : ''}
+      </td>
+    </tr>`).join('') + '</tbody></table></div>';
 }
 
 async function loadDirectorStudents() {
   if (!sbClient || !currentUser || !currentProfile) return;
-  const academy = currentProfile.school;
-  const { data: teacherList } = await sbClient.from('profiles')
-    .select('id, name').eq('role', 'teacher').eq('status', 'approved').eq('school', academy);
+  const orgId = getMyOrgId();
+  let query = sbClient.from('profiles').select('id, name').eq('role', 'teacher').eq('status', 'approved');
+  if (orgId) query = query.eq('organization_id', orgId);
+  else query = query.eq('school', currentProfile.school);
+  const { data: teacherList } = await query;
   const teacherIds = (teacherList || []).map(t => t.id);
   const teacherMap = {};
   (teacherList || []).forEach(t => teacherMap[t.id] = t.name);
 
   const wrap = document.getElementById('dir-students-list');
   if (!wrap) return;
-
   if (!teacherIds.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">소속 선생님이 없어 학생을 조회할 수 없습니다</div></div>';
     return;
   }
-
   const { data: students } = await sbClient.from('students')
     .select('*').in('teacher_id', teacherIds).order('created_at', { ascending: false });
-
   if (!students?.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">등록된 학생이 없습니다</div></div>';
     return;
   }
-
   wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>학년</th><th>담당 선생님</th><th>등록일</th></tr></thead><tbody>' +
     students.map(s => `<tr>
       <td class="font-bold">${s.name}</td>
       <td>${s.grade || '—'}학년</td>
       <td class="text-muted text-sm">${teacherMap[s.teacher_id] || '—'}</td>
       <td class="text-muted text-sm">${s.created_at?.slice(0, 10) || '—'}</td>
-    </tr>`).join('') +
-    '</tbody></table></div>';
+    </tr>`).join('') + '</tbody></table></div>';
 }
 
 async function dirApproveTeacher(id) {
@@ -5019,8 +5038,8 @@ async function dirRejectTeacher(id) {
 }
 
 async function dirRemoveTeacher(id) {
-  if (!confirm('이 선생님을 학원에서 해제하시겠습니까?')) return;
-  await sbClient.from('profiles').update({ school: null }).eq('id', id);
+  if (!confirm('이 선생님을 기관에서 해제하시겠습니까?')) return;
+  await sbClient.from('profiles').update({ organization_id: null, school: null }).eq('id', id);
   showToast('선생님이 해제되었습니다', '✅');
   loadDirectorTeachers();
   loadDirectorDashboard();
@@ -5034,18 +5053,11 @@ function openInviteTeacherModal() {
 async function submitInviteTeacher() {
   const email = document.getElementById('inviteTeacherEmail').value.trim();
   if (!email) { showToast('이메일을 입력해주세요', '⚠️'); return; }
-  if (!currentProfile?.school) { showToast('학원 정보가 없습니다', '⚠️'); return; }
 
-  // 해당 이메일의 선생님 프로필 찾기 (auth.users → profiles 매핑)
-  const { data: profiles } = await sbClient.from('profiles')
-    .select('*').eq('role', 'teacher');
+  const orgId = getMyOrgId();
+  const orgName = currentProfile?.school;
+  if (!orgId && !orgName) { showToast('기관 정보가 없습니다', '⚠️'); return; }
 
-  // Supabase에서 이메일로 직접 조회가 안 되므로 auth.users를 통해 매칭
-  // 대안: profiles 테이블에 email 컬럼이 있으면 직접 조회
-  const { data: authUser } = await sbClient.auth.admin?.getUserByEmail?.(email) || {};
-
-  // profiles에 email 필드가 없을 수 있으므로, 메시지로 안내
-  // 실제로는 profiles.email 또는 id 매칭 필요
   const { data: matched } = await sbClient.from('profiles')
     .select('*').eq('role', 'teacher').eq('email', email).maybeSingle();
 
@@ -5054,12 +5066,12 @@ async function submitInviteTeacher() {
     return;
   }
 
-  await sbClient.from('profiles').update({
-    school: currentProfile.school,
-    status: 'approved'
-  }).eq('id', matched.id);
+  const updateData = { status: 'approved' };
+  if (orgId) updateData.organization_id = orgId;
+  if (orgName) updateData.school = orgName;
+  await sbClient.from('profiles').update(updateData).eq('id', matched.id);
 
-  showToast(`${matched.name || email} 선생님이 학원에 추가되었습니다!`, '✅');
+  showToast(`${matched.name || email} 선생님이 기관에 추가되었습니다!`, '✅');
   closeModal('inviteTeacherModal');
   loadDirectorTeachers();
   loadDirectorDashboard();
@@ -5071,13 +5083,11 @@ function switchAdminMemberTab(btn, tabId) {
   document.querySelectorAll('.admin-member-tab').forEach(t => t.style.display = 'none');
   document.getElementById(tabId).style.display = '';
   if (tabId === 'admin-tab-teachers') loadAdminTeacherTab();
-  if (tabId === 'admin-tab-directors') loadAdminDirectorTab();
   if (tabId === 'admin-tab-orgs') loadAdminOrgTab();
 }
 
 async function loadAdminTeachers() {
   loadAdminTeacherTab();
-  loadAdminDirectorTab();
   loadAdminOrgTab();
 }
 
@@ -5115,69 +5125,65 @@ async function loadAdminTeacherTab() {
     '</tbody></table></div>';
 }
 
-async function loadAdminDirectorTab() {
-  if (!sbClient || !currentUser) return;
-  const { data: directors } = await sbClient.from('profiles')
-    .select('*').eq('role', 'director').order('created_at', { ascending: false });
-  const wrap = document.getElementById('admin-directors-wrap');
-  if (!wrap) return;
-  if (!directors?.length) {
-    wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 원장님이 없습니다</div></div>';
-    return;
-  }
-  // 각 원장님 학원의 선생님 수 집계
-  const schoolCounts = {};
-  for (const d of directors) {
-    if (d.school && d.status === 'approved') {
-      if (!schoolCounts[d.school]) {
-        const { count } = await sbClient.from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'teacher').eq('school', d.school);
-        schoolCounts[d.school] = count || 0;
-      }
-    }
-  }
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학원명</th><th>소속 선생님</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
-    directors.map(d => `<tr>
-      <td class="font-bold">${d.name || '(이름 없음)'}</td>
-      <td class="text-muted text-sm">${d.email || d.id.slice(0,8) + '...'}</td>
-      <td style="font-weight:600">${d.school || '—'}</td>
-      <td class="text-muted text-sm">${d.status === 'approved' && d.school ? (schoolCounts[d.school] || 0) + '명' : '—'}</td>
-      <td class="text-muted text-sm">${d.created_at ? new Date(d.created_at).toLocaleDateString('ko-KR') : '—'}</td>
-      <td>${adminStatusBadge(d.status)}</td>
-      <td>${adminActionBtns(d.id, d.status)}</td>
-    </tr>`).join('') +
-    '</tbody></table></div>';
-}
-
 async function loadAdminOrgTab() {
   if (!sbClient || !currentUser) return;
+
+  // 기관 목록 + 원장님(owner) 정보 조회
   const { data: orgs } = await sbClient.from('organizations')
     .select('*').order('created_at', { ascending: false })
-    .then(res => res)
-    .catch(() => ({ data: null }));
+    .then(res => res).catch(() => ({ data: null }));
+
+  // 원장님 프로필 매핑 (owner_id → profile)
+  const ownerIds = (orgs || []).map(o => o.owner_id).filter(Boolean);
+  let ownerMap = {};
+  if (ownerIds.length) {
+    const { data: owners } = await sbClient.from('profiles')
+      .select('id, name, email, status').in('id', ownerIds);
+    (owners || []).forEach(o => ownerMap[o.id] = o);
+  }
+
+  // 기관별 선생님 수
+  const orgIds = (orgs || []).map(o => o.id);
+  let orgTeacherCounts = {};
+  if (orgIds.length) {
+    for (const oid of orgIds) {
+      const { count } = await sbClient.from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'teacher').eq('organization_id', oid);
+      orgTeacherCounts[oid] = count || 0;
+    }
+  }
+
   const wrap = document.getElementById('admin-orgs-wrap');
   if (!wrap) return;
   if (!orgs?.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">등록된 기관이 없습니다</div></div>';
     return;
   }
+
   const typeLabel = { academy: '학원', school: '학교', tutoring: '교습소', other: '기타' };
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>기관명</th><th>유형</th><th>담당자</th><th>연락처</th><th>등록일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
-    orgs.map(o => `<tr>
-      <td class="font-bold">${o.name || '—'}</td>
-      <td><span style="font-size:12px;font-weight:600;color:var(--accent)">${typeLabel[o.type] || o.type || '—'}</span></td>
-      <td class="text-muted text-sm">${o.contact_name || '—'}</td>
-      <td class="text-muted text-sm">${o.phone || '—'}</td>
-      <td class="text-muted text-sm">${o.created_at ? new Date(o.created_at).toLocaleDateString('ko-KR') : '—'}</td>
-      <td>${adminStatusBadge(o.status)}</td>
-      <td>${o.status === 'pending'
-        ? `<div style="display:flex;gap:6px"><button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectOrg('${o.id}')">거절</button></div>`
-        : o.status === 'approved'
-        ? `<button class="btn btn-ghost btn-xs" onclick="rejectOrg('${o.id}')">승인 취소</button>`
-        : `<button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}')">승인</button>`
-      }</td>
-    </tr>`).join('') +
+  function orgActionBtns(o) {
+    const owner = ownerMap[o.owner_id];
+    // 기관 승인 = 원장님 프로필도 함께 승인
+    if (o.status === 'pending') return `<div style="display:flex;gap:6px"><button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}','${o.owner_id || ''}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectOrg('${o.id}','${o.owner_id || ''}')">거절</button></div>`;
+    if (o.status === 'approved') return `<button class="btn btn-ghost btn-xs" onclick="rejectOrg('${o.id}','${o.owner_id || ''}')">승인 취소</button>`;
+    return `<button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}','${o.owner_id || ''}')">승인</button>`;
+  }
+
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>기관명</th><th>유형</th><th>대표(원장님)</th><th>선생님</th><th>연락처</th><th>등록일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+    orgs.map(o => {
+      const owner = ownerMap[o.owner_id];
+      return `<tr>
+        <td class="font-bold">${o.name || '—'}</td>
+        <td><span style="font-size:12px;font-weight:600;color:var(--accent)">${typeLabel[o.type] || o.type || '—'}</span></td>
+        <td class="text-muted text-sm">${owner ? `<span class="font-bold" style="color:var(--text)">${owner.name}</span><br>${owner.email || ''}` : o.contact_name || '—'}</td>
+        <td class="text-muted text-sm">${orgTeacherCounts[o.id] || 0}명</td>
+        <td class="text-muted text-sm">${o.phone || '—'}</td>
+        <td class="text-muted text-sm">${o.created_at ? new Date(o.created_at).toLocaleDateString('ko-KR') : '—'}</td>
+        <td>${adminStatusBadge(o.status)}</td>
+        <td>${orgActionBtns(o)}</td>
+      </tr>`;
+    }).join('') +
     '</tbody></table></div>';
 }
 
@@ -5202,13 +5208,15 @@ async function submitAddOrg() {
   loadAdminOrgTab();
 }
 
-async function approveOrg(id) {
-  await sbClient.from('organizations').update({ status: 'approved' }).eq('id', id);
-  showToast('기관이 승인되었습니다', '✅');
+async function approveOrg(orgId, ownerId) {
+  await sbClient.from('organizations').update({ status: 'approved' }).eq('id', orgId);
+  if (ownerId) await sbClient.from('profiles').update({ status: 'approved' }).eq('id', ownerId);
+  showToast('기관과 원장님이 승인되었습니다', '✅');
   loadAdminOrgTab();
 }
-async function rejectOrg(id) {
-  await sbClient.from('organizations').update({ status: 'rejected' }).eq('id', id);
+async function rejectOrg(orgId, ownerId) {
+  await sbClient.from('organizations').update({ status: 'rejected' }).eq('id', orgId);
+  if (ownerId) await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', ownerId);
   showToast('기관이 거절되었습니다', '✅');
   loadAdminOrgTab();
 }
