@@ -1230,6 +1230,9 @@
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
         </div>
+        <div class="nav-item" onclick="openBoard('notice')">
+          <span class="icon">🎓</span> 입시정보
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">계정</div>
@@ -1263,6 +1266,9 @@
         <div class="nav-label">자료</div>
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
+        </div>
+        <div class="nav-item" onclick="openBoard('notice')">
+          <span class="icon">🎓</span> 입시정보
         </div>
       </div>
       <div class="nav-section">
@@ -1301,6 +1307,9 @@
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
         </div>
+        <div class="nav-item" onclick="openBoard('notice')">
+          <span class="icon">🎓</span> 입시정보
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">계정</div>
@@ -1329,10 +1338,10 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">정보</div>
-        <div class="nav-item" onclick="showView('student-admissions')">
+        <div class="nav-item" onclick="openBoard('notice')">
           <span class="icon">🎓</span> 입시정보
         </div>
-        <div class="nav-item" onclick="showView('student-community')">
+        <div class="nav-item" onclick="openBoard('student')">
           <span class="icon">💬</span> 학생 커뮤니티
         </div>
       </div>
@@ -1348,10 +1357,10 @@
     <nav id="nav-parent" style="display:none">
       <div class="nav-section">
         <div class="nav-label">정보</div>
-        <div class="nav-item active" onclick="showView('parent-admissions')">
+        <div class="nav-item" onclick="openBoard('notice')">
           <span class="icon">🎓</span> 입시정보
         </div>
-        <div class="nav-item" onclick="showView('parent-community')">
+        <div class="nav-item" onclick="openBoard('parent')">
           <span class="icon">💬</span> 학부모 커뮤니티
         </div>
         <div class="nav-item" onclick="showView('materials')">
@@ -2117,28 +2126,48 @@
       <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📁</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">선생님이 공유한 학습 자료, 과제 자료 등을<br>곧 확인하실 수 있습니다.</div></div></div>
     </div>
 
-    <!-- ══ 학생: 입시정보 ══ -->
-    <div id="view-student-admissions" class="view" style="display:none">
-      <div class="page-header"><div><h2 class="page-title">입시정보</h2><p class="page-subtitle">입시 관련 최신 정보를 확인합니다</p></div></div>
-      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">🎓</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">고입/대입 입시 정보, 학교별 커트라인,<br>입시 일정 등이 곧 제공될 예정입니다.</div></div></div>
+    <!-- ══ VIEW: BOARD (게시판 공통 — 입시정보/학생/학부모) ══ -->
+    <div id="view-board" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title" id="board-title">게시판</h2>
+          <p class="page-subtitle" id="board-subtitle"></p>
+        </div>
+        <button class="btn btn-primary" id="board-write-btn" onclick="openWritePost()" style="display:none">+ 글쓰기</button>
+      </div>
+      <div class="card" style="margin-bottom:16px;padding:12px">
+        <div style="display:flex;gap:8px">
+          <input type="text" id="board-search" class="form-input" placeholder="제목/내용 검색..." style="flex:1" onkeyup="if(event.key==='Enter')loadBoard(currentBoard,1)">
+          <button class="btn btn-primary" onclick="loadBoard(currentBoard,1)">검색</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('board-search').value='';loadBoard(currentBoard,1)">초기화</button>
+        </div>
+      </div>
+      <div class="card">
+        <div id="board-list"><div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div></div>
+        <div id="board-pagination" style="display:flex;justify-content:center;gap:4px;padding:16px;border-top:1px solid var(--border);"></div>
+      </div>
     </div>
 
-    <!-- ══ 학생: 커뮤니티 ══ -->
-    <div id="view-student-community" class="view" style="display:none">
-      <div class="page-header"><div><h2 class="page-title">학생 커뮤니티</h2><p class="page-subtitle">다른 학생들과 정보를 나눕니다</p></div></div>
-      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">💬</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">질문/답변, 공부 팁 공유, 스터디 그룹 기능이<br>곧 추가될 예정입니다.</div></div></div>
-    </div>
-
-    <!-- ══ 학부모: 입시정보 ══ -->
-    <div id="view-parent-admissions" class="view" style="display:none">
-      <div class="page-header"><div><h2 class="page-title">입시정보</h2><p class="page-subtitle">자녀 입시에 필요한 최신 정보를 확인합니다</p></div></div>
-      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">🎓</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">고입/대입 입시 정보, 학교별 커트라인,<br>입시 일정, 설명회 안내 등이 곧 제공됩니다.</div></div></div>
-    </div>
-
-    <!-- ══ 학부모: 커뮤니티 ══ -->
-    <div id="view-parent-community" class="view" style="display:none">
-      <div class="page-header"><div><h2 class="page-title">학부모 커뮤니티</h2><p class="page-subtitle">다른 학부모님들과 정보를 나눕니다</p></div></div>
-      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">💬</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">교육 정보 공유, 학원 후기, 학부모 모임 기능이<br>곧 추가될 예정입니다.</div></div></div>
+    <!-- ══ VIEW: POST DETAIL ══ -->
+    <div id="view-post-detail" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <button class="btn btn-ghost btn-sm" onclick="backToBoard()">← 목록</button>
+        </div>
+      </div>
+      <div class="card" id="post-detail-wrap">
+        <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
+      <div class="card" id="post-comments-wrap" style="margin-top:16px;display:none">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700" id="comments-header">댓글</div>
+        <div id="comments-list"></div>
+        <div id="comment-form" style="padding:16px 20px;border-top:1px solid var(--border);display:none">
+          <textarea id="comment-input" class="form-input" rows="2" placeholder="댓글을 입력하세요..." style="resize:vertical"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <button class="btn btn-primary btn-sm" onclick="submitComment()">댓글 작성</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ══ VIEW: MATERIALS (자료실) ══ -->
@@ -2654,6 +2683,29 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary w-full" id="matSubmitBtn" onclick="submitMaterialUpload()">업로드</button>
+    </div>
+  </div>
+</div>
+
+<!-- 게시글 작성 모달 -->
+<div class="modal-overlay" id="writePostModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div class="modal-title" id="writePostTitle">글쓰기</div>
+      <button class="modal-close" onclick="closeModal('writePostModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">제목 *</label>
+        <input type="text" class="form-input" id="postTitleInput" placeholder="제목을 입력하세요" maxlength="200">
+      </div>
+      <div class="form-group">
+        <label class="form-label">내용 *</label>
+        <textarea class="form-input" id="postContentInput" rows="10" placeholder="내용을 입력하세요" style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary w-full" onclick="submitPost()">등록</button>
     </div>
   </div>
 </div>
@@ -5609,6 +5661,284 @@ async function deleteMaterial(id, filePath) {
   } catch (e) {
     showToast('삭제 실패: ' + e.message, '❌');
   }
+}
+
+// ═══════════════════════════════════════
+//  게시판 엔진 (notice · student · parent)
+// ═══════════════════════════════════════
+
+const BOARD_META = {
+  notice:  { title: '입시정보',       subtitle: '입시 관련 최신 정보를 확인합니다',    writeRoles: ['admin'] },
+  student: { title: '학생 커뮤니티',  subtitle: '다른 학생들과 정보를 나눕니다',       writeRoles: ['student'] },
+  parent:  { title: '학부모 커뮤니티', subtitle: '다른 학부모님들과 정보를 나눕니다',   writeRoles: ['parent'] }
+};
+const BOARD_PAGE_SIZE = 20;
+let currentBoard = null;
+let currentBoardPage = 1;
+let currentPostId = null;
+
+function canWriteBoard(board) {
+  if (!currentProfile || currentProfile.status !== 'approved') return false;
+  return BOARD_META[board].writeRoles.includes(currentProfile.role);
+}
+
+function canCommentBoard(board) {
+  if (!currentProfile || currentProfile.status !== 'approved') return false;
+  if (board === 'student') return currentProfile.role === 'student';
+  if (board === 'parent')  return currentProfile.role === 'parent';
+  return false;
+}
+
+function openBoard(board) {
+  currentBoard = board;
+  currentBoardPage = 1;
+  const meta = BOARD_META[board];
+  document.getElementById('board-title').textContent = meta.title;
+  document.getElementById('board-subtitle').textContent = meta.subtitle;
+  document.getElementById('board-search').value = '';
+  const writeBtn = document.getElementById('board-write-btn');
+  writeBtn.style.display = canWriteBoard(board) ? '' : 'none';
+
+  // 뷰 전환
+  document.querySelectorAll('.view').forEach(v => { v.style.display = 'none'; v.classList.remove('active'); });
+  const el = document.getElementById('view-board');
+  el.style.display = 'block'; el.classList.add('active');
+
+  // 네비 active
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+    const oc = item.getAttribute('onclick') || '';
+    if (oc.includes(`openBoard('${board}')`)) item.classList.add('active');
+  });
+
+  loadBoard(board, 1);
+}
+
+function backToBoard() {
+  if (!currentBoard) { showView('dashboard'); return; }
+  openBoard(currentBoard);
+}
+
+async function loadBoard(board, page) {
+  if (!sbClient || !board) return;
+  currentBoard = board;
+  currentBoardPage = page || 1;
+  const wrap = document.getElementById('board-list');
+  const pager = document.getElementById('board-pagination');
+  if (!wrap) return;
+  wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>`;
+  pager.innerHTML = '';
+
+  const search = document.getElementById('board-search')?.value.trim() || '';
+  const from = (currentBoardPage - 1) * BOARD_PAGE_SIZE;
+  const to = from + BOARD_PAGE_SIZE - 1;
+
+  let q = sbClient.from('posts').select('*', { count: 'exact' })
+    .eq('board', board)
+    .order('created_at', { ascending: false })
+    .range(from, to);
+  if (search) q = q.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+
+  const { data, error, count } = await q;
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오기 실패: ${error.message}</div></div>`;
+    return;
+  }
+  if (!data || data.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:12px">📝</div><div class="empty-state-text">게시글이 없습니다</div></div>`;
+    return;
+  }
+
+  const total = count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / BOARD_PAGE_SIZE));
+  const startNo = total - from;
+
+  wrap.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead>
+        <tr>
+          <th style="width:60px;text-align:center">번호</th>
+          <th>제목</th>
+          <th style="width:120px">작성자</th>
+          <th style="width:100px">날짜</th>
+          <th style="width:70px;text-align:center">조회</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map((p, i) => `
+          <tr style="cursor:pointer" onclick="openPostDetail('${p.id}')">
+            <td style="text-align:center;color:var(--text3)">${startNo - i}</td>
+            <td style="font-weight:600">${escapeHtml(p.title)}${p.comment_count > 0 ? ` <span style="color:var(--accent);font-size:12px">[${p.comment_count}]</span>` : ''}</td>
+            <td class="text-muted text-sm">${escapeHtml(p.author_name || '—')}</td>
+            <td class="text-muted text-sm">${formatPostDate(p.created_at)}</td>
+            <td style="text-align:center;color:var(--text3);font-size:12px">${p.view_count || 0}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table></div>
+  `;
+
+  // 페이지네이션
+  if (totalPages > 1) {
+    const parts = [];
+    const prev = Math.max(1, currentBoardPage - 1);
+    const next = Math.min(totalPages, currentBoardPage + 1);
+    parts.push(`<button class="btn btn-ghost btn-sm" onclick="loadBoard(currentBoard,${prev})" ${currentBoardPage === 1 ? 'disabled' : ''}>‹</button>`);
+    const windowStart = Math.max(1, currentBoardPage - 2);
+    const windowEnd = Math.min(totalPages, windowStart + 4);
+    for (let i = windowStart; i <= windowEnd; i++) {
+      parts.push(`<button class="btn ${i === currentBoardPage ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="loadBoard(currentBoard,${i})">${i}</button>`);
+    }
+    parts.push(`<button class="btn btn-ghost btn-sm" onclick="loadBoard(currentBoard,${next})" ${currentBoardPage === totalPages ? 'disabled' : ''}>›</button>`);
+    pager.innerHTML = parts.join('');
+  }
+}
+
+function formatPostDate(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  return `${d.getFullYear().toString().slice(2)}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function openWritePost() {
+  if (!canWriteBoard(currentBoard)) { showToast('작성 권한이 없습니다', '⚠️'); return; }
+  document.getElementById('writePostTitle').textContent = `${BOARD_META[currentBoard].title} 글쓰기`;
+  document.getElementById('postTitleInput').value = '';
+  document.getElementById('postContentInput').value = '';
+  document.getElementById('writePostModal').classList.add('open');
+}
+
+async function submitPost() {
+  const title = document.getElementById('postTitleInput').value.trim();
+  const content = document.getElementById('postContentInput').value.trim();
+  if (!title) { showToast('제목을 입력하세요', '⚠️'); return; }
+  if (!content) { showToast('내용을 입력하세요', '⚠️'); return; }
+  if (!canWriteBoard(currentBoard)) { showToast('작성 권한이 없습니다', '⚠️'); return; }
+
+  const { error } = await sbClient.from('posts').insert({
+    board: currentBoard,
+    title, content,
+    author_id: currentUser.id,
+    author_name: currentProfile?.name || null,
+    author_role: currentProfile?.role || null
+  });
+  if (error) { showToast('작성 실패: ' + error.message, '❌'); return; }
+  closeModal('writePostModal');
+  showToast('게시글이 등록되었습니다', '✅');
+  loadBoard(currentBoard, 1);
+}
+
+async function openPostDetail(id) {
+  currentPostId = id;
+  document.querySelectorAll('.view').forEach(v => { v.style.display = 'none'; v.classList.remove('active'); });
+  const el = document.getElementById('view-post-detail');
+  el.style.display = 'block'; el.classList.add('active');
+  document.getElementById('post-detail-wrap').innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>`;
+  document.getElementById('post-comments-wrap').style.display = 'none';
+
+  // 조회수 증가
+  sbClient.rpc('increment_post_view', { post_id: id }).catch(() => {});
+
+  const { data: p, error } = await sbClient.from('posts').select('*').eq('id', id).single();
+  if (error || !p) {
+    document.getElementById('post-detail-wrap').innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오기 실패</div></div>`;
+    return;
+  }
+
+  const isOwner = currentUser && p.author_id === currentUser.id;
+  const isAdmin = currentProfile?.role === 'admin';
+  const canDelete = isOwner || isAdmin;
+
+  document.getElementById('post-detail-wrap').innerHTML = `
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border)">
+      <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:12px">${escapeHtml(p.title)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text3)">
+        <div>${escapeHtml(p.author_name || '—')} · ${new Date(p.created_at).toLocaleString('ko-KR')}</div>
+        <div>조회 ${p.view_count || 0}</div>
+      </div>
+    </div>
+    <div style="padding:24px;white-space:pre-wrap;line-height:1.7;color:var(--text);min-height:160px">${escapeHtml(p.content)}</div>
+    ${canDelete ? `
+      <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="deletePost('${p.id}')" style="color:var(--red)">삭제</button>
+      </div>
+    ` : ''}
+  `;
+
+  // 댓글 (notice는 댓글 없음)
+  if (p.board === 'student' || p.board === 'parent') {
+    document.getElementById('post-comments-wrap').style.display = '';
+    document.getElementById('comment-form').style.display = canCommentBoard(p.board) ? '' : 'none';
+    loadComments(id);
+  }
+}
+
+async function loadComments(postId) {
+  const list = document.getElementById('comments-list');
+  list.innerHTML = `<div style="padding:20px;color:var(--text3);font-size:13px">불러오는 중...</div>`;
+  const { data, error } = await sbClient.from('post_comments')
+    .select('*').eq('post_id', postId).order('created_at', { ascending: true });
+  if (error) { list.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">댓글 로드 실패</div>`; return; }
+  document.getElementById('comments-header').textContent = `댓글 ${data.length}`;
+  if (data.length === 0) {
+    list.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">첫 댓글을 남겨보세요</div>`;
+    return;
+  }
+  const isAdmin = currentProfile?.role === 'admin';
+  list.innerHTML = data.map(c => {
+    const mine = currentUser && c.author_id === currentUser.id;
+    return `
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-weight:600;font-size:13px">${escapeHtml(c.author_name || '—')}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="font-size:12px;color:var(--text3)">${new Date(c.created_at).toLocaleString('ko-KR')}</div>
+            ${(mine || isAdmin) ? `<button class="btn btn-ghost btn-sm" onclick="deleteComment('${c.id}')" style="color:var(--red);padding:2px 6px;font-size:11px">삭제</button>` : ''}
+          </div>
+        </div>
+        <div style="white-space:pre-wrap;font-size:14px;line-height:1.6">${escapeHtml(c.content)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function submitComment() {
+  const input = document.getElementById('comment-input');
+  const content = input.value.trim();
+  if (!content) { showToast('댓글 내용을 입력하세요', '⚠️'); return; }
+  if (!currentPostId) return;
+  const { error } = await sbClient.from('post_comments').insert({
+    post_id: currentPostId,
+    author_id: currentUser.id,
+    author_name: currentProfile?.name || null,
+    author_role: currentProfile?.role || null,
+    content
+  });
+  if (error) { showToast('댓글 작성 실패: ' + error.message, '❌'); return; }
+  input.value = '';
+  loadComments(currentPostId);
+}
+
+async function deleteComment(id) {
+  if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
+  const { error } = await sbClient.from('post_comments').delete().eq('id', id);
+  if (error) { showToast('삭제 실패: ' + error.message, '❌'); return; }
+  loadComments(currentPostId);
+}
+
+async function deletePost(id) {
+  if (!confirm('이 게시글을 삭제하시겠습니까?')) return;
+  const { error } = await sbClient.from('posts').delete().eq('id', id);
+  if (error) { showToast('삭제 실패: ' + error.message, '❌'); return; }
+  showToast('삭제되었습니다', '✅');
+  backToBoard();
 }
 
 // ═══════════════════════════════════════
