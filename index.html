@@ -1255,7 +1255,7 @@
           <span class="icon">💡</span> 데이터 활용
         </div>
         <div class="nav-item" onclick="showView('admin-teachers')">
-          <span class="icon">🏫</span> 선생님 현황
+          <span class="icon">🏫</span> 회원 현황
         </div>
         <div class="nav-item" onclick="showView('admin-students')">
           <span class="icon">👥</span> 전체 학생
@@ -2171,7 +2171,7 @@
     <!-- ══ VIEW: ADMIN TEACHERS ══ -->
     <div id="view-admin-teachers" class="view">
       <div class="page-header">
-        <div><div class="page-title">선생님 현황</div><div class="page-sub">가입 승인 및 교사 관리</div></div>
+        <div><div class="page-title">회원 현황</div><div class="page-sub">원장님 · 선생님 가입 승인 및 관리</div></div>
       </div>
       <div class="card">
         <div id="admin-teachers-wrap">
@@ -4935,30 +4935,39 @@ async function loadAdminTeachers() {
     return;
   }
 
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>학교</th><th>이메일</th><th>가입일</th><th>상태</th><th>승인</th><th>학생</th></tr></thead><tbody>' +
+  const safeName = s => (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>역할</th><th>학교/학원</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
     teachers.map(t => {
-      const statusBadge = t.status === 'approved'
-        ? '<span class="chip green">✅ 승인됨</span>'
-        : t.status === 'rejected'
-        ? '<span class="chip red">❌ 거절됨</span>'
-        : '<span class="chip yellow">⏳ 대기중</span>';
-      const actionBtn = t.status === 'pending'
-        ? `<div style="display:flex;gap:6px">
-            <button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">✅ 승인</button>
-            <button class="btn btn-red btn-xs" onclick="rejectTeacher('${t.id}')">❌ 거절</button>
-           </div>`
-        : t.status === 'approved'
-        ? `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${t.id}')">취소</button>`
-        : `<button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">✅ 승인</button>`;
       const roleLabel = { admin: '운영자', director: '원장님', teacher: '선생님' }[t.role] || t.role;
+      const roleColor = { admin: 'var(--red)', director: 'var(--accent2)', teacher: 'var(--accent)' }[t.role] || 'var(--text3)';
+      const statusBadge = t.status === 'approved'
+        ? '<span class="chip green">승인됨</span>'
+        : t.status === 'rejected'
+        ? '<span class="chip red">거절됨</span>'
+        : '<span class="chip yellow">대기중</span>';
+      let actionHtml = '';
+      if (t.role !== 'admin') {
+        if (t.status === 'pending') {
+          actionHtml = `<div style="display:flex;gap:6px">
+            <button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">승인</button>
+            <button class="btn btn-red btn-xs" onclick="rejectTeacher('${t.id}')">거절</button>
+          </div>`;
+        } else if (t.status === 'approved') {
+          actionHtml = `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${t.id}')">승인 취소</button>`;
+        } else {
+          actionHtml = `<button class="btn btn-green btn-xs" onclick="approveTeacher('${t.id}')">승인</button>`;
+        }
+      }
+      if (t.role === 'teacher') {
+        actionHtml += ` <button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${safeName(t.name)}')">학생 이전</button>`;
+      }
       return `<tr>
-        <td class="font-bold">${t.name || '—'} <span style="font-size:11px;color:var(--accent);font-weight:600">${roleLabel}</span></td>
-        <td>${t.school || '—'}</td>
-        <td class="text-muted text-sm">${t.id.slice(0,8)}...</td>
-        <td class="text-muted text-sm">${new Date(t.created_at).toLocaleDateString('ko-KR')}</td>
+        <td class="font-bold">${t.name || '(이름 없음)'}</td>
+        <td><span style="font-size:12px;font-weight:700;color:${roleColor}">${roleLabel}</span></td>
+        <td class="text-muted text-sm">${t.school || '—'}</td>
+        <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
         <td>${statusBadge}</td>
-        <td>${actionBtn}</td>
-        <td>${t.role === 'teacher' ? `<button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${t.name||'선생님'}')">👥 학생 이전</button>` : ''}</td>
+        <td>${actionHtml}</td>
       </tr>`;
     }).join('') +
   '</tbody></table></div>';
