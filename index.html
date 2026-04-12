@@ -3564,9 +3564,9 @@ function drawRadarChart(canvasId, data) {
   for (let level = 1; level <= 4; level++) {
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
-      const a = -Math.PI/2 + i * angle;
-      const x = cx + (r * level/4) * Math.cos(a);
-      const y = cy + (r * level/4) * Math.sin(a);
+      const gridAngle = -Math.PI/2 + i * angle;
+      const x = cx + (r * level/4) * Math.cos(gridAngle);
+      const y = cy + (r * level/4) * Math.sin(gridAngle);
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.closePath();
@@ -3577,10 +3577,10 @@ function drawRadarChart(canvasId, data) {
 
   // 축
   keys.forEach((_, i) => {
-    const a = -Math.PI/2 + i * angle;
+    const axisAngle = -Math.PI/2 + i * angle;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    ctx.lineTo(cx + r * Math.cos(axisAngle), cy + r * Math.sin(axisAngle));
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.stroke();
   });
@@ -3589,9 +3589,9 @@ function drawRadarChart(canvasId, data) {
   ctx.beginPath();
   keys.forEach((key, i) => {
     const val = (data[key] || 0) / 100;
-    const a = -Math.PI/2 + i * angle;
-    const x = cx + r * val * Math.cos(a);
-    const y = cy + r * val * Math.sin(a);
+    const dataAngle = -Math.PI/2 + i * angle;
+    const x = cx + r * val * Math.cos(dataAngle);
+    const y = cy + r * val * Math.sin(dataAngle);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   });
   ctx.closePath();
@@ -3603,9 +3603,9 @@ function drawRadarChart(canvasId, data) {
 
   // 레이블
   keys.forEach((key, i) => {
-    const a = -Math.PI/2 + i * angle;
-    const lx = cx + (r + 20) * Math.cos(a);
-    const ly = cy + (r + 20) * Math.sin(a);
+    const labelAngle = -Math.PI/2 + i * angle;
+    const lx = cx + (r + 20) * Math.cos(labelAngle);
+    const ly = cy + (r + 20) * Math.sin(labelAngle);
     ctx.fillStyle = '#8b92a0';
     ctx.font = 'bold 10px Pretendard, sans-serif';
     ctx.textAlign = 'center';
@@ -3614,8 +3614,8 @@ function drawRadarChart(canvasId, data) {
 
     // 점수
     const val = data[key] || 0;
-    const vx = cx + (r * val/100 + 12) * Math.cos(a);
-    const vy = cy + (r * val/100 + 12) * Math.sin(a);
+    const vx = cx + (r * val/100 + 12) * Math.cos(labelAngle);
+    const vy = cy + (r * val/100 + 12) * Math.sin(labelAngle);
     ctx.fillStyle = '#4f8ef7';
     ctx.font = 'bold 9px Space Mono, monospace';
     ctx.fillText(val, vx, vy);
@@ -3624,9 +3624,9 @@ function drawRadarChart(canvasId, data) {
   // 점
   keys.forEach((key, i) => {
     const val = (data[key] || 0) / 100;
-    const a = -Math.PI/2 + i * angle;
-    const x = cx + r * val * Math.cos(a);
-    const y = cy + r * val * Math.sin(a);
+    const dotAngle = -Math.PI/2 + i * angle;
+    const x = cx + r * val * Math.cos(dotAngle);
+    const y = cy + r * val * Math.sin(dotAngle);
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, 2*Math.PI);
     ctx.fillStyle = '#4f8ef7';
@@ -3711,14 +3711,16 @@ if (p.figure) {
 
   html += '</body></html>';
 
-  const win = window.open('', '_blank');
-win.document.write(html);
-win.document.close();
-win.focus();
-setTimeout(() => {
-  win.print();
-}, 600);
-showToast('🖨️ 인쇄 창이 열립니다. PDF로 저장을 선택하세요!', '📄');
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `MathIQ_유사문제_${date.replace(/\./g, '')}.html`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showToast('PDF용 HTML 파일이 다운로드되었습니다!', '📄');
 }
 
 function sgExportWord() {
