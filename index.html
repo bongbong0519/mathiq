@@ -2781,15 +2781,39 @@ async function handleSignup() {
   const password = document.getElementById('signupPassword').value;
   const btn = document.getElementById('signupBtn');
 
+  // 이전 에러 메시지 초기화
+  document.getElementById('signupError').classList.remove('show');
+
   if (!name || !email || !password) { showAuthError('signupError', '모든 항목을 입력해주세요'); return; }
   if ((selectedRole === 'teacher' || selectedRole === 'director') && !school) {
     showAuthError('signupError', selectedRole === 'director' ? '기관명을 입력해주세요' : '학교명을 입력해주세요'); return;
   }
   if (password.length < 8) { showAuthError('signupError', '비밀번호는 8자 이상이어야 합니다'); return; }
 
+  // 이메일 형식 검증
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showAuthError('signupError', '올바른 이메일 형식을 입력해주세요'); return;
+  }
+
   btn.disabled = true; btn.textContent = '가입 중...';
-  const { data, error } = await sbClient.auth.signUp({ email, password });
-  if (error) { btn.disabled = false; btn.textContent = '✨ 회원가입'; showAuthError('signupError', error.message); return; }
+  const { data, error } = await sbClient.auth.signUp({
+    email,
+    password,
+    options: { data: { name, role: selectedRole } }
+  });
+  if (error) {
+    btn.disabled = false; btn.textContent = '✨ 회원가입';
+    const msg = error.status === 422
+      ? '이미 가입된 이메일이거나 입력 정보가 올바르지 않습니다'
+      : error.message;
+    showAuthError('signupError', msg);
+    return;
+  }
+  if (!data?.user) {
+    btn.disabled = false; btn.textContent = '✨ 회원가입';
+    showAuthError('signupError', '회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+    return;
+  }
 
   let orgId = null;
 
