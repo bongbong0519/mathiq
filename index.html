@@ -1267,6 +1267,16 @@
       </div>
     </nav>
 
+    <!-- Parent Nav -->
+    <nav id="nav-parent" style="display:none">
+      <div class="nav-section">
+        <div class="nav-label">학부모</div>
+        <div class="nav-item active" onclick="showView('parent-dashboard')">
+          <span class="icon">📊</span> 자녀 현황
+        </div>
+      </div>
+    </nav>
+
     <div class="sidebar-footer">
       <div class="user-info">
         <div class="user-avatar" id="userAvatar">봉</div>
@@ -1994,6 +2004,27 @@
       </div>
     </div>
 
+    <!-- ══ VIEW: PARENT DASHBOARD ══ -->
+    <div id="view-parent-dashboard" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">자녀 학습 현황</h2>
+          <p class="page-subtitle">자녀의 성적과 학습 진도를 확인합니다</p>
+        </div>
+      </div>
+      <div class="card">
+        <div id="parent-dashboard-content">
+          <div class="empty-state" style="padding:60px 20px">
+            <div style="font-size:36px;margin-bottom:16px">📊</div>
+            <div class="empty-state-text">학부모 대시보드 준비 중입니다</div>
+            <div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">
+              자녀의 성적 리포트, 학습 현황, 선생님 코멘트 등을<br>곧 확인하실 수 있습니다.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="view-admin-overview" class="view">
       <div class="page-header">
         <div><div class="page-title">플랫폼 운영 현황</div><div class="page-sub">MathIQ 전국 운영 대시보드</div></div>
@@ -2634,7 +2665,8 @@ if (data.role === 'admin') {
     const roleTagMap = {
       teacher: `수학 교사 · ${data.region || data.school || ''}`,
       director: `원장 · ${data.school || ''}`,
-      admin: '플랫폼 관리자'
+      admin: '플랫폼 관리자',
+      parent: '학부모'
     };
     document.getElementById('userRoleTag').textContent = roleTagMap[data.role] || data.role;
     document.getElementById('userAvatar').textContent = (data.name || '?')[0];
@@ -2658,7 +2690,13 @@ if (data.role === 'admin') {
       if (directorBtn) directorBtn.style.display = '';
     } else if (data.role === 'teacher') {
       if (teacherBtn) teacherBtn.style.display = '';
+    } else if (data.role === 'parent') {
+      // 학부모는 role-switcher 숨김
     }
+
+    // 학부모는 role-switcher 자체를 숨김
+    const roleSwitcher = document.querySelector('.role-switcher');
+    if (roleSwitcher) roleSwitcher.style.display = data.role === 'parent' ? 'none' : '';
 
     document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById('role-btn-' + roleForNav);
@@ -2835,11 +2873,12 @@ function switchRole(role) {
   const roleTagEl = document.getElementById('userRoleTag');
 
   // 이름/아바타는 그대로 유지, 역할 태그만 변경
-  const viewMap = { teacher: 'dashboard', director: 'director-dashboard', admin: 'admin-overview' };
+  const viewMap = { teacher: 'dashboard', director: 'director-dashboard', admin: 'admin-overview', parent: 'parent-dashboard' };
   const roleTagMap = {
     teacher: currentProfile ? `수학 교사 · ${currentProfile.region || ''}` : '수학 교사',
     director: currentProfile ? `원장 · ${currentProfile.school || ''}` : '원장님',
-    admin: '플랫폼 관리자'
+    admin: '플랫폼 관리자',
+    parent: '학부모'
   };
   roleTagEl.textContent = roleTagMap[role];
   showView(viewMap[role]);
