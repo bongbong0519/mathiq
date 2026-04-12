@@ -3721,83 +3721,122 @@ async function sgExportPDF() {
 async function sgExportWord() {
   const problems = sg.lastProblems;
   if (!problems?.length) return;
+  showToast('워드 파일 생성 중...', '📝');
 
   const meta = document.getElementById('sg-result-meta').textContent;
   const date = new Date().toLocaleDateString('ko-KR');
 
-  function escXml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function wRun(text, opts = {}) {
-    const rPr = '<w:rPr>' +
-      '<w:rFonts w:eastAsia="\uB9D1\uC740 \uACE0\uB515" w:hint="eastAsia"/>' +
-      (opts.bold ? '<w:b/>' : '') +
-      (opts.color ? `<w:color w:val="${opts.color}"/>` : '') +
-      (opts.size ? `<w:sz w:val="${opts.size}"/><w:szCs w:val="${opts.size}"/>` : '') +
-      '</w:rPr>';
-    return `<w:r>${rPr}<w:t xml:space="preserve">${escXml(text)}</w:t></w:r>`;
+  // --- XML 헬퍼 ---
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function run(text, opts = {}) {
+    let rPr = '<w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕"/>';
+    if (opts.bold) rPr += '<w:b/><w:bCs/>';
+    if (opts.color) rPr += `<w:color w:val="${opts.color}"/>`;
+    if (opts.size) rPr += `<w:sz w:val="${opts.size}"/><w:szCs w:val="${opts.size}"/>`;
+    return `<w:r><w:rPr>${rPr}</w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r>`;
   }
-  function wPara(text, opts = {}) {
-    const pPr = '<w:pPr>' +
-      (opts.spacing ? `<w:spacing w:after="${opts.spacing}"/>` : '') +
-      (opts.indent ? `<w:ind w:left="${opts.indent}"/>` : '') +
-      '</w:pPr>';
+  function para(text, opts = {}) {
+    let pPr = '';
+    if (opts.spacing || opts.indent) {
+      pPr = '<w:pPr>';
+      if (opts.spacing) pPr += `<w:spacing w:after="${opts.spacing}"/>`;
+      if (opts.indent) pPr += `<w:ind w:left="${opts.indent}"/>`;
+      pPr += '</w:pPr>';
+    }
     const lines = text.split('\n');
-    const runs = lines.map((line, idx) =>
-      wRun(line, opts) + (idx < lines.length - 1 ? '<w:r><w:br/></w:r>' : '')
+    const runs = lines.map((l, idx) =>
+      run(l, opts) + (idx < lines.length - 1 ? '<w:r><w:br/></w:r>' : '')
     ).join('');
     return `<w:p>${pPr}${runs}</w:p>`;
   }
-  function wHr() {
+  function hr() {
     return '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr><w:spacing w:after="200"/></w:pPr></w:p>';
   }
 
+  // --- 본문 조립 ---
   let body = '';
-  body += wPara('MathIQ \uC720\uC0AC\uBB38\uC81C', { bold: true, size: 28, spacing: 60 });
-  body += wPara(`${meta}  \u00B7  \uC0DD\uC131\uC77C: ${date}`, { color: '666666', size: 18, spacing: 200 });
-  body += wHr();
+  body += para('MathIQ 유사문제', { bold: true, size: 32, spacing: 60 });
+  body += para(`${meta}  ·  생성일: ${date}`, { color: '666666', size: 18, spacing: 200 });
+  body += hr();
 
   problems.forEach((p, i) => {
-    const typeLabel = { multiple:'\uAC1D\uAD00\uC2DD', short:'\uB2E8\uB2F5\uD615', essay:'\uC11C\uC220\uD615' }[p.type] || p.type;
-    const diffLabel = { easy:'\uAE30\uBCF8', normal:'\uD45C\uC900', hard:'\uC2EC\uD654' }[p.difficulty] || '';
-    const tag = `[${typeLabel}${diffLabel ? ' \u00B7 ' + diffLabel : ''}]`;
+    const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
+    const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '';
+    const tag = `[${typeLabel}${diffLabel ? ' · ' + diffLabel : ''}]`;
 
-    body += wPara(`\u25B6 \uC720\uC0AC\uBB38\uC81C ${i+1}\uBC88 ${tag}`, { bold: true, color: '2563EB', size: 22, spacing: 80 });
-    body += wPara(p.question || '', { size: 21, spacing: 120 });
+    body += para(`▶ 유사문제 ${i+1}번 ${tag}`, { bold: true, color: '2563EB', size: 24, spacing: 80 });
+    body += para(p.question || '', { size: 22, spacing: 120 });
 
     if (p.type === 'multiple' && p.choices?.length) {
       p.choices.forEach((c, ci) => {
         const isAns = ci === p.answer_index;
-        const label = `${ci+1}. ${c.replace(/^[\u2460\u2461\u2462\u2463\u2464]\s*/,'')}${isAns ? '  \u2713' : ''}`;
-        body += wPara(label, { bold: isAns, color: isAns ? '059669' : '333333', size: 20, indent: 400 });
+        const label = `${ci+1}. ${c.replace(/^[①②③④⑤]\s*/,'')}${isAns ? '  ✓' : ''}`;
+        body += para(label, { bold: isAns, color: isAns ? '059669' : '333333', size: 20, indent: 400 });
       });
     } else if (p.answer) {
-      body += wPara(`\uC815\uB2F5: ${p.answer}`, { bold: true, color: '059669', size: 20, spacing: 60 });
+      body += para(`정답: ${p.answer}`, { bold: true, color: '059669', size: 20, spacing: 60 });
     }
 
     if (p.hint) {
-      body += wPara(`\uD78C\uD2B8: ${p.hint}`, { color: '1E40AF', size: 18, spacing: 60 });
+      body += para(`힌트: ${p.hint}`, { color: '1E40AF', size: 18, spacing: 60 });
     }
-    if (i < problems.length - 1) body += wHr();
+    if (i < problems.length - 1) body += hr();
   });
 
-  const contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  // --- docx XML 파일들 ---
+  const contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
     '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
     '<Default Extension="xml" ContentType="application/xml"/>' +
     '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+    '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
     '</Types>';
 
-  const relsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  const relsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
     '</Relationships>';
 
-  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  const wordRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+    '</Relationships>';
+
+  const stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+    '<w:docDefaults><w:rPrDefault><w:rPr>' +
+    '<w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕"/>' +
+    '<w:sz w:val="22"/><w:szCs w:val="22"/>' +
+    '</w:rPr></w:rPrDefault>' +
+    '<w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault>' +
+    '</w:docDefaults></w:styles>';
+
+  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
     '<w:body>' + body +
-    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>' +
-    '</w:body></w:document>';
+    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+    '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>' +
+    '</w:sectPr></w:body></w:document>';
 
-  function strToU8(str) { return new TextEncoder().encode(str); }
+  // --- DEFLATE 압축 ZIP 생성 ---
+  const enc = new TextEncoder();
+  async function deflate(data) {
+    const cs = new CompressionStream('deflate-raw');
+    const writer = cs.writable.getWriter();
+    writer.write(data);
+    writer.close();
+    const chunks = [];
+    const reader = cs.readable.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    let len = 0; chunks.forEach(c => len += c.length);
+    const out = new Uint8Array(len);
+    let pos = 0; chunks.forEach(c => { out.set(c, pos); pos += c.length; });
+    return out;
+  }
   function crc32(buf) {
     let c = 0xFFFFFFFF;
     for (let i = 0; i < buf.length; i++) {
@@ -3806,63 +3845,99 @@ async function sgExportWord() {
     }
     return (c ^ 0xFFFFFFFF) >>> 0;
   }
-  function buildZip(files) {
-    const locals = [], centrals = [], datas = [];
-    let offset = 0;
-    files.forEach(({ name, data }) => {
-      const nb = strToU8(name), crc = crc32(data);
-      const lh = new Uint8Array(30 + nb.length);
-      const lv = new DataView(lh.buffer);
-      lv.setUint32(0,0x04034b50,true); lv.setUint16(4,20,true);
-      lv.setUint16(8,0,true); lv.setUint32(14,crc,true);
-      lv.setUint32(18,data.length,true); lv.setUint32(22,data.length,true);
-      lv.setUint16(26,nb.length,true); lh.set(nb,30);
+  function u16(v) { return [v & 0xFF, (v >> 8) & 0xFF]; }
+  function u32(v) { return [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF]; }
 
-      const ch = new Uint8Array(46 + nb.length);
-      const cv = new DataView(ch.buffer);
-      cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true);
-      cv.setUint16(6,20,true); cv.setUint16(8,0,true); cv.setUint16(10,0,true);
-      cv.setUint32(16,crc,true); cv.setUint32(20,data.length,true);
-      cv.setUint32(24,data.length,true); cv.setUint16(28,nb.length,true);
-      cv.setUint32(42,offset,true); ch.set(nb,46);
+  const fileEntries = [
+    { name: '[Content_Types].xml', raw: enc.encode(contentTypesXml) },
+    { name: '_rels/.rels', raw: enc.encode(relsXml) },
+    { name: 'word/_rels/document.xml.rels', raw: enc.encode(wordRelsXml) },
+    { name: 'word/styles.xml', raw: enc.encode(stylesXml) },
+    { name: 'word/document.xml', raw: enc.encode(documentXml) },
+  ];
 
-      locals.push(lh); datas.push(data); centrals.push(ch);
-      offset += lh.length + data.length;
-    });
-    let cdSize = 0;
-    centrals.forEach(c => cdSize += c.length);
-    const eocd = new Uint8Array(22);
-    const ev = new DataView(eocd.buffer);
-    ev.setUint32(0,0x06054b50,true);
-    ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
-    ev.setUint32(12,cdSize,true); ev.setUint32(16,offset,true);
-
-    const parts = [];
-    locals.forEach((lh,i) => { parts.push(lh); parts.push(datas[i]); });
-    centrals.forEach(c => parts.push(c));
-    parts.push(eocd);
-    let total = 0; parts.forEach(p => total += p.length);
-    const out = new Uint8Array(total);
-    let pos = 0; parts.forEach(p => { out.set(p, pos); pos += p.length; });
-    return out;
+  // 압축
+  for (const entry of fileEntries) {
+    entry.crc = crc32(entry.raw);
+    entry.compressed = await deflate(entry.raw);
   }
 
-  const zipData = buildZip([
-    { name: '[Content_Types].xml', data: strToU8(contentTypesXml) },
-    { name: '_rels/.rels', data: strToU8(relsXml) },
-    { name: 'word/document.xml', data: strToU8(documentXml) }
-  ]);
+  // ZIP 조립
+  const parts = [];
+  const centralParts = [];
+  let offset = 0;
 
-  const blob = new Blob([zipData], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  for (const entry of fileEntries) {
+    const nameBytes = enc.encode(entry.name);
+    // Local file header
+    const lh = [].concat(
+      [0x50,0x4B,0x03,0x04],      // signature
+      u16(20),                      // version needed
+      u16(0),                       // flags
+      u16(8),                       // compression: deflate
+      u16(0), u16(0),              // mod time, date
+      u32(entry.crc),
+      u32(entry.compressed.length),
+      u32(entry.raw.length),
+      u16(nameBytes.length),
+      u16(0)                        // extra field length
+    );
+    parts.push(new Uint8Array(lh));
+    parts.push(nameBytes);
+    parts.push(entry.compressed);
+
+    // Central directory header
+    const ch = [].concat(
+      [0x50,0x4B,0x01,0x02],
+      u16(20), u16(20),
+      u16(0),                       // flags
+      u16(8),                       // compression: deflate
+      u16(0), u16(0),              // mod time, date
+      u32(entry.crc),
+      u32(entry.compressed.length),
+      u32(entry.raw.length),
+      u16(nameBytes.length),
+      u16(0), u16(0),              // extra, comment
+      u16(0),                       // disk number
+      u16(0),                       // internal attrs
+      u32(0),                       // external attrs
+      u32(offset)                   // local header offset
+    );
+    centralParts.push(new Uint8Array(ch));
+    centralParts.push(nameBytes);
+
+    offset += lh.length + nameBytes.length + entry.compressed.length;
+  }
+
+  const centralDirOffset = offset;
+  let centralDirSize = 0;
+  centralParts.forEach(p => centralDirSize += p.length);
+
+  const eocd = [].concat(
+    [0x50,0x4B,0x05,0x06],
+    u16(0), u16(0),
+    u16(fileEntries.length),
+    u16(fileEntries.length),
+    u32(centralDirSize),
+    u32(centralDirOffset),
+    u16(0)
+  );
+
+  const allParts = [...parts, ...centralParts, new Uint8Array(eocd)];
+  let totalLen = 0; allParts.forEach(p => totalLen += p.length);
+  const zipBuf = new Uint8Array(totalLen);
+  let pos = 0; allParts.forEach(p => { zipBuf.set(p, pos); pos += p.length; });
+
+  const blob = new Blob([zipBuf], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const url = URL.createObjectURL(blob);
   const dlLink = document.createElement('a');
   dlLink.href = url;
-  dlLink.download = `MathIQ_\uC720\uC0AC\uBB38\uC81C_${date.replace(/[.]/g,'')}.docx`;
+  dlLink.download = `MathIQ_유사문제_${date.replace(/[.]/g,'')}.docx`;
   document.body.appendChild(dlLink);
   dlLink.click();
   document.body.removeChild(dlLink);
   setTimeout(() => URL.revokeObjectURL(url), 3000);
-  showToast('\uC6CC\uB4DC \uD30C\uC77C\uC774 \uB2E4\uC6B4\uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4!', '\uD83D\uDCDD');
+  showToast('워드 파일이 다운로드되었습니다!', '📝');
 }
   async function sgSaveAsExam() {
   if (!sg.lastProblems.length) return;
