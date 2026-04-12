@@ -3649,8 +3649,10 @@ async function sgExportPDF() {
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<title>MathIQ 유사문제</title>
 <style>
-  body { font-family: 'Malgun Gothic', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; }
+  @page { size: A4; margin: 20mm; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; }
   h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 6px; }
   .meta { font-size: 12px; color: #666; margin-bottom: 30px; }
   .problem { margin-bottom: 28px; page-break-inside: avoid; }
@@ -3662,7 +3664,6 @@ async function sgExportPDF() {
   .hint { margin-top: 8px; padding: 8px 12px; background: #f0f9ff; border-left: 3px solid #3b82f6; font-size: 12px; color: #1e40af; }
   .answer-box { margin-top: 8px; padding: 6px 12px; background: #f0fdf4; border-left: 3px solid #059669; font-size: 12px; }
   .divider { border: none; border-top: 1px dashed #ccc; margin: 20px 0; }
-  @media print { body { padding: 20px; } }
 </style>
 </head>
 <body>
@@ -3673,22 +3674,20 @@ async function sgExportPDF() {
     const p = problems[i];
     const typeLabel = { multiple:'객관식', short:'단답형', essay:'서술형' }[p.type] || p.type;
     const diffLabel = { easy:'기본', normal:'표준', hard:'심화' }[p.difficulty] || '';
-    // 그래프 이미지 캡처
+
     let graphImgHtml = '';
-    // 수정 (타임아웃 추가)
-if (p.figure) {
-  const tmpCanvas = document.createElement('canvas');
-  tmpCanvas.width = 500; tmpCanvas.height = 280;
-  drawMathFigure(tmpCanvas, p.figure);
-  graphImgHtml = `<div style="margin:12px 0"><img src="${tmpCanvas.toDataURL()}" style="max-width:100%;border-radius:6px"></div>`;
-}
+    if (p.figure) {
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = 500; tmpCanvas.height = 280;
+      drawMathFigure(tmpCanvas, p.figure);
+      graphImgHtml = `<div style="margin:12px 0"><img src="${tmpCanvas.toDataURL()}" style="max-width:100%;border-radius:6px"></div>`;
+    }
 
     html += `
   <div class="problem">
     <div class="problem-num">▶ 유사문제 ${i+1}번 <span style="font-size:12px;font-weight:normal;color:#666">[${typeLabel}${diffLabel ? ' · ' + diffLabel : ''}]</span></div>
     <div class="problem-text">${(p.question || '').replace(/\n/g,'<br>')}</div>
     ${graphImgHtml}`;
-
 
     if (p.type === 'multiple' && p.choices?.length) {
       html += '<div class="choices">';
@@ -3711,16 +3710,12 @@ if (p.figure) {
 
   html += '</body></html>';
 
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `MathIQ_유사문제_${date.replace(/\./g, '')}.html`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  showToast('PDF용 HTML 파일이 다운로드되었습니다!', '📄');
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 600);
+  showToast('인쇄 창에서 "PDF로 저장"을 선택하세요!', '📄');
 }
 
 function sgExportWord() {
