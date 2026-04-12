@@ -1212,18 +1212,20 @@
         <div class="nav-item" onclick="showView('exams')">
           <span class="icon">📝</span> 시험 관리
         </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">AI · 분석</div>
+        <div class="nav-item" onclick="showView('similar')">
+          <span class="icon">🧩</span> AI 유사문제 생성
+        </div>
         <div class="nav-item" onclick="showView('reports')">
-          <span class="icon">📋</span> 리포트
-          <span class="badge">3</span>
+          <span class="icon">📋</span> 성적 리포트
         </div>
       </div>
       <div class="nav-section">
-        <div class="nav-label">분석</div>
-        <div class="nav-item" onclick="showView('analytics')">
-          <span class="icon">📈</span> 성취도 분석
-        </div>
-        <div class="nav-item" onclick="showView('similar')">
-          <span class="icon">🧩</span> 유사문제 생성
+        <div class="nav-label">자료</div>
+        <div class="nav-item" onclick="showView('teacher-materials')">
+          <span class="icon">📁</span> 수업 자료
         </div>
       </div>
     </nav>
@@ -1242,6 +1244,12 @@
           <span class="icon">👥</span> 학생 현황
         </div>
       </div>
+      <div class="nav-section">
+        <div class="nav-label">경영</div>
+        <div class="nav-item" onclick="showView('director-revenue')">
+          <span class="icon">💰</span> 수익/결제 현황
+        </div>
+      </div>
     </nav>
 
     <!-- Admin Nav -->
@@ -1251,13 +1259,6 @@
         <div class="nav-item active" onclick="showView('admin-overview')">
           <span class="icon">🏢</span> 운영 현황
         </div>
-        <div class="nav-item" onclick="showView('admin-files')">
-          <span class="icon">📁</span> 업로드 파일
-          <span class="badge">7</span>
-        </div>
-        <div class="nav-item" onclick="showView('admin-insights')">
-          <span class="icon">💡</span> 데이터 활용
-        </div>
         <div class="nav-item" onclick="showView('admin-teachers')">
           <span class="icon">🏫</span> 회원 현황
         </div>
@@ -1265,14 +1266,51 @@
           <span class="icon">👥</span> 전체 학생
         </div>
       </div>
+      <div class="nav-section">
+        <div class="nav-label">데이터</div>
+        <div class="nav-item" onclick="showView('admin-files')">
+          <span class="icon">📁</span> 업로드 파일
+        </div>
+        <div class="nav-item" onclick="showView('admin-insights')">
+          <span class="icon">💡</span> 데이터 활용
+        </div>
+      </div>
+    </nav>
+
+    <!-- Student Nav -->
+    <nav id="nav-student" style="display:none">
+      <div class="nav-section">
+        <div class="nav-label">학습</div>
+        <div class="nav-item active" onclick="showView('student')">
+          <span class="icon">📊</span> 내 성적
+        </div>
+        <div class="nav-item" onclick="showView('student-exams')">
+          <span class="icon">📝</span> 시험 응시
+        </div>
+        <div class="nav-item" onclick="showView('student-materials')">
+          <span class="icon">📁</span> 수업 자료
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">정보</div>
+        <div class="nav-item" onclick="showView('student-admissions')">
+          <span class="icon">🎓</span> 입시정보
+        </div>
+        <div class="nav-item" onclick="showView('student-community')">
+          <span class="icon">💬</span> 학생 커뮤니티
+        </div>
+      </div>
     </nav>
 
     <!-- Parent Nav -->
     <nav id="nav-parent" style="display:none">
       <div class="nav-section">
-        <div class="nav-label">학부모</div>
-        <div class="nav-item active" onclick="showView('parent-dashboard')">
-          <span class="icon">📊</span> 자녀 현황
+        <div class="nav-label">정보</div>
+        <div class="nav-item active" onclick="showView('parent-admissions')">
+          <span class="icon">🎓</span> 입시정보
+        </div>
+        <div class="nav-item" onclick="showView('parent-community')">
+          <span class="icon">💬</span> 학부모 커뮤니티
         </div>
       </div>
     </nav>
@@ -2004,25 +2042,52 @@
       </div>
     </div>
 
-    <!-- ══ VIEW: PARENT DASHBOARD ══ -->
-    <div id="view-parent-dashboard" class="view" style="display:none">
-      <div class="page-header">
-        <div>
-          <h2 class="page-title">자녀 학습 현황</h2>
-          <p class="page-subtitle">자녀의 성적과 학습 진도를 확인합니다</p>
-        </div>
-      </div>
-      <div class="card">
-        <div id="parent-dashboard-content">
-          <div class="empty-state" style="padding:60px 20px">
-            <div style="font-size:36px;margin-bottom:16px">📊</div>
-            <div class="empty-state-text">학부모 대시보드 준비 중입니다</div>
-            <div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">
-              자녀의 성적 리포트, 학습 현황, 선생님 코멘트 등을<br>곧 확인하실 수 있습니다.
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- ══ 선생님: 수업 자료 ══ -->
+    <div id="view-teacher-materials" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">수업 자료</h2><p class="page-subtitle">수업에 필요한 자료를 관리합니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📁</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">수업 자료 업로드, 학생별 자료 배포 기능이<br>곧 추가될 예정입니다.</div></div></div>
+    </div>
+
+    <!-- ══ 원장님: 수익/결제 현황 ══ -->
+    <div id="view-director-revenue" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">수익/결제 현황</h2><p class="page-subtitle">학원 수익과 결제 내역을 관리합니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">💰</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">수강료 관리, 결제 내역 조회, 매출 통계 기능이<br>곧 추가될 예정입니다.</div></div></div>
+    </div>
+
+    <!-- ══ 학생: 시험 응시 ══ -->
+    <div id="view-student-exams" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">시험 응시</h2><p class="page-subtitle">배정된 시험을 확인하고 응시합니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📝</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">온라인 시험 응시, 자동 채점, 오답 분석 기능이<br>곧 추가될 예정입니다.</div></div></div>
+    </div>
+
+    <!-- ══ 학생: 수업 자료 ══ -->
+    <div id="view-student-materials" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">수업 자료</h2><p class="page-subtitle">선생님이 공유한 수업 자료를 확인합니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📁</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">선생님이 공유한 학습 자료, 과제 자료 등을<br>곧 확인하실 수 있습니다.</div></div></div>
+    </div>
+
+    <!-- ══ 학생: 입시정보 ══ -->
+    <div id="view-student-admissions" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">입시정보</h2><p class="page-subtitle">입시 관련 최신 정보를 확인합니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">🎓</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">고입/대입 입시 정보, 학교별 커트라인,<br>입시 일정 등이 곧 제공될 예정입니다.</div></div></div>
+    </div>
+
+    <!-- ══ 학생: 커뮤니티 ══ -->
+    <div id="view-student-community" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">학생 커뮤니티</h2><p class="page-subtitle">다른 학생들과 정보를 나눕니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">💬</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">질문/답변, 공부 팁 공유, 스터디 그룹 기능이<br>곧 추가될 예정입니다.</div></div></div>
+    </div>
+
+    <!-- ══ 학부모: 입시정보 ══ -->
+    <div id="view-parent-admissions" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">입시정보</h2><p class="page-subtitle">자녀 입시에 필요한 최신 정보를 확인합니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">🎓</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">고입/대입 입시 정보, 학교별 커트라인,<br>입시 일정, 설명회 안내 등이 곧 제공됩니다.</div></div></div>
+    </div>
+
+    <!-- ══ 학부모: 커뮤니티 ══ -->
+    <div id="view-parent-community" class="view" style="display:none">
+      <div class="page-header"><div><h2 class="page-title">학부모 커뮤니티</h2><p class="page-subtitle">다른 학부모님들과 정보를 나눕니다</p></div></div>
+      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">💬</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">교육 정보 공유, 학원 후기, 학부모 모임 기능이<br>곧 추가될 예정입니다.</div></div></div>
     </div>
 
     <div id="view-admin-overview" class="view">
@@ -2646,15 +2711,7 @@ if (data.role === 'admin') {
   // 아래 UI 업데이트로 그냥 진행
 }
     if (data.role === 'student') {
-      document.getElementById('appWrapper').style.display = 'flex';
-      document.getElementById('authOverlay').style.display = 'none';
-      document.querySelector('.sidebar').style.display = 'none';
-      document.querySelector('.main-content').style.marginLeft = '0';
-      document.getElementById('userName').textContent = data.name || currentUser.email;
-      document.getElementById('userAvatar').textContent = (data.name || '?')[0];
-      showView('student');
-      loadStudentView();
-      return;
+      // 학생도 사이드바 표시 (nav-student 사용)
     }
     if ((data.role === 'teacher' || data.role === 'director') && data.status !== 'approved') {
       document.getElementById('authOverlay').style.display = 'none';
@@ -2669,13 +2726,14 @@ if (data.role === 'admin') {
       teacher: `수학 교사 · ${data.region || data.school || ''}`,
       director: `원장 · ${data.school || ''}`,
       admin: '플랫폼 관리자',
+      student: '학생',
       parent: '학부모'
     };
     document.getElementById('userRoleTag').textContent = roleTagMap[data.role] || data.role;
     document.getElementById('userAvatar').textContent = (data.name || '?')[0];
 
     // 역할에 따라 네비게이션 결정
-    const roleForNav = { parent: 'parent', admin: 'admin', director: 'director' }[data.role] || 'teacher';
+    const roleForNav = { parent: 'parent', admin: 'admin', director: 'director', student: 'student' }[data.role] || 'teacher';
 
     // 역할 버튼 권한 제어
     const teacherBtn = document.getElementById('role-btn-teacher');
@@ -2699,7 +2757,7 @@ if (data.role === 'admin') {
 
     // 학부모는 role-switcher 자체를 숨김
     const roleSwitcher = document.querySelector('.role-switcher');
-    if (roleSwitcher) roleSwitcher.style.display = data.role === 'parent' ? 'none' : '';
+    if (roleSwitcher) roleSwitcher.style.display = (data.role === 'parent' || data.role === 'student') ? 'none' : '';
 
     document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById('role-btn-' + roleForNav);
@@ -2900,11 +2958,12 @@ function switchRole(role) {
   const roleTagEl = document.getElementById('userRoleTag');
 
   // 이름/아바타는 그대로 유지, 역할 태그만 변경
-  const viewMap = { teacher: 'dashboard', director: 'director-dashboard', admin: 'admin-overview', parent: 'parent-dashboard' };
+  const viewMap = { teacher: 'dashboard', director: 'director-dashboard', admin: 'admin-overview', student: 'student', parent: 'parent-admissions' };
   const roleTagMap = {
     teacher: currentProfile ? `수학 교사 · ${currentProfile.region || ''}` : '수학 교사',
     director: currentProfile ? `원장 · ${currentProfile.school || ''}` : '원장님',
     admin: '플랫폼 관리자',
+    student: '학생',
     parent: '학부모'
   };
   roleTagEl.textContent = roleTagMap[role];
@@ -2946,6 +3005,7 @@ function showView(viewId) {
         if (viewId === 'dashboard') loadDashboard().catch(() => {});
         if (viewId === 'students') loadStudents().catch(() => {});
         if (viewId === 'exams') loadExams().catch(() => {});
+        if (viewId === 'student') { if (typeof loadStudentView === 'function') loadStudentView(); }
         if (viewId === 'director-dashboard') loadDirectorDashboard().catch(() => {});
         if (viewId === 'director-teachers') loadDirectorTeachers().catch(() => {});
         if (viewId === 'director-students') loadDirectorStudents().catch(() => {});
