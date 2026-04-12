@@ -2622,13 +2622,16 @@ async function loadProfile() {
   if (!sbClient || !currentUser) return;
   const { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
   if (!data) {
-    // 프로필 없으면 기본 선생님으로 자동 생성
+    // 프로필 없으면 user_metadata에서 역할 확인 후 생성
+    const meta = currentUser.user_metadata || {};
+    const role = meta.role || 'teacher';
+    const needsApproval = (role === 'teacher' || role === 'director');
     await sbClient.from('profiles').upsert({
       id: currentUser.id,
-      role: 'teacher',
-      name: currentUser.email.split('@')[0],
+      role: role,
+      name: meta.name || currentUser.email.split('@')[0],
       email: currentUser.email,
-      status: 'pending'
+      status: needsApproval ? 'pending' : 'approved'
     });
     await loadProfile();
     return;
