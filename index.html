@@ -2508,10 +2508,12 @@ async function loadProfile() {
   const { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
   if (!data) {
     // 프로필 없으면 기본 선생님으로 자동 생성
-    await sbClient.from('profiles').insert({
+    await sbClient.from('profiles').upsert({
       id: currentUser.id,
       role: 'teacher',
       name: currentUser.email.split('@')[0],
+      email: currentUser.email,
+      status: 'pending'
     });
     await loadProfile();
     return;
@@ -2661,17 +2663,32 @@ async function handleSignup() {
   if (error) { btn.disabled = false; btn.textContent = '✨ 회원가입'; showAuthError('signupError', error.message); return; }
 
   // 프로필 저장
-  await sbClient.from('profiles').insert({
+  const profileData = {
     id: data.user.id,
     role: selectedRole,
     name,
+    email,
     school: (selectedRole === 'teacher' || selectedRole === 'director') ? school : null,
     region: null,
     status: (selectedRole === 'teacher' || selectedRole === 'director') ? 'pending' : 'approved'
-  });
+  };
+
+  const { error: profileError } = await sbClient.from('profiles').insert(profileData);
+
+  if (profileError) {
+    console.error('Profile insert error:', profileError);
+    // RLS 차단 시 service_role 없이 재시도: upsert
+    const { error: retryError } = await sbClient.from('profiles').upsert(profileData);
+    if (retryError) {
+      console.error('Profile upsert retry error:', retryError);
+      btn.disabled = false; btn.textContent = '✨ 회원가입';
+      showAuthError('signupError', '프로필 저장에 실패했습니다. 관리자에게 문의해주세요.');
+      return;
+    }
+  }
 
   btn.disabled = false; btn.textContent = '✨ 회원가입';
-  showToast('🎉 회원가입 완료! 이메일 인증 후 로그인하세요', '✅');
+  showToast('회원가입 완료! 이메일 인증 후 로그인하세요', '✅');
   switchAuthTab('login');
 }
 
