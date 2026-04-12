@@ -43,7 +43,7 @@ CREATE POLICY "materials_select"
   TO authenticated
   USING (true);
 
--- 업로드: teacher, director, admin만
+-- 업로드: 승인된 모든 역할
 CREATE POLICY "materials_insert"
   ON public.materials FOR INSERT
   TO authenticated
@@ -51,7 +51,6 @@ CREATE POLICY "materials_insert"
     EXISTS (
       SELECT 1 FROM public.profiles
       WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('teacher', 'director', 'admin')
         AND profiles.status = 'approved'
     )
   );
@@ -103,7 +102,6 @@ CREATE POLICY "materials_storage_insert"
     AND EXISTS (
       SELECT 1 FROM public.profiles
       WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('teacher', 'director', 'admin')
         AND profiles.status = 'approved'
     )
   );

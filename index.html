@@ -5412,7 +5412,7 @@ const SCHOOL_LABEL = { elementary: '초', middle: '중', high: '고' };
 
 function canUploadMaterial() {
   if (!currentProfile) return false;
-  return ['teacher', 'director', 'admin'].includes(currentProfile.role)
+  return ['teacher', 'director', 'admin', 'student', 'parent'].includes(currentProfile.role)
     && currentProfile.status === 'approved';
 }
 
