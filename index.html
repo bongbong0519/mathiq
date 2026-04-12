@@ -1228,6 +1228,12 @@
           <span class="icon">📁</span> 수업 자료
         </div>
       </div>
+      <div class="nav-section">
+        <div class="nav-label">계정</div>
+        <div class="nav-item" onclick="showView('profile')">
+          <span class="icon">👤</span> 내 정보
+        </div>
+      </div>
     </nav>
 
     <!-- Director Nav -->
@@ -1248,6 +1254,12 @@
         <div class="nav-label">경영</div>
         <div class="nav-item" onclick="showView('director-revenue')">
           <span class="icon">💰</span> 수익/결제 현황
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">계정</div>
+        <div class="nav-item" onclick="showView('profile')">
+          <span class="icon">👤</span> 내 정보
         </div>
       </div>
     </nav>
@@ -1275,6 +1287,12 @@
           <span class="icon">💡</span> 데이터 활용
         </div>
       </div>
+      <div class="nav-section">
+        <div class="nav-label">계정</div>
+        <div class="nav-item" onclick="showView('profile')">
+          <span class="icon">👤</span> 내 정보
+        </div>
+      </div>
     </nav>
 
     <!-- Student Nav -->
@@ -1300,6 +1318,12 @@
           <span class="icon">💬</span> 학생 커뮤니티
         </div>
       </div>
+      <div class="nav-section">
+        <div class="nav-label">계정</div>
+        <div class="nav-item" onclick="showView('profile')">
+          <span class="icon">👤</span> 내 정보
+        </div>
+      </div>
     </nav>
 
     <!-- Parent Nav -->
@@ -1311,6 +1335,12 @@
         </div>
         <div class="nav-item" onclick="showView('parent-community')">
           <span class="icon">💬</span> 학부모 커뮤니티
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">계정</div>
+        <div class="nav-item" onclick="showView('profile')">
+          <span class="icon">👤</span> 내 정보
         </div>
       </div>
     </nav>
@@ -2088,6 +2118,23 @@
     <div id="view-parent-community" class="view" style="display:none">
       <div class="page-header"><div><h2 class="page-title">학부모 커뮤니티</h2><p class="page-subtitle">다른 학부모님들과 정보를 나눕니다</p></div></div>
       <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">💬</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">교육 정보 공유, 학원 후기, 학부모 모임 기능이<br>곧 추가될 예정입니다.</div></div></div>
+    </div>
+
+    <!-- ══ VIEW: PROFILE (내 정보) ══ -->
+    <div id="view-profile" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">내 정보</h2>
+          <p class="page-subtitle">계정 정보를 확인하고 수정합니다</p>
+        </div>
+      </div>
+      <div class="card" style="max-width:600px">
+        <div style="padding:24px">
+          <div id="profile-form-container">
+            <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="view-admin-overview" class="view">
@@ -3006,6 +3053,7 @@ function showView(viewId) {
         if (viewId === 'students') loadStudents().catch(() => {});
         if (viewId === 'exams') loadExams().catch(() => {});
         if (viewId === 'student') { if (typeof loadStudentView === 'function') loadStudentView(); }
+        if (viewId === 'profile') loadProfileView().catch(() => {});
         if (viewId === 'director-dashboard') loadDirectorDashboard().catch(() => {});
         if (viewId === 'director-teachers') loadDirectorTeachers().catch(() => {});
         if (viewId === 'director-students') loadDirectorStudents().catch(() => {});
@@ -5205,6 +5253,125 @@ function switchAdminMemberTab(btn, tabId) {
   document.getElementById(tabId).style.display = '';
   if (tabId === 'admin-tab-teachers') loadAdminTeacherTab();
   if (tabId === 'admin-tab-orgs') loadAdminOrgTab();
+}
+
+// ═══════════════════════════════════════
+//  내 정보 (프로필) 수정
+// ═══════════════════════════════════════
+
+const PROFILE_FIELDS = {
+  teacher: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' },
+    { key: 'school', label: '학교명', type: 'text', placeholder: '○○중학교' },
+    { key: 'region', label: '지역', type: 'text', placeholder: '예) 서울 강남구' }
+  ],
+  director: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' },
+    { key: 'school', label: '기관명', type: 'text', placeholder: '○○수학학원' }
+  ],
+  admin: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' }
+  ],
+  student: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' },
+    { key: 'school', label: '학교명', type: 'text', placeholder: '○○중학교' },
+    { key: 'grade', label: '학년', type: 'number', placeholder: '1~3' }
+  ],
+  parent: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' },
+    { key: 'region', label: '지역', type: 'text', placeholder: '예) 서울 강남구' }
+  ]
+};
+
+async function loadProfileView() {
+  if (!sbClient || !currentUser) return;
+  const wrap = document.getElementById('profile-form-container');
+  if (!wrap) return;
+
+  // 최신 프로필 다시 조회
+  const { data: profile } = await sbClient.from('profiles')
+    .select('*').eq('id', currentUser.id).maybeSingle();
+  if (!profile) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-state-text">프로필을 찾을 수 없습니다</div></div>';
+    return;
+  }
+  currentProfile = profile;
+
+  const role = profile.role || 'teacher';
+  const fields = PROFILE_FIELDS[role] || PROFILE_FIELDS.teacher;
+  const roleLabel = { teacher: '선생님', director: '원장님', admin: '운영자', student: '학생', parent: '학부모' }[role] || role;
+
+  let html = `<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800">${(profile.name || '?')[0]}</div>
+    <div>
+      <div style="font-size:18px;font-weight:800;color:var(--text)">${profile.name || '(이름 없음)'}</div>
+      <div style="font-size:13px;color:var(--accent);font-weight:600;margin-top:4px">${roleLabel}</div>
+    </div>
+  </div>`;
+
+  fields.forEach(f => {
+    const val = profile[f.key] != null ? profile[f.key] : '';
+    const readonlyAttr = f.readonly ? 'readonly style="opacity:0.6;cursor:not-allowed"' : '';
+    html += `<div class="form-group" style="margin-bottom:16px">
+      <label class="form-label" style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px">${f.label}${f.required ? ' <span style="color:var(--red)">*</span>' : ''}</label>
+      <input type="${f.type}" id="profile-field-${f.key}" class="form-input" value="${String(val).replace(/"/g, '&quot;')}" placeholder="${f.placeholder || ''}" ${readonlyAttr} style="width:100%">
+    </div>`;
+  });
+
+  html += `<div style="display:flex;gap:10px;margin-top:24px">
+    <button class="btn btn-primary" onclick="submitProfile()" style="flex:1">저장하기</button>
+    <button class="btn btn-ghost" onclick="loadProfileView()">취소</button>
+  </div>`;
+
+  wrap.innerHTML = html;
+}
+
+async function submitProfile() {
+  if (!sbClient || !currentUser || !currentProfile) return;
+  const role = currentProfile.role || 'teacher';
+  const fields = PROFILE_FIELDS[role] || PROFILE_FIELDS.teacher;
+
+  const updates = {};
+  for (const f of fields) {
+    if (f.readonly) continue;
+    const el = document.getElementById('profile-field-' + f.key);
+    if (!el) continue;
+    let val = el.value.trim();
+    if (f.required && !val) {
+      showToast(`${f.label}을(를) 입력해주세요`, '⚠️');
+      return;
+    }
+    if (f.type === 'number' && val) val = parseInt(val, 10);
+    updates[f.key] = val || null;
+  }
+
+  const { error } = await sbClient.from('profiles').update(updates).eq('id', currentUser.id);
+  if (error) {
+    console.error('Profile update error:', error);
+    showToast('저장 실패: ' + error.message, '❌');
+    return;
+  }
+
+  // 원장님이 기관명 수정 시 organizations 테이블도 동기화
+  if (role === 'director' && updates.school && currentProfile.organization_id) {
+    await sbClient.from('organizations').update({ name: updates.school }).eq('id', currentProfile.organization_id);
+  }
+
+  showToast('정보가 저장되었습니다!', '✅');
+  // 사이드바의 사용자 정보 갱신
+  Object.assign(currentProfile, updates);
+  document.getElementById('userName').textContent = currentProfile.name || currentUser.email;
+  document.getElementById('userAvatar').textContent = (currentProfile.name || '?')[0];
 }
 
 async function loadAdminTeachers() {
