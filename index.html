@@ -3104,11 +3104,14 @@ async function loadProfile() {
     // 승인 상태 체크
     // 학생이면 학생 뷰로 이동
     // admin은 바로 통과
-if (data.role === 'admin') {
-  // 아래 UI 업데이트로 그냥 진행
-}
-    if (data.role === 'student') {
-      // 학생도 사이드바 표시 (nav-student 사용)
+    // 탈퇴 처리된 계정 차단
+    if (data.status === 'deleted') {
+      await sbClient.auth.signOut();
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('appWrapper').style.display = 'none';
+      alert('탈퇴 처리된 계정입니다.\n자세한 사항은 운영자에게 문의해주세요.');
+      showLanding();
+      return;
     }
     if ((data.role === 'teacher' || data.role === 'director') && data.status !== 'approved') {
       document.getElementById('authOverlay').style.display = 'none';
@@ -6486,41 +6489,12 @@ async function loadAdminTeachers() {
 
 async function adminDeleteUser(userId, userName, role) {
   const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모' }[role] || role;
-  if (!confirm(`"${userName}" (${roleKo})을(를) 탈퇴 처리하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.\nprofiles 데이터가 삭제되고 로그인이 불가해집니다.`)) return;
+  if (!confirm(`"${userName}" (${roleKo})을(를) 탈퇴 처리하시겠습니까?\n\n로그인이 차단되고 목록에서 숨겨집니다.`)) return;
 
-  // Step 1: profiles 삭제 — 실패하면 즉시 중단
-  const { error: profileErr } = await sbClient.from('profiles').delete().eq('id', userId);
-  if (profileErr) {
-    showToast('삭제 실패: ' + profileErr.message, '❌');
-    return;
-  }
+  const { error } = await sbClient.from('profiles').update({ status: 'deleted' }).eq('id', userId);
+  if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
 
-  // Step 2: auth.users 삭제 (best-effort — 실패해도 계속 진행)
-  let authDeleted = false;
-  try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (session?.access_token) {
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/delete-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': SUPABASE_KEY,
-        },
-        body: JSON.stringify({ targetUserId: userId }),
-      });
-      const result = await resp.json();
-      authDeleted = resp.ok && result.ok;
-    }
-  } catch(e) { console.warn('auth delete failed:', e); }
-
-  // Step 3: 토스트 + 탭 새로고침 (profiles 삭제 성공 후 항상 실행)
-  showToast(
-    authDeleted
-      ? `"${userName}"님이 완전히 탈퇴 처리되었습니다.`
-      : `"${userName}"님이 탈퇴 처리되었습니다.`,
-    '✅'
-  );
+  showToast(`"${userName}"님이 탈퇴 처리되었습니다.`, '✅');
 
   if (role === 'teacher')        loadAdminTeacherTab();
   else if (role === 'director')  loadAdminDirectorTab();
@@ -6550,7 +6524,7 @@ function adminRoleDeleteBtn(id, name, role) {
 async function loadAdminTeacherTab() {
   if (!sbClient || !currentUser) return;
   const { data: teachers } = await sbClient.from('profiles')
-    .select('*').eq('role', 'teacher').order('created_at', { ascending: false });
+    .select('*').eq('role', 'teacher').neq('status', 'deleted').order('created_at', { ascending: false });
   const wrap = document.getElementById('admin-teachers-wrap');
   if (!wrap) return;
   if (!teachers?.length) {
@@ -6573,7 +6547,7 @@ async function loadAdminTeacherTab() {
 async function loadAdminDirectorTab() {
   if (!sbClient || !currentUser) return;
   const { data: directors } = await sbClient.from('profiles')
-    .select('*').eq('role', 'director').order('created_at', { ascending: false });
+    .select('*').eq('role', 'director').neq('status', 'deleted').order('created_at', { ascending: false });
   const wrap = document.getElementById('admin-directors-wrap');
   if (!wrap) return;
   if (!directors?.length) {
@@ -6595,7 +6569,7 @@ async function loadAdminDirectorTab() {
 async function loadAdminStudentProfilesTab() {
   if (!sbClient || !currentUser) return;
   const { data: students } = await sbClient.from('profiles')
-    .select('*').eq('role', 'student').order('created_at', { ascending: false });
+    .select('*').eq('role', 'student').neq('status', 'deleted').order('created_at', { ascending: false });
   const wrap = document.getElementById('admin-students-p-wrap');
   if (!wrap) return;
   if (!students?.length) {
@@ -6617,7 +6591,7 @@ async function loadAdminStudentProfilesTab() {
 async function loadAdminParentTab() {
   if (!sbClient || !currentUser) return;
   const { data: parents } = await sbClient.from('profiles')
-    .select('*').eq('role', 'parent').order('created_at', { ascending: false });
+    .select('*').eq('role', 'parent').neq('status', 'deleted').order('created_at', { ascending: false });
   const wrap = document.getElementById('admin-parents-wrap');
   if (!wrap) return;
   if (!parents?.length) {
