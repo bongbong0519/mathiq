@@ -14,9 +14,17 @@ CREATE TABLE IF NOT EXISTS public.posts (
   author_role TEXT,
   view_count INT DEFAULT 0,
   comment_count INT DEFAULT 0,
+  attachment_path TEXT,
+  attachment_name TEXT,
+  attachment_size BIGINT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 이미 테이블을 생성했다면 아래 ALTER로 컬럼 추가:
+-- ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS attachment_path TEXT;
+-- ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS attachment_name TEXT;
+-- ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS attachment_size BIGINT;
 
 CREATE INDEX IF NOT EXISTS idx_posts_board_created ON public.posts(board, created_at DESC);
 
@@ -175,3 +183,47 @@ DROP TRIGGER IF EXISTS trg_post_comment_count ON public.post_comments;
 CREATE TRIGGER trg_post_comment_count
   AFTER INSERT OR DELETE ON public.post_comments
   FOR EACH ROW EXECUTE FUNCTION public.update_post_comment_count();
+
+-- ══════════════════════════════════════
+--  Storage 버킷: post-attachments
+--  (student/parent 게시글 파일 첨부)
+-- ══════════════════════════════════════
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('post-attachments', 'post-attachments', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 누구나 읽기
+CREATE POLICY "post_attach_read"
+  ON storage.objects FOR SELECT
+  TO public
+  USING (bucket_id = 'post-attachments');
+
+-- 업로드: 승인된 학생/학부모
+CREATE POLICY "post_attach_insert"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'post-attachments'
+    AND EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.status = 'approved'
+        AND profiles.role IN ('student', 'parent')
+    )
+  );
+
+-- 삭제: 본인 또는 admin
+CREATE POLICY "post_attach_delete"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (
+    bucket_id = 'post-attachments'
+    AND (
+      auth.uid()::text = (storage.foldername(name))[2]
+      OR EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+      )
+    )
+  );

@@ -2701,7 +2701,12 @@
       </div>
       <div class="form-group">
         <label class="form-label">내용 *</label>
-        <textarea class="form-input" id="postContentInput" rows="10" placeholder="내용을 입력하세요" style="resize:vertical"></textarea>
+        <textarea class="form-input" id="postContentInput" rows="8" placeholder="내용을 입력하세요" style="resize:vertical"></textarea>
+      </div>
+      <div class="form-group" id="postFileLabel" style="display:none">
+        <label class="form-label">파일 첨부 <span style="color:var(--text3);font-weight:400">(선택)</span></label>
+        <input type="file" class="form-input" id="postFileInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">이미지 (PNG, JPG, GIF, WEBP) 또는 PDF · 최대 20MB</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -5812,24 +5817,58 @@ function openWritePost() {
   document.getElementById('writePostTitle').textContent = `${BOARD_META[currentBoard].title} 글쓰기`;
   document.getElementById('postTitleInput').value = '';
   document.getElementById('postContentInput').value = '';
+  document.getElementById('postFileInput').value = '';
+  document.getElementById('postFileInput').style.display =
+    (currentBoard === 'student' || currentBoard === 'parent') ? '' : 'none';
+  document.getElementById('postFileLabel').style.display =
+    (currentBoard === 'student' || currentBoard === 'parent') ? '' : 'none';
   document.getElementById('writePostModal').classList.add('open');
 }
 
 async function submitPost() {
   const title = document.getElementById('postTitleInput').value.trim();
   const content = document.getElementById('postContentInput').value.trim();
+  const fileInput = document.getElementById('postFileInput');
+  const file = fileInput.files?.[0] || null;
   if (!title) { showToast('제목을 입력하세요', '⚠️'); return; }
   if (!content) { showToast('내용을 입력하세요', '⚠️'); return; }
   if (!canWriteBoard(currentBoard)) { showToast('작성 권한이 없습니다', '⚠️'); return; }
+
+  const btn = document.querySelector('#writePostModal .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
+
+  let attachment_path = null, attachment_name = null, attachment_size = null;
+
+  if (file) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
+    const path = `posts/${currentUser.id}/${Date.now()}_${safeName}`;
+    const { error: upErr } = await sbClient.storage.from('post-attachments').upload(path, file, { upsert: false });
+    if (upErr) {
+      showToast('파일 업로드 실패: ' + upErr.message, '❌');
+      if (btn) { btn.disabled = false; btn.textContent = '등록'; }
+      return;
+    }
+    attachment_path = path;
+    attachment_name = file.name;
+    attachment_size = file.size;
+  }
 
   const { error } = await sbClient.from('posts').insert({
     board: currentBoard,
     title, content,
     author_id: currentUser.id,
     author_name: currentProfile?.name || null,
-    author_role: currentProfile?.role || null
+    author_role: currentProfile?.role || null,
+    attachment_path,
+    attachment_name,
+    attachment_size
   });
-  if (error) { showToast('작성 실패: ' + error.message, '❌'); return; }
+  if (btn) { btn.disabled = false; btn.textContent = '등록'; }
+  if (error) {
+    if (attachment_path) sbClient.storage.from('post-attachments').remove([attachment_path]).catch(() => {});
+    showToast('작성 실패: ' + error.message, '❌');
+    return;
+  }
   closeModal('writePostModal');
   showToast('게시글이 등록되었습니다', '✅');
   loadBoard(currentBoard, 1);
@@ -5843,40 +5882,61 @@ async function openPostDetail(id) {
   document.getElementById('post-detail-wrap').innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>`;
   document.getElementById('post-comments-wrap').style.display = 'none';
 
-  // 조회수 증가
-  sbClient.rpc('increment_post_view', { post_id: id }).catch(() => {});
+  try {
+    // 조회수 증가 (실패해도 무시)
+    try { sbClient.rpc('increment_post_view', { post_id: id }); } catch(e) {}
 
-  const { data: p, error } = await sbClient.from('posts').select('*').eq('id', id).single();
-  if (error || !p) {
-    document.getElementById('post-detail-wrap').innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오기 실패</div></div>`;
-    return;
-  }
+    const { data: p, error } = await sbClient.from('posts').select('*').eq('id', id).single();
+    if (error || !p) {
+      document.getElementById('post-detail-wrap').innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">게시글을 불러올 수 없습니다${error ? '<br><span style="font-size:12px;color:var(--text3)">' + error.message + '</span>' : ''}</div></div>`;
+      return;
+    }
 
-  const isOwner = currentUser && p.author_id === currentUser.id;
-  const isAdmin = currentProfile?.role === 'admin';
-  const canDelete = isOwner || isAdmin;
+    const isOwner = currentUser && p.author_id === currentUser.id;
+    const isAdmin = currentProfile?.role === 'admin';
+    const canDelete = isOwner || isAdmin;
 
-  document.getElementById('post-detail-wrap').innerHTML = `
-    <div style="padding:20px 24px;border-bottom:1px solid var(--border)">
-      <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:12px">${escapeHtml(p.title)}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text3)">
-        <div>${escapeHtml(p.author_name || '—')} · ${new Date(p.created_at).toLocaleString('ko-KR')}</div>
-        <div>조회 ${p.view_count || 0}</div>
+    // 첨부파일 다운로드 URL
+    let attachHtml = '';
+    if (p.attachment_path && p.attachment_name) {
+      const { data: urlData } = sbClient.storage.from('post-attachments').getPublicUrl(p.attachment_path);
+      const url = urlData?.publicUrl || '';
+      const sizeStr = p.attachment_size ? ` (${(p.attachment_size / 1024).toFixed(0)}KB)` : '';
+      attachHtml = `
+        <div style="padding:12px 24px;border-top:1px solid var(--border);background:var(--bg2);border-radius:0 0 10px 10px">
+          <a href="${url}" target="_blank" download="${escapeHtml(p.attachment_name)}"
+             style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--accent);font-weight:600;text-decoration:none">
+            📎 ${escapeHtml(p.attachment_name)}${sizeStr}
+          </a>
+        </div>`;
+    }
+
+    document.getElementById('post-detail-wrap').innerHTML = `
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:12px">${escapeHtml(p.title)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text3)">
+          <div>${escapeHtml(p.author_name || '—')} · ${new Date(p.created_at).toLocaleString('ko-KR')}</div>
+          <div>조회 ${p.view_count || 0}</div>
+        </div>
       </div>
-    </div>
-    <div style="padding:24px;white-space:pre-wrap;line-height:1.7;color:var(--text);min-height:160px">${escapeHtml(p.content)}</div>
-    ${canDelete ? `
-      <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
-        <button class="btn btn-ghost btn-sm" onclick="deletePost('${p.id}')" style="color:var(--red)">삭제</button>
-      </div>
-    ` : ''}
-  `;
+      <div style="padding:24px;white-space:pre-wrap;line-height:1.7;color:var(--text);min-height:160px">${escapeHtml(p.content)}</div>
+      ${attachHtml}
+      ${canDelete ? `
+        <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="deletePost('${p.id}')" style="color:var(--red)">삭제</button>
+        </div>
+      ` : ''}
+    `;
 
-  // 댓글 (notice는 댓글 없음)
-  if (p.board === 'student' || p.board === 'parent') {
-    document.getElementById('post-comments-wrap').style.display = '';
-    document.getElementById('comment-form').style.display = canCommentBoard(p.board) ? '' : 'none';
-    loadComments(id);
+    // 댓글 (notice는 댓글 없음)
+    if (p.board === 'student' || p.board === 'parent') {
+      document.getElementById('post-comments-wrap').style.display = '';
+      document.getElementById('comment-form').style.display = canCommentBoard(p.board) ? '' : 'none';
+      loadComments(id);
+    }
+  } catch(e) {
+    console.error('openPostDetail error:', e);
+    document.getElementById('post-detail-wrap').innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">오류가 발생했습니다<br><span style="font-size:12px;color:var(--text3)">${escapeHtml(e.message)}</span></div></div>`;
   }
 }
 
