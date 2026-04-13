@@ -2171,6 +2171,18 @@
     </div>
 
     <!-- ══ VIEW: MATERIALS (자료실) ══ -->
+    <!-- ══ VIEW: MATERIAL DETAIL ══ -->
+    <div id="view-material-detail" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <button class="btn btn-ghost btn-sm" onclick="showView('materials')">← 목록</button>
+        </div>
+      </div>
+      <div class="card" id="material-detail-wrap">
+        <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
     <div id="view-materials" class="view" style="display:none">
       <div class="page-header">
         <div>
@@ -5524,7 +5536,7 @@ async function loadMaterials() {
       const isOwner = currentUser && m.uploader_id === currentUser.id;
       const isAdmin = currentProfile?.role === 'admin';
       const cat = `${SCHOOL_LABEL[m.school_level] || ''}${m.grade ? m.grade : ''}${m.semester ? '-' + m.semester : ''}${m.area ? ' · ' + m.area : ''}`;
-      return `<tr>
+      return `<tr style="cursor:pointer" onclick="openMaterialDetail('${m.id}')">
         <td>
           <div class="font-bold">${m.title}</div>
           ${m.unit ? `<div style="font-size:12px;color:var(--text3);margin-top:2px">${m.unit}</div>` : ''}
@@ -5534,13 +5546,67 @@ async function loadMaterials() {
         <td class="text-muted text-sm">${fmtSize(m.file_size)}</td>
         <td class="text-muted text-sm">${m.download_count || 0}회</td>
         <td class="text-muted text-sm">${m.created_at ? new Date(m.created_at).toLocaleDateString('ko-KR') : '—'}</td>
-        <td>
+        <td onclick="event.stopPropagation()">
           <button class="btn btn-primary btn-xs" onclick="downloadMaterial('${m.id}','${m.file_path}','${(m.file_name || '').replace(/'/g,"\\'")}')">다운</button>
           ${(isOwner || isAdmin) ? `<button class="btn btn-ghost btn-xs" onclick="deleteMaterial('${m.id}','${m.file_path}')">삭제</button>` : ''}
         </td>
       </tr>`;
     }).join('') +
     '</tbody></table></div>';
+}
+
+async function openMaterialDetail(id) {
+  showView('material-detail');
+  const wrap = document.getElementById('material-detail-wrap');
+  wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>`;
+
+  try {
+    const { data: m, error } = await sbClient.from('materials').select('*').eq('id', id).single();
+    if (error || !m) {
+      wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">자료를 불러올 수 없습니다${error ? '<br><span style="font-size:12px;color:var(--text3)">' + error.message + '</span>' : ''}</div></div>`;
+      return;
+    }
+
+    const isOwner = currentUser && m.uploader_id === currentUser.id;
+    const isAdmin = currentProfile?.role === 'admin';
+    const LEVEL = { elementary: '초등', middle: '중등', high: '고등' };
+    const metaRows = [
+      m.school_level ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">학교급</span><span>${LEVEL[m.school_level] || m.school_level}</span></div>` : '',
+      m.grade        ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">학년</span><span>${m.grade}학년</span></div>` : '',
+      m.semester     ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">학기</span><span>${m.semester}학기</span></div>` : '',
+      m.area         ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">영역</span><span>${m.area}</span></div>` : '',
+      m.unit         ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">단원</span><span>${m.unit}</span></div>` : '',
+    ].filter(Boolean).join('');
+
+    function fmtSize(b) {
+      if (!b) return '—';
+      if (b < 1024) return b + 'B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + 'KB';
+      return (b / (1024 * 1024)).toFixed(1) + 'MB';
+    }
+
+    wrap.innerHTML = `
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:10px">${escapeHtml(m.title)}</div>
+        <div style="font-size:13px;color:var(--text3)">
+          ${escapeHtml(m.uploader_name || '—')} · ${m.created_at ? new Date(m.created_at).toLocaleDateString('ko-KR') : '—'} · 다운로드 ${m.download_count || 0}회
+        </div>
+      </div>
+      ${m.description ? `<div style="padding:16px 24px;border-bottom:1px solid var(--border);white-space:pre-wrap;line-height:1.7;color:var(--text)">${escapeHtml(m.description)}</div>` : ''}
+      ${metaRows ? `<div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;font-size:14px">${metaRows}</div>` : ''}
+      <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+        <div style="font-size:13px;color:var(--text3)">📎 ${escapeHtml(m.file_name || '—')} <span style="margin-left:6px">${fmtSize(m.file_size)}</span></div>
+        <button class="btn btn-primary btn-sm" onclick="downloadMaterial('${m.id}','${m.file_path}','${(m.file_name || '').replace(/'/g,"\\'")}')">다운로드</button>
+      </div>
+      ${(isOwner || isAdmin) ? `
+        <div style="padding:12px 24px;display:flex;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="deleteMaterial('${m.id}','${m.file_path}')" style="color:var(--red)">삭제</button>
+        </div>
+      ` : ''}
+    `;
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">오류: ${escapeHtml(e.message)}</div></div>`;
+  }
 }
 
 function resetMaterialFilters() {
@@ -5670,7 +5736,7 @@ async function deleteMaterial(id, filePath) {
     const { error } = await sbClient.from('materials').delete().eq('id', id);
     if (error) throw error;
     showToast('자료가 삭제되었습니다', '✅');
-    loadMaterials();
+    showView('materials');
   } catch (e) {
     showToast('삭제 실패: ' + e.message, '❌');
   }
