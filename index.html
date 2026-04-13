@@ -6709,17 +6709,21 @@ async function loadAdminOrgTab() {
 }
 
 async function adminDeleteOrg(orgId, orgName) {
-  if (!confirm(`"${orgName}" 기관을 삭제하시겠습니까?\n\n소속 선생님의 organization_id가 초기화되며 되돌릴 수 없습니다.`)) return;
+  if (!confirm(`"${orgName}" 기관을 삭제하시겠습니까?\n\n⚠️ 이 기관의 모든 소속 회원(원장님·선생님)도 함께 탈퇴 처리됩니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
 
-  // 소속 선생님 organization_id 초기화
-  await sbClient.from('profiles').update({ organization_id: null, school: null })
+  // 1. 소속 회원 전체 소프트 삭제 (원장님 + 선생님)
+  const { error: memberErr } = await sbClient.from('profiles')
+    .update({ status: 'deleted' })
     .eq('organization_id', orgId);
+  if (memberErr) { showToast('소속 회원 처리 실패: ' + memberErr.message, '❌'); return; }
 
-  const { error } = await sbClient.from('organizations').delete().eq('id', orgId);
-  if (error) { showToast('삭제 실패: ' + error.message, '❌'); return; }
+  // 2. 기관 삭제
+  const { error: orgErr } = await sbClient.from('organizations').delete().eq('id', orgId);
+  if (orgErr) { showToast('기관 삭제 실패: ' + orgErr.message, '❌'); return; }
 
-  showToast(`"${orgName}" 기관이 삭제되었습니다.`, '✅');
+  showToast(`"${orgName}" 기관 및 소속 회원이 삭제되었습니다.`, '✅');
   loadAdminOrgTab();
+  checkPendingBadge();
 }
 
 function openOrgApplyModal() {
