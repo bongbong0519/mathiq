@@ -2487,8 +2487,11 @@
         <div><div class="page-title">회원 현황</div><div class="page-sub">선생님 · 기관(원장님) 가입 승인 및 관리</div></div>
       </div>
 
-      <div class="tab-nav" style="display:flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;width:fit-content">
+      <div class="tab-nav" style="display:flex;flex-wrap:wrap;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;width:fit-content">
         <button class="tab-btn active" onclick="switchAdminMemberTab(this,'admin-tab-teachers')">선생님</button>
+        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-directors')">원장님</button>
+        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-students-p')">학생</button>
+        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-parents')">학부모</button>
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-orgs')">기관 관리</button>
       </div>
 
@@ -2497,6 +2500,30 @@
         <div class="card">
           <div class="card-header"><h3 class="card-title">선생님 목록</h3></div>
           <div id="admin-teachers-wrap"></div>
+        </div>
+      </div>
+
+      <!-- 탭: 원장님 -->
+      <div id="admin-tab-directors" class="admin-member-tab" style="display:none">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">원장님 목록</h3></div>
+          <div id="admin-directors-wrap"></div>
+        </div>
+      </div>
+
+      <!-- 탭: 학생 -->
+      <div id="admin-tab-students-p" class="admin-member-tab" style="display:none">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">학생 회원</h3></div>
+          <div id="admin-students-p-wrap"></div>
+        </div>
+      </div>
+
+      <!-- 탭: 학부모 -->
+      <div id="admin-tab-parents" class="admin-member-tab" style="display:none">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">학부모 회원</h3></div>
+          <div id="admin-parents-wrap"></div>
         </div>
       </div>
 
@@ -5640,8 +5667,11 @@ function switchAdminMemberTab(btn, tabId) {
   btn.classList.add('active');
   document.querySelectorAll('.admin-member-tab').forEach(t => t.style.display = 'none');
   document.getElementById(tabId).style.display = '';
-  if (tabId === 'admin-tab-teachers') loadAdminTeacherTab();
-  if (tabId === 'admin-tab-orgs') loadAdminOrgTab();
+  if (tabId === 'admin-tab-teachers')   loadAdminTeacherTab();
+  if (tabId === 'admin-tab-directors')  loadAdminDirectorTab();
+  if (tabId === 'admin-tab-students-p') loadAdminStudentProfilesTab();
+  if (tabId === 'admin-tab-parents')    loadAdminParentTab();
+  if (tabId === 'admin-tab-orgs')       loadAdminOrgTab();
 }
 
 // ═══════════════════════════════════════
@@ -6454,15 +6484,67 @@ async function loadAdminTeachers() {
   loadAdminOrgTab();
 }
 
+async function adminDeleteUser(userId, userName, role) {
+  const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모' }[role] || role;
+  if (!confirm(`"${userName}" (${roleKo})을(를) 탈퇴 처리하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.\nprofiles 데이터가 삭제되고 로그인이 불가해집니다.`)) return;
+
+  try {
+    // 1. profiles 삭제 (RLS: admin만 가능)
+    const { error: profileErr } = await sbClient.from('profiles').delete().eq('id', userId);
+    if (profileErr) throw profileErr;
+
+    // 2. auth.users 삭제 (Edge Function)
+    const { data: { session } } = await sbClient.auth.getSession();
+    let authDeleted = false;
+    if (session?.access_token) {
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/delete-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': SUPABASE_KEY,
+          },
+          body: JSON.stringify({ targetUserId: userId }),
+        });
+        const result = await resp.json();
+        authDeleted = resp.ok && result.ok;
+      } catch(e) { console.warn('auth delete failed:', e); }
+    }
+
+    const msg = authDeleted
+      ? `"${userName}"님이 완전히 탈퇴 처리되었습니다.`
+      : `"${userName}"님의 프로필이 삭제되었습니다.\n(Auth 계정은 Supabase 대시보드에서 별도 삭제 필요)`;
+    showToast(msg.split('\n')[0], '✅');
+
+    // 3. 탭 새로고침
+    if (role === 'teacher')   loadAdminTeacherTab();
+    else if (role === 'director') loadAdminDirectorTab();
+    else if (role === 'student')  loadAdminStudentProfilesTab();
+    else if (role === 'parent')   loadAdminParentTab();
+
+  } catch(e) {
+    showToast('삭제 실패: ' + e.message, '❌');
+  }
+}
+
 function adminStatusBadge(status) {
   if (status === 'approved') return '<span class="chip green">승인됨</span>';
   if (status === 'rejected') return '<span class="chip red">거절됨</span>';
   return '<span class="chip yellow">대기중</span>';
 }
-function adminActionBtns(id, status) {
-  if (status === 'pending') return `<div style="display:flex;gap:6px"><button class="btn btn-green btn-xs" onclick="approveTeacher('${id}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectTeacher('${id}')">거절</button></div>`;
-  if (status === 'approved') return `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${id}')">승인 취소</button>`;
-  return `<button class="btn btn-green btn-xs" onclick="approveTeacher('${id}')">승인</button>`;
+function adminActionBtns(id, name, status, role) {
+  const esc = s => (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  let approval = '';
+  if (status === 'pending') approval = `<button class="btn btn-green btn-xs" onclick="approveTeacher('${id}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectTeacher('${id}')">거절</button>`;
+  else if (status === 'approved') approval = `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${id}')">승인 취소</button>`;
+  else approval = `<button class="btn btn-green btn-xs" onclick="approveTeacher('${id}')">승인</button>`;
+  const del = `<button class="btn btn-xs" style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.25);color:var(--red)" onclick="adminDeleteUser('${id}','${esc(name)}','${role}')">탈퇴</button>`;
+  return `<div style="display:flex;gap:5px;flex-wrap:wrap">${approval}${del}</div>`;
+}
+function adminRoleDeleteBtn(id, name, role) {
+  const esc = s => (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  return `<button class="btn btn-xs" style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.25);color:var(--red)" onclick="adminDeleteUser('${id}','${esc(name)}','${role}')">탈퇴</button>`;
 }
 
 async function loadAdminTeacherTab() {
@@ -6483,7 +6565,72 @@ async function loadAdminTeacherTab() {
       <td class="text-muted text-sm">${t.school || '—'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
-      <td>${adminActionBtns(t.id, t.status)} <button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${esc(t.name)}')">학생 이전</button></td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'teacher')}<button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${esc(t.name)}')">학생 이전</button></div></td>
+    </tr>`).join('') +
+    '</tbody></table></div>';
+}
+
+async function loadAdminDirectorTab() {
+  if (!sbClient || !currentUser) return;
+  const { data: directors } = await sbClient.from('profiles')
+    .select('*').eq('role', 'director').order('created_at', { ascending: false });
+  const wrap = document.getElementById('admin-directors-wrap');
+  if (!wrap) return;
+  if (!directors?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 원장님이 없습니다</div></div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>기관명</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+    directors.map(t => `<tr>
+      <td class="font-bold">${t.name || '(이름 없음)'}</td>
+      <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
+      <td class="text-muted text-sm">${t.school || '—'}</td>
+      <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
+      <td>${adminStatusBadge(t.status)}</td>
+      <td>${adminActionBtns(t.id, t.name, t.status, 'director')}</td>
+    </tr>`).join('') +
+    '</tbody></table></div>';
+}
+
+async function loadAdminStudentProfilesTab() {
+  if (!sbClient || !currentUser) return;
+  const { data: students } = await sbClient.from('profiles')
+    .select('*').eq('role', 'student').order('created_at', { ascending: false });
+  const wrap = document.getElementById('admin-students-p-wrap');
+  if (!wrap) return;
+  if (!students?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 학생이 없습니다</div></div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+    students.map(t => `<tr>
+      <td class="font-bold">${t.name || '(이름 없음)'}</td>
+      <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
+      <td class="text-muted text-sm">${t.school || t.region || '—'}</td>
+      <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
+      <td>${adminStatusBadge(t.status)}</td>
+      <td>${adminRoleDeleteBtn(t.id, t.name, 'student')}</td>
+    </tr>`).join('') +
+    '</tbody></table></div>';
+}
+
+async function loadAdminParentTab() {
+  if (!sbClient || !currentUser) return;
+  const { data: parents } = await sbClient.from('profiles')
+    .select('*').eq('role', 'parent').order('created_at', { ascending: false });
+  const wrap = document.getElementById('admin-parents-wrap');
+  if (!wrap) return;
+  if (!parents?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 학부모가 없습니다</div></div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+    parents.map(t => `<tr>
+      <td class="font-bold">${t.name || '(이름 없음)'}</td>
+      <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
+      <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
+      <td>${adminStatusBadge(t.status)}</td>
+      <td>${adminRoleDeleteBtn(t.id, t.name, 'parent')}</td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
