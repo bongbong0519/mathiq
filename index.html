@@ -5560,7 +5560,7 @@ function openUploadMaterialModal() {
   document.getElementById('matSchool').value = 'middle';
   ['matGrade','matSemester','matArea'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('matFile').value = '';
-  document.getElementById('uploadMaterialModal').style.display = 'flex';
+  document.getElementById('uploadMaterialModal').classList.add('open');
 }
 
 async function submitMaterialUpload() {
