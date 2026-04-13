@@ -2493,7 +2493,7 @@
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-directors')">원장님</button>
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-students-p')">학생</button>
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-parents')">학부모</button>
-        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-orgs')">기관 관리</button>
+        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-orgs')" style="display:flex;align-items:center;gap:5px">기관 관리<span id="org-pending-badge" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px rgba(62,207,142,0.3);flex-shrink:0"></span></button>
       </div>
 
       <!-- 탭: 선생님 -->
@@ -6500,12 +6500,14 @@ async function loadAdminTeachers() {
 
 async function checkPendingBadge() {
   if (!sbClient || currentProfile?.role !== 'admin') return;
-  const { count } = await sbClient
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending');
-  const badge = document.getElementById('pending-badge');
-  if (badge) badge.style.display = (count > 0) ? '' : 'none';
+  const [{ count: memberCount }, { count: orgCount }] = await Promise.all([
+    sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    sbClient.from('organizations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  ]);
+  const navBadge = document.getElementById('pending-badge');
+  if (navBadge) navBadge.style.display = ((memberCount || 0) + (orgCount || 0) > 0) ? '' : 'none';
+  const orgBadge = document.getElementById('org-pending-badge');
+  if (orgBadge) orgBadge.style.display = ((orgCount || 0) > 0) ? '' : 'none';
 }
 
 let _pendingBadgeTimer = null;
