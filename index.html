@@ -6,6 +6,7 @@
 <title>MathIQ — 수학 학습 분석 플랫폼</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="config.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -2986,6 +2987,43 @@ function showLanding() {
   document.getElementById('authOverlay').style.display = 'none';
 }
 
+// ── EmailJS 초기화 ──
+function initEmailJS() {
+  try {
+    if (typeof emailjs !== 'undefined' && typeof EMAILJS_PUBLIC_KEY !== 'undefined' && EMAILJS_PUBLIC_KEY) {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    }
+  } catch(e) { console.warn('EmailJS init failed:', e); }
+}
+
+const ROLE_LABEL_KO = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모', admin: '운영자' };
+
+async function sendSignupEmails(userName, userEmail, userRole, orgName) {
+  if (typeof emailjs === 'undefined') return;
+  if (!EMAILJS_SERVICE_ID || !EMAILJS_TPL_USER || !EMAILJS_TPL_ADMIN) return;
+
+  const roleName  = ROLE_LABEL_KO[userRole] || userRole;
+  const isPending = userRole === 'teacher' || userRole === 'director';
+
+  // 1. 가입자 이메일
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TPL_USER, {
+    to_name:   userName,
+    to_email:  userEmail,
+    role_name: roleName,
+    org_name:  orgName || '—',
+    is_pending: isPending ? '승인 대기 중입니다. 운영자 승인 후 이용 가능합니다.' : '바로 이용하실 수 있습니다.',
+  }).catch(e => console.warn('User email failed:', e));
+
+  // 2. 운영자 알림 이메일
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TPL_ADMIN, {
+    user_name:  userName,
+    user_email: userEmail,
+    role_name:  roleName,
+    org_name:   orgName || '—',
+    admin_email: 'yoonbro1927@gmail.com',
+  }).catch(e => console.warn('Admin email failed:', e));
+}
+
 function initSupabase() {
   try {
     if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_KEY !== 'undefined' &&
@@ -3313,18 +3351,9 @@ async function handleSignup() {
   clearOrgSelection();
 
   // 가입 알림 이메일 발송 (실패해도 가입 처리에 영향 없음)
-  try {
-    await sbClient.functions.invoke('notify-signup', {
-      body: {
-        userName: name,
-        userEmail: email,
-        userRole: selectedRole,
-        orgName: selectedOrgName || null,
-      },
-    });
-  } catch (e) {
-    console.warn('notify-signup function call failed:', e);
-  }
+  sendSignupEmails(name, email, selectedRole, selectedOrgName || '').catch(e =>
+    console.warn('sendSignupEmails failed:', e)
+  );
 
   showToast('회원가입 완료! 이메일 인증 후 로그인하세요', '✅');
   switchAuthTab('login');
