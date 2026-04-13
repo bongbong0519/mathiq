@@ -985,6 +985,7 @@
   <nav class="landing-nav">
     <div class="landing-nav-logo">Math<span>IQ</span></div>
     <div class="landing-nav-right">
+      <button class="landing-nav-btn ghost" onclick="openOrgApplyModal()">기관 등록 신청</button>
       <button class="landing-nav-btn ghost" onclick="openAuthFromLanding('login')">로그인</button>
       <button class="landing-nav-btn primary" onclick="openAuthFromLanding('signup')">무료 시작하기</button>
     </div>
@@ -1155,8 +1156,8 @@
           <button type="button" onclick="clearOrgSelection()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 2px;line-height:1">✕</button>
         </div>
         <div id="orgNoResult" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);line-height:1.6">
-          기관을 찾을 수 없습니다.<br>
-          <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="showToast('원장님께 기관 등록을 요청하거나 운영자에게 문의해주세요','ℹ️')">기관이 없으신가요? 기관 등록 신청 →</span>
+          검색된 기관이 없습니다.<br>
+          <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="closeModal('orgApplyModal');document.getElementById('authOverlay').style.display='none';openOrgApplyModal()">기관이 없으신가요? 기관 등록 신청하기 →</span>
         </div>
       </div>
       <!-- 원장님: 기관명 직접 입력 -->
@@ -2748,6 +2749,49 @@
   </div>
 </div>
 
+<!-- 기관 등록 신청 모달 (로그인 없이 사용 가능) -->
+<div class="modal-overlay" id="orgApplyModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">기관 등록 신청</div>
+      <button class="modal-close" onclick="closeModal('orgApplyModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+        기관 등록 신청 후 운영자 승인이 완료되면<br>원장님·선생님 회원가입 시 기관을 검색할 수 있습니다.
+      </p>
+      <div class="form-group">
+        <label class="form-label">기관명 *</label>
+        <input type="text" class="form-input" id="applyOrgName" placeholder="○○수학학원">
+      </div>
+      <div class="form-group">
+        <label class="form-label">기관 유형 *</label>
+        <select class="form-input" id="applyOrgType">
+          <option value="academy">학원</option>
+          <option value="school">학교</option>
+          <option value="tutoring">교습소</option>
+          <option value="other">기타</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">대표자명 *</label>
+        <input type="text" class="form-input" id="applyOrgContact" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label class="form-label">연락처 *</label>
+        <input type="tel" class="form-input" id="applyOrgPhone" placeholder="010-0000-0000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">주소 <span style="color:var(--text3);font-weight:400">(선택)</span></label>
+        <input type="text" class="form-input" id="applyOrgAddress" placeholder="서울시 강남구 테헤란로 123">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary w-full" id="applyOrgBtn" onclick="submitOrgApply()">신청하기</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="addOrgModal">
   <div class="modal">
     <div class="modal-header">
@@ -3090,14 +3134,10 @@ function selectRole(role) {
   document.getElementById('orgSearchInput').value = '';
   document.getElementById('orgDropdown').style.display = 'none';
   document.getElementById('orgNoResult').style.display = 'none';
-  if (role === 'teacher') {
+  if (role === 'teacher' || role === 'director') {
     orgSearchField.style.display = 'flex';
     schoolField.style.display    = 'none';
     orgTypeField.style.display   = 'none';
-  } else if (role === 'director') {
-    orgSearchField.style.display = 'none';
-    schoolField.style.display    = 'flex';
-    orgTypeField.style.display   = 'flex';
   } else {
     orgSearchField.style.display = 'none';
     schoolField.style.display    = 'none';
@@ -3200,11 +3240,8 @@ async function handleSignup() {
   document.getElementById('signupError').classList.remove('show');
 
   if (!name || !email || !password) { showAuthError('signupError', '모든 항목을 입력해주세요'); return; }
-  if (selectedRole === 'teacher' && !selectedOrgId) {
+  if ((selectedRole === 'teacher' || selectedRole === 'director') && !selectedOrgId) {
     showAuthError('signupError', '소속 기관을 검색하여 선택해주세요'); return;
-  }
-  if (selectedRole === 'director' && !school) {
-    showAuthError('signupError', '기관명을 입력해주세요'); return;
   }
   if (password.length < 8) { showAuthError('signupError', '비밀번호는 8자 이상이어야 합니다'); return; }
 
@@ -3235,26 +3272,17 @@ async function handleSignup() {
 
   let orgId = null;
 
-  // 선생님이면 선택한 기관 연결
-  if (selectedRole === 'teacher') {
+  // 선생님/원장님 모두 선택한 기관 연결
+  if (selectedRole === 'teacher' || selectedRole === 'director') {
     orgId = selectedOrgId;
   }
 
-  // 원장님이면 기관 먼저 생성
-  if (selectedRole === 'director') {
-    const orgType = document.getElementById('signupOrgType').value;
-    const { data: orgData, error: orgError } = await sbClient.from('organizations').insert({
-      name: school,
-      type: orgType,
-      owner_id: data.user.id,
-      contact_name: name,
-      status: 'pending'
-    }).select().single();
-    if (orgError) {
-      console.error('Organization insert error:', orgError);
-    } else {
-      orgId = orgData.id;
-    }
+  // 원장님이면 기관의 owner_id를 본인으로 설정
+  if (selectedRole === 'director' && orgId) {
+    await sbClient.from('organizations')
+      .update({ owner_id: data.user.id })
+      .eq('id', orgId)
+      .is('owner_id', null);
   }
 
   // 프로필 저장
@@ -3263,7 +3291,7 @@ async function handleSignup() {
     role: selectedRole,
     name,
     email,
-    school: selectedRole === 'teacher' ? selectedOrgName : (selectedRole === 'director' ? school : null),
+    school: (selectedRole === 'teacher' || selectedRole === 'director') ? selectedOrgName : null,
     organization_id: orgId,
     region: null,
     status: (selectedRole === 'teacher' || selectedRole === 'director') ? 'pending' : 'approved'
@@ -6461,15 +6489,17 @@ async function loadAdminOrgTab() {
     return `<button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}','${o.owner_id || ''}')">승인</button>`;
   }
 
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>기관명</th><th>유형</th><th>대표(원장님)</th><th>선생님</th><th>연락처</th><th>등록일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>기관명</th><th>유형</th><th>대표자</th><th>연락처</th><th>주소</th><th>선생님</th><th>등록일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
     orgs.map(o => {
       const owner = ownerMap[o.owner_id];
+      const contactName = owner ? owner.name : (o.contact_name || '—');
       return `<tr>
         <td class="font-bold">${o.name || '—'}</td>
         <td><span style="font-size:12px;font-weight:600;color:var(--accent)">${typeLabel[o.type] || o.type || '—'}</span></td>
-        <td class="text-muted text-sm">${owner ? `<span class="font-bold" style="color:var(--text)">${owner.name}</span><br>${owner.email || ''}` : o.contact_name || '—'}</td>
-        <td class="text-muted text-sm">${orgTeacherCounts[o.id] || 0}명</td>
+        <td class="text-muted text-sm">${escapeHtml(contactName)}${owner ? `<br><span style="font-size:11px">${owner.email || ''}</span>` : ''}</td>
         <td class="text-muted text-sm">${o.phone || '—'}</td>
+        <td class="text-muted text-sm" style="max-width:140px;white-space:normal">${o.address ? escapeHtml(o.address) : '—'}</td>
+        <td class="text-muted text-sm">${orgTeacherCounts[o.id] || 0}명</td>
         <td class="text-muted text-sm">${o.created_at ? new Date(o.created_at).toLocaleDateString('ko-KR') : '—'}</td>
         <td>${adminStatusBadge(o.status)}</td>
         <td>${orgActionBtns(o)}</td>
@@ -6478,10 +6508,42 @@ async function loadAdminOrgTab() {
     '</tbody></table></div>';
 }
 
+function openOrgApplyModal() {
+  ['applyOrgName','applyOrgContact','applyOrgPhone','applyOrgAddress'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('applyOrgType').value = 'academy';
+  document.getElementById('orgApplyModal').classList.add('open');
+}
+
+async function submitOrgApply() {
+  const name    = document.getElementById('applyOrgName').value.trim();
+  const type    = document.getElementById('applyOrgType').value;
+  const contact = document.getElementById('applyOrgContact').value.trim();
+  const phone   = document.getElementById('applyOrgPhone').value.trim();
+  const address = document.getElementById('applyOrgAddress').value.trim();
+  if (!name)    { showToast('기관명을 입력해주세요', '⚠️'); return; }
+  if (!contact) { showToast('대표자명을 입력해주세요', '⚠️'); return; }
+  if (!phone)   { showToast('연락처를 입력해주세요', '⚠️'); return; }
+
+  const btn = document.getElementById('applyOrgBtn');
+  btn.disabled = true; btn.textContent = '신청 중...';
+
+  const { error } = await sbClient.from('organizations').insert({
+    name, type, contact_name: contact, phone,
+    address: address || null,
+    status: 'pending'
+  });
+  btn.disabled = false; btn.textContent = '신청하기';
+  if (error) { showToast('신청 실패: ' + error.message, '❌'); return; }
+  showToast('기관 등록이 신청되었습니다. 승인 후 이용 가능합니다.', '✅');
+  closeModal('orgApplyModal');
+}
+
 function openAddOrgModal() {
   ['orgName','orgContact','orgPhone'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('orgType').value = 'academy';
-  document.getElementById('addOrgModal').style.display = 'flex';
+  document.getElementById('addOrgModal').classList.add('open');
 }
 
 async function submitAddOrg() {
