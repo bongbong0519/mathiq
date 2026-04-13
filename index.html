@@ -1309,6 +1309,7 @@
         </div>
         <div class="nav-item" onclick="showView('admin-teachers')">
           <span class="icon">🏫</span> 회원 현황
+          <span id="pending-badge" style="display:none;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px rgba(62,207,142,0.3);margin-left:auto;flex-shrink:0"></span>
         </div>
         <div class="nav-item" onclick="showView('admin-students')">
           <span class="icon">👥</span> 전체 학생
@@ -3147,6 +3148,7 @@ async function loadProfile() {
       if (teacherBtn) teacherBtn.style.display = '';
       if (directorBtn) directorBtn.style.display = '';
       if (adminBtn) adminBtn.style.display = '';
+      startPendingBadgePolling();
     } else if (data.role === 'director') {
       if (directorBtn) directorBtn.style.display = '';
     } else if (data.role === 'teacher') {
@@ -3405,6 +3407,7 @@ function showAuthError(id, msg) {
 
 // ── 로그아웃 ──
 async function handleLogout() {
+  stopPendingBadgePolling();
   if (sbClient) await sbClient.auth.signOut();
   currentUser = null; currentProfile = null;
   document.getElementById('appWrapper').style.display = 'none';
@@ -6495,6 +6498,27 @@ async function loadAdminTeachers() {
   loadAdminOrgTab();
 }
 
+async function checkPendingBadge() {
+  if (!sbClient || currentProfile?.role !== 'admin') return;
+  const { count } = await sbClient
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+  const badge = document.getElementById('pending-badge');
+  if (badge) badge.style.display = (count > 0) ? '' : 'none';
+}
+
+let _pendingBadgeTimer = null;
+function startPendingBadgePolling() {
+  checkPendingBadge();
+  clearInterval(_pendingBadgeTimer);
+  _pendingBadgeTimer = setInterval(checkPendingBadge, 60000); // 1분마다
+}
+function stopPendingBadgePolling() {
+  clearInterval(_pendingBadgeTimer);
+  _pendingBadgeTimer = null;
+}
+
 async function adminDeleteUser(userId, userName, role) {
   const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모' }[role] || role;
   if (!confirm(`"${userName}" (${roleKo})을(를) 탈퇴 처리하시겠습니까?\n\n로그인이 차단되고 목록에서 숨겨집니다.`)) return;
@@ -6755,12 +6779,14 @@ async function approveOrg(orgId, ownerId) {
   if (ownerId) await sbClient.from('profiles').update({ status: 'approved' }).eq('id', ownerId);
   showToast('기관과 원장님이 승인되었습니다', '✅');
   loadAdminOrgTab();
+  checkPendingBadge();
 }
 async function rejectOrg(orgId, ownerId) {
   await sbClient.from('organizations').update({ status: 'rejected' }).eq('id', orgId);
   if (ownerId) await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', ownerId);
   showToast('기관이 거절되었습니다', '✅');
   loadAdminOrgTab();
+  checkPendingBadge();
 }
 
 async function openAdminStudentModal(teacherId, teacherName) {
@@ -6805,12 +6831,14 @@ async function approveTeacher(id) {
   await sbClient.from('profiles').update({ status: 'approved' }).eq('id', id);
   showToast('승인되었습니다', '✅');
   loadAdminTeachers();
+  checkPendingBadge();
 }
 
 async function rejectTeacher(id) {
   await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', id);
   showToast('거절되었습니다', '❌');
   loadAdminTeachers();
+  checkPendingBadge();
 }
 
 function sgEsc(s) {
