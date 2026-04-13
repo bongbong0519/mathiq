@@ -1141,9 +1141,28 @@
         <label class="auth-label">이름</label>
         <input type="text" class="auth-input" id="signupName" placeholder="홍길동">
       </div>
-      <div class="auth-field" id="schoolField">
-        <label class="auth-label">학교명</label>
-        <input type="text" class="auth-input" id="signupSchool" placeholder="○○중학교">
+      <!-- 선생님: 기관 검색 -->
+      <div class="auth-field" id="orgSearchField" style="display:none">
+        <label class="auth-label">소속 기관</label>
+        <div style="position:relative">
+          <input type="text" class="auth-input" id="orgSearchInput"
+            placeholder="학원명 검색..." autocomplete="off"
+            oninput="onOrgSearchInput(this.value)">
+          <div id="orgDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:999;max-height:200px;overflow-y:auto"></div>
+        </div>
+        <div id="orgSelectedBadge" style="display:none;margin-top:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;display:none;align-items:center;justify-content:space-between;font-size:13px">
+          <span id="orgSelectedName" style="font-weight:600;color:var(--text)"></span>
+          <button type="button" onclick="clearOrgSelection()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 2px;line-height:1">✕</button>
+        </div>
+        <div id="orgNoResult" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);line-height:1.6">
+          기관을 찾을 수 없습니다.<br>
+          <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="showToast('원장님께 기관 등록을 요청하거나 운영자에게 문의해주세요','ℹ️')">기관이 없으신가요? 기관 등록 신청 →</span>
+        </div>
+      </div>
+      <!-- 원장님: 기관명 직접 입력 -->
+      <div class="auth-field" id="schoolField" style="display:none">
+        <label class="auth-label">기관명</label>
+        <input type="text" class="auth-input" id="signupSchool" placeholder="○○수학학원">
       </div>
       <div class="auth-field" id="orgTypeField" style="display:none">
         <label class="auth-label">기관 유형</label>
@@ -2860,6 +2879,9 @@ let sbClient = null;
 let currentUser = null;
 let currentProfile = null;
 let selectedRole = 'teacher';
+let selectedOrgId = null;
+let selectedOrgName = '';
+let orgSearchTimer = null;
 
 // ── 랜딩 페이지 함수 ──
 const ROLE_SVG = {
@@ -3060,23 +3082,26 @@ function selectRole(role) {
   selectedRole = role;
   document.querySelectorAll('.auth-role-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('role-' + role).classList.add('selected');
-  const schoolField = document.getElementById('schoolField');
-  const schoolLabel = schoolField.querySelector('.auth-label');
-  const schoolInput = document.getElementById('signupSchool');
-  const orgTypeField = document.getElementById('orgTypeField');
+  const orgSearchField = document.getElementById('orgSearchField');
+  const schoolField    = document.getElementById('schoolField');
+  const orgTypeField   = document.getElementById('orgTypeField');
+  // 기관 검색 상태 초기화
+  clearOrgSelection();
+  document.getElementById('orgSearchInput').value = '';
+  document.getElementById('orgDropdown').style.display = 'none';
+  document.getElementById('orgNoResult').style.display = 'none';
   if (role === 'teacher') {
-    schoolField.style.display = 'flex';
-    schoolLabel.textContent = '학교명';
-    schoolInput.placeholder = '○○중학교';
-    orgTypeField.style.display = 'none';
+    orgSearchField.style.display = 'flex';
+    schoolField.style.display    = 'none';
+    orgTypeField.style.display   = 'none';
   } else if (role === 'director') {
-    schoolField.style.display = 'flex';
-    schoolLabel.textContent = '기관명';
-    schoolInput.placeholder = '○○수학학원';
-    orgTypeField.style.display = 'flex';
+    orgSearchField.style.display = 'none';
+    schoolField.style.display    = 'flex';
+    orgTypeField.style.display   = 'flex';
   } else {
-    schoolField.style.display = 'none';
-    orgTypeField.style.display = 'none';
+    orgSearchField.style.display = 'none';
+    schoolField.style.display    = 'none';
+    orgTypeField.style.display   = 'none';
   }
 }
 
@@ -3100,6 +3125,69 @@ async function handleLogin() {
   await loadProfile();
 }
 
+// ── 기관 검색 ──
+function onOrgSearchInput(value) {
+  clearTimeout(orgSearchTimer);
+  const dropdown = document.getElementById('orgDropdown');
+  const noResult = document.getElementById('orgNoResult');
+  if (selectedOrgId) return; // 이미 선택된 상태면 무시
+  if (!value.trim()) {
+    dropdown.style.display = 'none';
+    noResult.style.display = 'none';
+    return;
+  }
+  orgSearchTimer = setTimeout(() => searchOrgs(value.trim()), 300);
+}
+
+async function searchOrgs(query) {
+  if (!sbClient || !query) return;
+  const dropdown = document.getElementById('orgDropdown');
+  const noResult = document.getElementById('orgNoResult');
+  dropdown.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:var(--text3)">검색 중...</div>`;
+  dropdown.style.display = '';
+
+  const { data, error } = await sbClient.from('organizations')
+    .select('id, name, type')
+    .ilike('name', `%${query}%`)
+    .eq('status', 'approved')
+    .order('name')
+    .limit(10);
+
+  if (error || !data?.length) {
+    dropdown.style.display = 'none';
+    noResult.style.display = '';
+    return;
+  }
+  noResult.style.display = 'none';
+  const TYPE_LABEL = { academy: '학원', school: '학교', tutoring: '교습소', other: '기타' };
+  dropdown.innerHTML = data.map(org => `
+    <div onclick="selectOrg('${org.id}', '${(org.name || '').replace(/'/g, "\\'")}')"
+      style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <span style="font-weight:600;color:var(--text)">${escapeHtml(org.name)}</span>
+      <span style="color:var(--text3);font-size:11px">${TYPE_LABEL[org.type] || org.type || ''}</span>
+    </div>
+  `).join('');
+}
+
+function selectOrg(id, name) {
+  selectedOrgId = id;
+  selectedOrgName = name;
+  document.getElementById('orgSearchInput').value = name;
+  document.getElementById('orgDropdown').style.display = 'none';
+  document.getElementById('orgNoResult').style.display = 'none';
+  const badge = document.getElementById('orgSelectedBadge');
+  document.getElementById('orgSelectedName').textContent = name;
+  badge.style.display = 'flex';
+}
+
+function clearOrgSelection() {
+  selectedOrgId = null;
+  selectedOrgName = '';
+  const badge = document.getElementById('orgSelectedBadge');
+  if (badge) badge.style.display = 'none';
+}
+
 // ── 회원가입 ──
 async function handleSignup() {
   const name = document.getElementById('signupName').value.trim();
@@ -3112,8 +3200,11 @@ async function handleSignup() {
   document.getElementById('signupError').classList.remove('show');
 
   if (!name || !email || !password) { showAuthError('signupError', '모든 항목을 입력해주세요'); return; }
-  if ((selectedRole === 'teacher' || selectedRole === 'director') && !school) {
-    showAuthError('signupError', selectedRole === 'director' ? '기관명을 입력해주세요' : '학교명을 입력해주세요'); return;
+  if (selectedRole === 'teacher' && !selectedOrgId) {
+    showAuthError('signupError', '소속 기관을 검색하여 선택해주세요'); return;
+  }
+  if (selectedRole === 'director' && !school) {
+    showAuthError('signupError', '기관명을 입력해주세요'); return;
   }
   if (password.length < 8) { showAuthError('signupError', '비밀번호는 8자 이상이어야 합니다'); return; }
 
@@ -3144,6 +3235,11 @@ async function handleSignup() {
 
   let orgId = null;
 
+  // 선생님이면 선택한 기관 연결
+  if (selectedRole === 'teacher') {
+    orgId = selectedOrgId;
+  }
+
   // 원장님이면 기관 먼저 생성
   if (selectedRole === 'director') {
     const orgType = document.getElementById('signupOrgType').value;
@@ -3167,7 +3263,7 @@ async function handleSignup() {
     role: selectedRole,
     name,
     email,
-    school: (selectedRole === 'teacher' || selectedRole === 'director') ? school : null,
+    school: selectedRole === 'teacher' ? selectedOrgName : (selectedRole === 'director' ? school : null),
     organization_id: orgId,
     region: null,
     status: (selectedRole === 'teacher' || selectedRole === 'director') ? 'pending' : 'approved'
@@ -3186,6 +3282,7 @@ async function handleSignup() {
   }
 
   btn.disabled = false; btn.textContent = '✨ 회원가입';
+  clearOrgSelection();
   showToast('회원가입 완료! 이메일 인증 후 로그인하세요', '✅');
   switchAuthTab('login');
 }
