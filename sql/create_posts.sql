@@ -31,6 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_board_created ON public.posts(board, create
 CREATE TABLE IF NOT EXISTS public.post_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  parent_id UUID REFERENCES public.post_comments(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES auth.users(id),
   author_name TEXT,
   author_role TEXT,
@@ -38,7 +39,11 @@ CREATE TABLE IF NOT EXISTS public.post_comments (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 이미 테이블을 생성했다면 아래 ALTER로 컬럼 추가:
+-- ALTER TABLE public.post_comments ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES public.post_comments(id) ON DELETE CASCADE;
+
 CREATE INDEX IF NOT EXISTS idx_comments_post_created ON public.post_comments(post_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_comments_parent ON public.post_comments(parent_id);
 
 -- ══════════════════════════════════════
 --  RLS: posts

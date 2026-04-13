@@ -5681,6 +5681,7 @@ const BOARD_PAGE_SIZE = 20;
 let currentBoard = null;
 let currentBoardPage = 1;
 let currentPostId = null;
+let currentPostBoard = null;
 
 function canWriteBoard(board) {
   if (!currentProfile || currentProfile.status !== 'approved') return false;
@@ -5929,6 +5930,7 @@ async function openPostDetail(id) {
     `;
 
     // 댓글 (notice는 댓글 없음)
+    currentPostBoard = p.board;
     if (p.board === 'student' || p.board === 'parent') {
       document.getElementById('post-comments-wrap').style.display = '';
       document.getElementById('comment-form').style.display = canCommentBoard(p.board) ? '' : 'none';
@@ -5946,27 +5948,92 @@ async function loadComments(postId) {
   const { data, error } = await sbClient.from('post_comments')
     .select('*').eq('post_id', postId).order('created_at', { ascending: true });
   if (error) { list.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">댓글 로드 실패</div>`; return; }
+
+  // 댓글/대댓글 분리 (parent_id=null → 댓글, parent_id=있음 → 대댓글)
+  const roots = data.filter(c => !c.parent_id);
+  const repliesMap = {};
+  data.filter(c => c.parent_id).forEach(c => {
+    if (!repliesMap[c.parent_id]) repliesMap[c.parent_id] = [];
+    repliesMap[c.parent_id].push(c);
+  });
+
+  // 댓글 수 = 전체 (대댓글 포함)
   document.getElementById('comments-header').textContent = `댓글 ${data.length}`;
-  if (data.length === 0) {
+
+  if (roots.length === 0) {
     list.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">첫 댓글을 남겨보세요</div>`;
     return;
   }
+
   const isAdmin = currentProfile?.role === 'admin';
-  list.innerHTML = data.map(c => {
+  const canReply = currentPostId && canCommentBoard(
+    document.getElementById('comments-header').closest('#post-comments-wrap')
+      ? (data[0]?.board || '') : ''
+  );
+
+  function renderComment(c, isReply) {
     const mine = currentUser && c.author_id === currentUser.id;
+    const indent = isReply
+      ? 'margin-left:32px;border-left:2px solid var(--border);padding-left:12px;background:var(--bg2);border-radius:0 6px 6px 0;'
+      : '';
+    const replyBtnHtml = (!isReply && canCommentBoard_current())
+      ? `<button class="btn btn-ghost btn-sm" onclick="toggleReplyForm('${c.id}')" style="padding:2px 8px;font-size:11px;color:var(--text3)">답변</button>`
+      : '';
     return `
-      <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="font-weight:600;font-size:13px">${escapeHtml(c.author_name || '—')}</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div style="font-size:12px;color:var(--text3)">${new Date(c.created_at).toLocaleString('ko-KR')}</div>
-            ${(mine || isAdmin) ? `<button class="btn btn-ghost btn-sm" onclick="deleteComment('${c.id}')" style="color:var(--red);padding:2px 6px;font-size:11px">삭제</button>` : ''}
+      <div style="padding:12px 20px;border-bottom:1px solid var(--border)">
+        <div style="${indent}padding:${isReply ? '10px 12px' : '0'}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">
+              ${isReply ? '<span style="color:var(--accent);font-size:11px">↳</span>' : ''}
+              ${escapeHtml(c.author_name || '—')}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <div style="font-size:11px;color:var(--text3)">${formatPostDate(c.created_at)}</div>
+              ${replyBtnHtml}
+              ${(mine || isAdmin) ? `<button class="btn btn-ghost btn-sm" onclick="deleteComment('${c.id}')" style="color:var(--red);padding:2px 6px;font-size:11px">삭제</button>` : ''}
+            </div>
           </div>
+          <div style="white-space:pre-wrap;font-size:14px;line-height:1.6;color:var(--text)">${escapeHtml(c.content)}</div>
         </div>
-        <div style="white-space:pre-wrap;font-size:14px;line-height:1.6">${escapeHtml(c.content)}</div>
+        ${!isReply ? `<div id="reply-form-${c.id}" style="display:none;margin-top:8px;margin-left:32px;padding:10px 12px;background:var(--bg2);border-radius:6px;border:1px solid var(--border)">
+          <textarea id="reply-input-${c.id}" class="form-input" rows="2" placeholder="답변을 입력하세요..." style="resize:vertical;font-size:13px"></textarea>
+          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button class="btn btn-ghost btn-sm" onclick="toggleReplyForm('${c.id}')">취소</button>
+            <button class="btn btn-primary btn-sm" onclick="submitReply('${c.id}')">답변 작성</button>
+          </div>
+        </div>` : ''}
       </div>
     `;
-  }).join('');
+  }
+
+  let html = '';
+  roots.forEach(c => {
+    html += renderComment(c, false);
+    (repliesMap[c.id] || []).forEach(r => { html += renderComment(r, true); });
+  });
+  list.innerHTML = html;
+}
+
+// 현재 열린 게시글의 board를 기준으로 댓글 권한 확인
+function canCommentBoard_current() {
+  if (!currentProfile || currentProfile.status !== 'approved') return false;
+  // post-detail의 board 정보는 currentPostBoard 변수에서 가져옴
+  if (typeof currentPostBoard === 'undefined') return false;
+  if (currentPostBoard === 'student') return currentProfile.role === 'student';
+  if (currentPostBoard === 'parent')  return currentProfile.role === 'parent';
+  return false;
+}
+
+function toggleReplyForm(commentId) {
+  const form = document.getElementById(`reply-form-${commentId}`);
+  if (!form) return;
+  const isHidden = form.style.display === 'none';
+  // 다른 열린 답변창 모두 닫기
+  document.querySelectorAll('[id^="reply-form-"]').forEach(f => { f.style.display = 'none'; });
+  if (isHidden) {
+    form.style.display = '';
+    document.getElementById(`reply-input-${commentId}`)?.focus();
+  }
 }
 
 async function submitComment() {
@@ -5976,6 +6043,7 @@ async function submitComment() {
   if (!currentPostId) return;
   const { error } = await sbClient.from('post_comments').insert({
     post_id: currentPostId,
+    parent_id: null,
     author_id: currentUser.id,
     author_name: currentProfile?.name || null,
     author_role: currentProfile?.role || null,
@@ -5986,8 +6054,25 @@ async function submitComment() {
   loadComments(currentPostId);
 }
 
+async function submitReply(parentId) {
+  const input = document.getElementById(`reply-input-${parentId}`);
+  const content = input?.value.trim();
+  if (!content) { showToast('답변 내용을 입력하세요', '⚠️'); return; }
+  if (!currentPostId) return;
+  const { error } = await sbClient.from('post_comments').insert({
+    post_id: currentPostId,
+    parent_id: parentId,
+    author_id: currentUser.id,
+    author_name: currentProfile?.name || null,
+    author_role: currentProfile?.role || null,
+    content
+  });
+  if (error) { showToast('답변 작성 실패: ' + error.message, '❌'); return; }
+  loadComments(currentPostId);
+}
+
 async function deleteComment(id) {
-  if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
+  if (!confirm('이 댓글을 삭제하시겠습니까?\n(대댓글이 있으면 함께 삭제됩니다)')) return;
   const { error } = await sbClient.from('post_comments').delete().eq('id', id);
   if (error) { showToast('삭제 실패: ' + error.message, '❌'); return; }
   loadComments(currentPostId);
