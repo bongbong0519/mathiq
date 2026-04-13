@@ -3311,6 +3311,21 @@ async function handleSignup() {
 
   btn.disabled = false; btn.textContent = '✨ 회원가입';
   clearOrgSelection();
+
+  // 가입 알림 이메일 발송 (실패해도 가입 처리에 영향 없음)
+  try {
+    await sbClient.functions.invoke('notify-signup', {
+      body: {
+        userName: name,
+        userEmail: email,
+        userRole: selectedRole,
+        orgName: selectedOrgName || null,
+      },
+    });
+  } catch (e) {
+    console.warn('notify-signup function call failed:', e);
+  }
+
   showToast('회원가입 완료! 이메일 인증 후 로그인하세요', '✅');
   switchAuthTab('login');
 }
