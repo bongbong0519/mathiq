@@ -5569,8 +5569,9 @@ async function openMaterialDetail(id) {
 
     const isOwner = currentUser && m.uploader_id === currentUser.id;
     const isAdmin = currentProfile?.role === 'admin';
+    const isParent = currentProfile?.role === 'parent';
     const LEVEL = { elementary: '초등', middle: '중등', high: '고등' };
-    const metaRows = [
+    const metaRows = isParent ? '' : [
       m.school_level ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">학교급</span><span>${LEVEL[m.school_level] || m.school_level}</span></div>` : '',
       m.grade        ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">학년</span><span>${m.grade}학년</span></div>` : '',
       m.semester     ? `<div style="display:flex;gap:8px"><span style="color:var(--text3);min-width:64px">학기</span><span>${m.semester}학기</span></div>` : '',
