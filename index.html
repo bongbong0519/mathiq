@@ -6655,11 +6655,12 @@ async function loadAdminOrgTab() {
 
   const typeLabel = { academy: '학원', school: '학교', tutoring: '교습소', other: '기타' };
   function orgActionBtns(o) {
-    const owner = ownerMap[o.owner_id];
+    const esc = s => (s||'').replace(/'/g,"\\'");
+    const delBtn = `<button class="btn btn-xs" style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.25);color:var(--red)" onclick="adminDeleteOrg('${o.id}','${esc(o.name)}')">삭제</button>`;
     // 기관 승인 = 원장님 프로필도 함께 승인
-    if (o.status === 'pending') return `<div style="display:flex;gap:6px"><button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}','${o.owner_id || ''}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectOrg('${o.id}','${o.owner_id || ''}')">거절</button></div>`;
-    if (o.status === 'approved') return `<button class="btn btn-ghost btn-xs" onclick="rejectOrg('${o.id}','${o.owner_id || ''}')">승인 취소</button>`;
-    return `<button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}','${o.owner_id || ''}')">승인</button>`;
+    if (o.status === 'pending') return `<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}','${o.owner_id || ''}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectOrg('${o.id}','${o.owner_id || ''}')">거절</button>${delBtn}</div>`;
+    if (o.status === 'approved') return `<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-ghost btn-xs" onclick="rejectOrg('${o.id}','${o.owner_id || ''}')">승인 취소</button>${delBtn}</div>`;
+    return `<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-green btn-xs" onclick="approveOrg('${o.id}','${o.owner_id || ''}')">승인</button>${delBtn}</div>`;
   }
 
   wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>기관명</th><th>유형</th><th>대표자</th><th>연락처</th><th>주소</th><th>선생님</th><th>등록일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
@@ -6679,6 +6680,20 @@ async function loadAdminOrgTab() {
       </tr>`;
     }).join('') +
     '</tbody></table></div>';
+}
+
+async function adminDeleteOrg(orgId, orgName) {
+  if (!confirm(`"${orgName}" 기관을 삭제하시겠습니까?\n\n소속 선생님의 organization_id가 초기화되며 되돌릴 수 없습니다.`)) return;
+
+  // 소속 선생님 organization_id 초기화
+  await sbClient.from('profiles').update({ organization_id: null, school: null })
+    .eq('organization_id', orgId);
+
+  const { error } = await sbClient.from('organizations').delete().eq('id', orgId);
+  if (error) { showToast('삭제 실패: ' + error.message, '❌'); return; }
+
+  showToast(`"${orgName}" 기관이 삭제되었습니다.`, '✅');
+  loadAdminOrgTab();
 }
 
 function openOrgApplyModal() {
