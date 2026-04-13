@@ -3255,9 +3255,9 @@ async function searchOrgs(query) {
   dropdown.style.display = '';
 
   const { data, error } = await sbClient.from('organizations')
-    .select('id, name, type')
+    .select('id, name, type, status')
     .ilike('name', `%${query}%`)
-    .eq('status', 'approved')
+    .neq('status', 'rejected')
     .order('name')
     .limit(10);
 
@@ -3268,14 +3268,22 @@ async function searchOrgs(query) {
   }
   noResult.style.display = 'none';
   const TYPE_LABEL = { academy: '학원', school: '학교', tutoring: '교습소', other: '기타' };
-  dropdown.innerHTML = data.map(org => `
+  dropdown.innerHTML = data.map(org => {
+    const isPending = org.status === 'pending';
+    const statusBadge = isPending
+      ? `<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:rgba(246,173,85,0.15);color:var(--yellow);border:1px solid rgba(246,173,85,0.3)">승인 대기</span>`
+      : '';
+    return `
     <div onclick="selectOrg('${org.id}', '${(org.name || '').replace(/'/g, "\\'")}')"
-      style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"
+      style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px"
       onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
       <span style="font-weight:600;color:var(--text)">${escapeHtml(org.name)}</span>
-      <span style="color:var(--text3);font-size:11px">${TYPE_LABEL[org.type] || org.type || ''}</span>
-    </div>
-  `).join('');
+      <span style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+        ${statusBadge}
+        <span style="color:var(--text3);font-size:11px">${TYPE_LABEL[org.type] || org.type || ''}</span>
+      </span>
+    </div>`;
+  }).join('');
 }
 
 function selectOrg(id, name) {
