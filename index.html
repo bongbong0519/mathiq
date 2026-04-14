@@ -6525,8 +6525,26 @@ async function adminDeleteUser(userId, userName, role) {
   const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모' }[role] || role;
   if (!confirm(`"${userName}" (${roleKo})을(를) 탈퇴 처리하시겠습니까?\n\n로그인이 차단되고 목록에서 숨겨집니다.`)) return;
 
+  // 1. 소프트 삭제 (즉시 접근 차단)
   const { error } = await sbClient.from('profiles').update({ status: 'deleted' }).eq('id', userId);
   if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
+
+  // 2. auth.users 삭제 — Edge Function (배포된 경우에만 동작, 실패해도 계속)
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session?.access_token) {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/delete-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': SUPABASE_KEY,
+        },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
+      if (!resp.ok) console.warn('auth delete skipped:', await resp.text());
+    }
+  } catch (e) { console.warn('auth delete skipped:', e); }
 
   showToast(`"${userName}"님이 탈퇴 처리되었습니다.`, '✅');
 
