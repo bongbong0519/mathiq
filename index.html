@@ -3892,7 +3892,7 @@ async function loadLpTutors() {
           onmouseover="this.style.boxShadow='0 8px 32px rgba(255,107,107,0.14)'" onmouseout="this.style.boxShadow=''"
           onclick="openLpTutorDetail('${t.id}')">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--lp-coral),#ff9472);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;flex-shrink:0">${name[0]}</div>
+          ${avatarHtml(t.photo_url, name, 44, true)}
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--lp-text)">${name}</div>
             <div style="font-size:12px;color:var(--lp-text3)">${t.education || '학력 미기재'}</div>
@@ -3909,7 +3909,7 @@ async function loadLpTutors() {
       </div>`;
     }).join('') + '</div>';
 
-  window._lpTutorData = data.map(t => ({ ...t, _name: nameMap[t.user_id] || '선생님' }));
+  window._lpTutorData = data.map(t => ({ ...t, _name: nameMap[t.user_id] || '선생님', photo_url: t.photo_url || null }));
 }
 
 async function loadLpStudentListings() {
@@ -3965,7 +3965,7 @@ function openLpTutorDetail(id) {
   if (!panel || !content) return;
   content.innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(0,0,0,0.08)">
-      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--lp-coral),#ff9472);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;flex-shrink:0">${t._name[0]}</div>
+      ${avatarHtml(t.photo_url, t._name, 56, true)}
       <div>
         <div style="font-size:20px;font-weight:800;color:var(--lp-text)">${t._name}</div>
         <div style="font-size:13px;color:var(--lp-text3);margin-top:2px">${t.education || ''}</div>
@@ -7254,6 +7254,52 @@ async function deleteMaterial(id, filePath) {
 const TEACH_MODE_KO = { online: '온라인', offline: '오프라인', both: '온·오프라인' };
 const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '기타'];
 
+// 아바타 HTML 생성 (photo_url 있으면 이미지, 없으면 이니셜)
+function avatarHtml(photoUrl, name, size, isLp = false) {
+  const letter = (name || '?')[0];
+  const fs = Math.round(size * 0.4);
+  const base = `width:${size}px;height:${size}px;border-radius:50%;flex-shrink:0;object-fit:cover`;
+  const grad = isLp
+    ? 'linear-gradient(135deg,#ff6b6b,#ff9472)'
+    : 'linear-gradient(135deg,var(--accent),var(--accent2))';
+  const fallback = `<div style="${base};background:${grad};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${fs}px;font-weight:800">${letter}</div>`;
+  if (!photoUrl) return fallback;
+  // onerror fallback: 이미지 로드 실패 시 이니셜로 대체
+  const escapedFallback = fallback.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return `<img src="${photoUrl}" style="${base}" onerror="this.outerHTML='${escapedFallback}'">`;
+}
+
+// 사진 미리보기
+function previewTutorPhoto(input) {
+  if (!input.files?.[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('tp-photo-preview');
+    if (preview) preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// Supabase Storage 업로드 → public URL 반환
+async function uploadTutorPhoto(file) {
+  const maxMb = 5;
+  if (file.size > maxMb * 1024 * 1024) {
+    showToast(`${maxMb}MB 이하 이미지만 업로드 가능합니다`, '⚠️'); return null;
+  }
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+    showToast('JPG, PNG, WEBP 파일만 업로드 가능합니다', '⚠️'); return null;
+  }
+  const path = `${currentUser.id}/profile.${ext}`;
+  const { error } = await sbClient.storage.from('tutor-photos').upload(path, file, {
+    upsert: true, contentType: file.type
+  });
+  if (error) { showToast('사진 업로드 실패: ' + error.message, '❌'); return null; }
+  const { data } = sbClient.storage.from('tutor-photos').getPublicUrl(path);
+  // 캐시 방지용 타임스탬프
+  return data.publicUrl + '?t=' + Date.now();
+}
+
 // ── 선생님: 과외 프로필 등록 ──
 async function loadTutorProfile() {
   if (!sbClient || !currentUser) return;
@@ -7270,6 +7316,19 @@ async function loadTutorProfile() {
 
   wrap.innerHTML = `
     <div style="display:grid;gap:16px">
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:8px">프로필 사진</label>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div id="tp-photo-preview" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:800;flex-shrink:0;overflow:hidden">
+            ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : (currentProfile?.name || '?')[0]}
+          </div>
+          <div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('tp-photo-input').click()">사진 선택</button>
+            <input id="tp-photo-input" type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none" onchange="previewTutorPhoto(this)">
+            <div style="font-size:11px;color:var(--text3);margin-top:6px">JPG, PNG, WEBP · 최대 5MB</div>
+          </div>
+        </div>
+      </div>
       <div class="form-group">
         <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">과목 <span style="color:var(--red)">*</span></label>
         <select id="tp-subject" class="form-input" style="width:100%">
@@ -7320,9 +7379,17 @@ async function saveTutorProfile() {
 
   if (!subject || !region || !rate) { showToast('과목, 지역, 시급은 필수입니다', '⚠️'); return; }
 
+  const photoFile = document.getElementById('tp-photo-input')?.files?.[0];
+  let photoUrl = null;
+  if (photoFile) {
+    photoUrl = await uploadTutorPhoto(photoFile);
+    if (photoUrl === null && photoFile) return; // upload failed
+  }
+
   const payload = { user_id: currentUser.id, subject, region, hourly_rate: rate,
     education: education || null, experience: experience || null,
     teaching_mode: mode, intro: intro || null, updated_at: new Date().toISOString() };
+  if (photoUrl) payload.photo_url = photoUrl;
 
   const { error } = await sbClient.from('tutor_profiles').upsert(payload, { onConflict: 'user_id' });
   if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
@@ -7429,7 +7496,7 @@ async function loadTutorSearch() {
     enriched.map(t => `
       <div class="card" style="cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow=''" onclick="openTutorDetail('${t.id}')">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;flex-shrink:0">${(t._profile.name || '?')[0]}</div>
+          ${avatarHtml(t.photo_url, t._profile.name, 44, false)}
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--text)">${t._profile.name || '선생님'}</div>
             <div style="font-size:12px;color:var(--text3)">${t.education || '학력 미기재'}</div>
@@ -7458,7 +7525,7 @@ function openTutorDetail(id) {
   const prof = t._profile || {};
   content.innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;flex-shrink:0">${(prof.name || '?')[0]}</div>
+      ${avatarHtml(t.photo_url, prof.name, 56, false)}
       <div>
         <div style="font-size:20px;font-weight:800;color:var(--text)">${prof.name || '선생님'}</div>
         <div style="font-size:13px;color:var(--text3);margin-top:2px">${t.education || ''}</div>
