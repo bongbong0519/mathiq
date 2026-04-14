@@ -2489,15 +2489,24 @@
       </div>
 
       <div class="tab-nav" style="display:flex;flex-wrap:wrap;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;width:fit-content">
-        <button class="tab-btn active" onclick="switchAdminMemberTab(this,'admin-tab-teachers')">선생님</button>
+        <button class="tab-btn active" onclick="switchAdminMemberTab(this,'admin-tab-pending')" style="display:flex;align-items:center;gap:6px">승인 대기<span id="pending-count-badge" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--green);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;padding:0 5px;line-height:1">0</span></button>
+        <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-teachers')">선생님</button>
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-directors')">원장님</button>
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-students-p')">학생</button>
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-parents')">학부모</button>
         <button class="tab-btn" onclick="switchAdminMemberTab(this,'admin-tab-orgs')" style="display:flex;align-items:center;gap:5px">기관 관리<span id="org-pending-badge" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px rgba(62,207,142,0.3);flex-shrink:0"></span></button>
       </div>
 
+      <!-- 탭: 승인 대기 -->
+      <div id="admin-tab-pending" class="admin-member-tab">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">승인 대기 회원</h3></div>
+          <div id="admin-pending-wrap"></div>
+        </div>
+      </div>
+
       <!-- 탭: 선생님 -->
-      <div id="admin-tab-teachers" class="admin-member-tab">
+      <div id="admin-tab-teachers" class="admin-member-tab" style="display:none">
         <div class="card">
           <div class="card-header"><h3 class="card-title">선생님 목록</h3></div>
           <div id="admin-teachers-wrap"></div>
@@ -5672,6 +5681,7 @@ function switchAdminMemberTab(btn, tabId) {
   btn.classList.add('active');
   document.querySelectorAll('.admin-member-tab').forEach(t => t.style.display = 'none');
   document.getElementById(tabId).style.display = '';
+  if (tabId === 'admin-tab-pending')    loadAdminPendingTab();
   if (tabId === 'admin-tab-teachers')   loadAdminTeacherTab();
   if (tabId === 'admin-tab-directors')  loadAdminDirectorTab();
   if (tabId === 'admin-tab-students-p') loadAdminStudentProfilesTab();
@@ -6484,8 +6494,39 @@ async function submitProfile() {
   document.getElementById('userAvatar').textContent = (currentProfile.name || '?')[0];
 }
 
+async function loadAdminPendingTab() {
+  if (!sbClient || !currentUser) return;
+  const wrap = document.getElementById('admin-pending-wrap');
+  if (!wrap) return;
+  const { data, error } = await sbClient
+    .from('profiles')
+    .select('*, organizations(name)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) { wrap.innerHTML = `<div class="empty-state" style="padding:30px"><div class="empty-state-text">오류: ${error.message}</div></div>`; return; }
+  if (!data?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">✅</div><div class="empty-state-text">승인 대기 중인 회원이 없습니다</div></div>';
+    return;
+  }
+  const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모' };
+  const esc = s => (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>역할</th><th>기관명</th><th>가입일</th><th>관리</th></tr></thead><tbody>' +
+    data.map(p => `<tr>
+      <td class="font-bold">${p.name || '(이름 없음)'}</td>
+      <td class="text-muted text-sm">${p.email || p.id.slice(0,8) + '...'}</td>
+      <td><span class="chip">${roleKo[p.role] || p.role}</span></td>
+      <td class="text-muted text-sm">${p.organizations?.name || p.school || '—'}</td>
+      <td class="text-muted text-sm">${p.created_at ? new Date(p.created_at).toLocaleDateString('ko-KR') : '—'}</td>
+      <td><div style="display:flex;gap:5px">
+        <button class="btn btn-green btn-xs" onclick="approveTeacher('${p.id}','${p.role}')">승인</button>
+        <button class="btn btn-red btn-xs" onclick="rejectTeacher('${p.id}','${p.role}')">거절</button>
+      </div></td>
+    </tr>`).join('') +
+    '</tbody></table></div>';
+}
+
 async function loadAdminTeachers() {
-  loadAdminTeacherTab();
+  loadAdminPendingTab();
   loadAdminOrgTab();
 }
 
@@ -6495,10 +6536,21 @@ async function checkPendingBadge() {
     sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     sbClient.from('organizations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   ]);
+  const mc = memberCount || 0;
+  const oc = orgCount || 0;
   const navBadge = document.getElementById('pending-badge');
-  if (navBadge) navBadge.style.display = ((memberCount || 0) + (orgCount || 0) > 0) ? '' : 'none';
+  if (navBadge) navBadge.style.display = (mc + oc > 0) ? '' : 'none';
   const orgBadge = document.getElementById('org-pending-badge');
-  if (orgBadge) orgBadge.style.display = ((orgCount || 0) > 0) ? '' : 'none';
+  if (orgBadge) orgBadge.style.display = (oc > 0) ? '' : 'none';
+  const countBadge = document.getElementById('pending-count-badge');
+  if (countBadge) {
+    if (mc > 0) {
+      countBadge.textContent = mc;
+      countBadge.style.display = 'flex';
+    } else {
+      countBadge.style.display = 'none';
+    }
+  }
 }
 
 let _pendingBadgeTimer = null;
@@ -6825,11 +6877,11 @@ async function transferStudent(studentId, newTeacherId, currentTeacherId, curren
 }
 
 function _reloadAdminMemberTab(role) {
+  loadAdminPendingTab(); // 승인 대기 탭은 항상 동기화
   if (role === 'teacher')       loadAdminTeacherTab();
   else if (role === 'director') loadAdminDirectorTab();
   else if (role === 'student')  loadAdminStudentProfilesTab();
   else if (role === 'parent')   loadAdminParentTab();
-  else                          loadAdminTeachers(); // fallback
   checkPendingBadge();
 }
 
