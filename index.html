@@ -5911,7 +5911,7 @@ async function sgGenerate() {
 
   // ── 구독 티어 / 월 사용 횟수 체크 ──
   const tier = currentProfile?.subscription_tier || 'free';
-  const aiLimit = TIER_AI_LIMIT[tier] ?? 0;
+  const aiLimit = OPEN_EVENT ? Infinity : (TIER_AI_LIMIT[tier] ?? 0);
   if (aiLimit === 0) {
     showToast('AI 유사문제 생성은 베이직 이상 구독이 필요합니다. 요금제를 확인해주세요.', '🔒');
     return;
@@ -5920,7 +5920,7 @@ async function sgGenerate() {
   const now = new Date();
   const isNewMonth = now.getFullYear() !== resetAt.getFullYear() || now.getMonth() !== resetAt.getMonth();
   const currentUsage = isNewMonth ? 0 : (currentProfile?.ai_usage_count ?? 0);
-  if (currentUsage >= aiLimit) {
+  if (!OPEN_EVENT && currentUsage >= aiLimit) {
     showToast(`이번 달 사용 횟수를 초과했습니다. 구독을 업그레이드 해주세요 (${currentUsage}/${aiLimit}회 사용)`, '⛔');
     return;
   }
@@ -8086,12 +8086,19 @@ let _aqCurrentTab  = 'pending';
 let _extractedQuestions = [];
 let _quSelectedDiff = 3;
 
+// ── 오픈 이벤트 플래그 ──
+// true  → 구독 티어 제한 전면 해제 (이벤트 기간)
+// false → 정상 티어 제한 적용
+// 이벤트 종료 시 false 로 변경
+const OPEN_EVENT = true;
+
 // ── 구독 티어 ──
 const TIER_ORDER    = ['free', 'basic', 'standard', 'premium', 'pro'];
 const TIER_AI_LIMIT = { free: 0, basic: 10, standard: 30, premium: 100, pro: 300 };
 const TIER_LABEL_KO = { free: 'Free', basic: '베이직', standard: '스탠다드', premium: '프리미엄', pro: '프로' };
 const TIER_COLOR    = { free: '#888', basic: '#4c9be8', standard: '#3ecf8e', premium: 'var(--accent)', pro: '#9b59b6' };
 function tierAtLeast(current, required) {
+  if (OPEN_EVENT) return true;   // 이벤트 기간: 모든 티어 제한 해제
   return TIER_ORDER.indexOf(current || 'free') >= TIER_ORDER.indexOf(required);
 }
 
