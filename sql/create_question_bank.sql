@@ -9,35 +9,62 @@
 
 -- ─────────────────────────────────────
 -- 1. questions 테이블
+--
+--  수정 사항:
+--  - 인라인 다중 CHECK 제약 → 테이블 수준 명명 제약으로 변경
+--    (인라인 멀티라인 CHECK가 일부 파서에서 오류 유발)
+--  - 'type' 컬럼 → 'question_type' 으로 변경
+--    (type 은 PostgreSQL 예약어로 컬럼명 사용 시 충돌 가능)
 -- ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.questions (
-  id           UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
-  title        TEXT,
-  content      TEXT        NOT NULL,           -- KaTeX 포함 문제 본문
-  answer       TEXT,
-  solution     TEXT,                           -- 풀이 과정
-  school_level TEXT        CHECK (school_level IN ('초등','중등','고등')),
-  grade        INTEGER     CHECK (grade BETWEEN 1 AND 6),
-  semester     INTEGER     CHECK (semester IN (1, 2)),
-  area         TEXT,                           -- 영역 (수와 연산, 문자와 식, ...)
-  unit         TEXT,                           -- 단원
-  sub_unit     TEXT,                           -- 소단원
-  type         TEXT        NOT NULL DEFAULT '단답형'
-                           CHECK (type IN ('객관식','단답형','서술형')),
-  difficulty   INTEGER     NOT NULL DEFAULT 3
-                           CHECK (difficulty BETWEEN 1 AND 5),
-  status       TEXT        NOT NULL DEFAULT 'pending'
-                           CHECK (status IN ('pending','approved','rejected')),
-  reject_reason TEXT,                          -- 거절 사유
-  uploader_id  UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
-  approved_by  UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
-  approved_at  TIMESTAMPTZ,
-  created_at   TIMESTAMPTZ DEFAULT now() NOT NULL
+  id            UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  title         TEXT,
+  content       TEXT        NOT NULL,
+  answer        TEXT,
+  solution      TEXT,
+  school_level  TEXT,
+  grade         INTEGER,
+  semester      INTEGER,
+  area          TEXT,
+  unit          TEXT,
+  sub_unit      TEXT,
+  question_type TEXT        NOT NULL DEFAULT '단답형',
+  difficulty    INTEGER     NOT NULL DEFAULT 3,
+  status        TEXT        NOT NULL DEFAULT 'pending',
+  reject_reason TEXT,
+  uploader_id   UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  approved_by   UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  approved_at   TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  -- 테이블 수준 명명 제약 (Named Constraints)
+  CONSTRAINT questions_school_level_check
+    CHECK (school_level IN ('초등', '중등', '고등')),
+
+  CONSTRAINT questions_grade_check
+    CHECK (grade BETWEEN 1 AND 6),
+
+  CONSTRAINT questions_semester_check
+    CHECK (semester IN (1, 2)),
+
+  CONSTRAINT questions_question_type_check
+    CHECK (question_type IN ('객관식', '단답형', '서술형')),
+
+  CONSTRAINT questions_difficulty_check
+    CHECK (difficulty BETWEEN 1 AND 5),
+
+  CONSTRAINT questions_status_check
+    CHECK (status IN ('pending', 'approved', 'rejected'))
 );
 
-CREATE INDEX IF NOT EXISTS questions_status_idx       ON public.questions(status, created_at DESC);
-CREATE INDEX IF NOT EXISTS questions_filter_idx       ON public.questions(school_level, grade, semester, area);
-CREATE INDEX IF NOT EXISTS questions_uploader_idx     ON public.questions(uploader_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS questions_status_idx
+  ON public.questions(status, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS questions_filter_idx
+  ON public.questions(school_level, grade, semester, area);
+
+CREATE INDEX IF NOT EXISTS questions_uploader_idx
+  ON public.questions(uploader_id, created_at DESC);
 
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 
@@ -45,10 +72,11 @@ ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 -- 2. question_tags 테이블
 -- ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.question_tags (
-  id           UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
-  question_id  UUID        REFERENCES public.questions(id) ON DELETE CASCADE NOT NULL,
-  tag          TEXT        NOT NULL,
-  UNIQUE (question_id, tag)
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  question_id UUID NOT NULL REFERENCES public.questions(id) ON DELETE CASCADE,
+  tag         TEXT NOT NULL,
+
+  CONSTRAINT question_tags_unique UNIQUE (question_id, tag)
 );
 
 ALTER TABLE public.question_tags ENABLE ROW LEVEL SECURITY;
@@ -79,11 +107,12 @@ CREATE POLICY "questions_select_admin"
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('admin','staff')
+      WHERE id = auth.uid()
+        AND role IN ('admin', 'staff')
     )
   );
 
--- 등록: 선생님/원장/운영자
+-- 등록: 선생님 / 원장 / 운영자
 DROP POLICY IF EXISTS "questions_insert" ON public.questions;
 CREATE POLICY "questions_insert"
   ON public.questions FOR INSERT
@@ -92,11 +121,12 @@ CREATE POLICY "questions_insert"
     uploader_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('teacher','director','admin','staff')
+      WHERE id = auth.uid()
+        AND role IN ('teacher', 'director', 'admin', 'staff')
     )
   );
 
--- 수정: 본인 pending 문제 수정 가능
+-- 수정: 본인 pending 문제만 수정 가능
 DROP POLICY IF EXISTS "questions_update_own" ON public.questions;
 CREATE POLICY "questions_update_own"
   ON public.questions FOR UPDATE
@@ -112,13 +142,15 @@ CREATE POLICY "questions_update_admin"
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('admin','staff')
+      WHERE id = auth.uid()
+        AND role IN ('admin', 'staff')
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('admin','staff')
+      WHERE id = auth.uid()
+        AND role IN ('admin', 'staff')
     )
   );
 
@@ -126,7 +158,7 @@ CREATE POLICY "questions_update_admin"
 -- 4. RLS 정책: question_tags
 -- ─────────────────────────────────────
 
--- 조회: 승인된 문제의 태그는 모두 볼 수 있음
+-- 조회: 승인된 문제의 태그 또는 본인/운영자
 DROP POLICY IF EXISTS "question_tags_select" ON public.question_tags;
 CREATE POLICY "question_tags_select"
   ON public.question_tags FOR SELECT
@@ -135,8 +167,15 @@ CREATE POLICY "question_tags_select"
     EXISTS (
       SELECT 1 FROM public.questions q
       WHERE q.id = question_id
-        AND (q.status = 'approved' OR q.uploader_id = auth.uid()
-             OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','staff')))
+        AND (
+          q.status = 'approved'
+          OR q.uploader_id = auth.uid()
+          OR EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid()
+              AND role IN ('admin', 'staff')
+          )
+        )
     )
   );
 
@@ -149,8 +188,14 @@ CREATE POLICY "question_tags_insert"
     EXISTS (
       SELECT 1 FROM public.questions q
       WHERE q.id = question_id
-        AND (q.uploader_id = auth.uid()
-             OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','staff')))
+        AND (
+          q.uploader_id = auth.uid()
+          OR EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid()
+              AND role IN ('admin', 'staff')
+          )
+        )
     )
   );
 
@@ -162,6 +207,7 @@ CREATE POLICY "question_tags_delete"
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('admin','staff')
+      WHERE id = auth.uid()
+        AND role IN ('admin', 'staff')
     )
   );

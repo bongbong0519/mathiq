@@ -9962,12 +9962,12 @@ async function loadQuestionBankView() {
   const diff     = document.getElementById('qbFltDiff')?.value;
   const keyword  = document.getElementById('qbFltKeyword')?.value?.trim();
 
-  let q = sbClient.from('questions').select('id,title,content,answer,school_level,grade,semester,area,unit,sub_unit,type,difficulty,uploader_id,created_at').eq('status','approved');
+  let q = sbClient.from('questions').select('id,title,content,answer,school_level,grade,semester,area,unit,sub_unit,question_type,difficulty,uploader_id,created_at').eq('status','approved');
   if (level)    q = q.eq('school_level', level);
   if (grade)    q = q.eq('grade', parseInt(grade));
   if (semester) q = q.eq('semester', parseInt(semester));
   if (area)     q = q.eq('area', area);
-  if (type)     q = q.eq('type', type);
+  if (type)     q = q.eq('question_type', type);
   if (diff)     q = q.eq('difficulty', parseInt(diff));
   if (keyword)  q = q.or(`content.ilike.%${keyword}%,title.ilike.%${keyword}%,unit.ilike.%${keyword}%`);
   q = q.order('created_at', { ascending: false }).limit(60);
@@ -9990,7 +9990,7 @@ function qbRenderCard(q, canAdd) {
   const excerpt = (q.content || '').replace(/\$\$?[^$]+\$\$?/g, '[수식]').slice(0, 80);
   return `<div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
     <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.type}</span>
+      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.question_type}</span>
       ${q.school_level ? `<span style="font-size:12px;color:var(--text3)">${q.school_level} ${q.grade ? q.grade+'학년' : ''} ${q.semester ? q.semester+'학기' : ''}</span>` : ''}
       ${q.area ? `<span style="font-size:12px;color:var(--text2);font-weight:600">${q.area}</span>` : ''}
       ${q.unit ? `<span style="font-size:12px;color:var(--text3)">${q.unit}${q.sub_unit ? ' · '+q.sub_unit : ''}</span>` : ''}
@@ -10146,10 +10146,10 @@ async function saveQuestionManual() {
     grade:        grade ? parseInt(grade) : null,
     semester:     document.getElementById('quSemester')?.value ? parseInt(document.getElementById('quSemester').value) : null,
     area:         document.getElementById('quArea')?.value || null,
-    unit:         document.getElementById('quUnit')?.value?.trim() || null,
-    sub_unit:     document.getElementById('quSubUnit')?.value?.trim() || null,
-    type,
-    difficulty:   _quSelectedDiff,
+    unit:          document.getElementById('quUnit')?.value?.trim() || null,
+    sub_unit:      document.getElementById('quSubUnit')?.value?.trim() || null,
+    question_type: type,
+    difficulty:    _quSelectedDiff,
     status:       'pending',
     uploader_id:  currentUser.id
   };
@@ -10236,9 +10236,9 @@ function renderExtractedQuestions(list) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
         <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exType-${i}">
-          <option value="단답형" ${q.type==='단답형'?'selected':''}>단답형</option>
-          <option value="객관식" ${q.type==='객관식'?'selected':''}>객관식</option>
-          <option value="서술형" ${q.type==='서술형'?'selected':''}>서술형</option>
+          <option value="단답형" ${q.question_type==='단답형'?'selected':''}>단답형</option>
+          <option value="객관식" ${q.question_type==='객관식'?'selected':''}>객관식</option>
+          <option value="서술형" ${q.question_type==='서술형'?'selected':''}>서술형</option>
         </select>
         <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exDiff-${i}">
           ${[1,2,3,4,5].map(d => `<option value="${d}" ${q.difficulty==d?'selected':''}>${'★'.repeat(d)} ${QB_DIFF_LABEL[d]}</option>`).join('')}
@@ -10253,9 +10253,9 @@ async function saveExtractedQuestions() {
   if (!sbClient || !currentUser) { showToast('로그인이 필요합니다', '🔒'); return; }
   if (!_extractedQuestions.length) { showToast('추출된 문제가 없습니다', '⚠️'); return; }
   const rows = _extractedQuestions.map((_, i) => ({
-    content:     document.getElementById('exContent-' + i)?.value?.trim() || '',
-    answer:      document.getElementById('exAnswer-' + i)?.value?.trim() || null,
-    type:        document.getElementById('exType-' + i)?.value || '단답형',
+    content:       document.getElementById('exContent-' + i)?.value?.trim() || '',
+    answer:        document.getElementById('exAnswer-' + i)?.value?.trim() || null,
+    question_type: document.getElementById('exType-' + i)?.value || '단답형',
     difficulty:  parseInt(document.getElementById('exDiff-' + i)?.value) || 3,
     status:      'pending',
     uploader_id: currentUser.id
@@ -10282,8 +10282,8 @@ async function saveToQuestionBank(idx) {
   if (p.choices?.length) content += '\n' + p.choices.map((c, i) => `${i+1}. ${c}`).join('\n');
   const { error } = await sbClient.from('questions').insert({
     content,
-    answer:      p.answer != null ? String(p.answer) : null,
-    type:        typeMap[p.type] || '단답형',
+    answer:        p.answer != null ? String(p.answer) : null,
+    question_type: typeMap[p.type] || '단답형',
     difficulty:  diffMap[p.difficulty] || 3,
     status:      'pending',
     uploader_id: currentUser.id
@@ -10312,7 +10312,7 @@ async function renderAdminQuestions(status) {
   wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>';
   const { data, error } = await sbClient
     .from('questions')
-    .select('id,title,content,answer,solution,school_level,grade,semester,area,unit,sub_unit,type,difficulty,status,reject_reason,uploader_id,created_at,uploader:profiles!questions_uploader_id_fkey(name)')
+    .select('id,title,content,answer,solution,school_level,grade,semester,area,unit,sub_unit,question_type,difficulty,status,reject_reason,uploader_id,created_at,uploader:profiles!questions_uploader_id_fkey(name)')
     .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -10332,7 +10332,7 @@ function aqRenderCard(q, status) {
     .map(t => `<span style="padding:2px 7px;border-radius:4px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)">${t}</span>`).join('');
   return `<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
     <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.type}</span>
+      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.question_type}</span>
       ${tagBadges}
       <span style="font-size:12px;color:var(--text3);margin-left:auto">${stars} · ${uploadedBy} · ${date}</span>
     </div>
