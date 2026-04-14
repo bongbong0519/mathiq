@@ -1,6 +1,9 @@
 const SUPABASE_URL = 'https://cmwuuksxziyemknwwvkc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_e1Xu-klaPd_bZKrKsZ8YsA_WEBnRWRh';
 
+// Gemini API (문제은행 PDF 추출)
+const GEMINI_API_KEY = 'gen-lang-client-0572161692';
+
 // EmailJS 설정 (https://www.emailjs.com 에서 발급)
 const EMAILJS_PUBLIC_KEY  = 'uEuxnjAAmPJcJMiEp';
 const EMAILJS_SERVICE_ID  = 'service_eysit3g';
