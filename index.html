@@ -1875,6 +1875,9 @@
       <button class="role-btn" id="role-btn-admin" onclick="switchRole('admin')">운영자</button>
     </div>
 
+    <!-- Nav Scroll Wrapper -->
+    <div id="sidebarNavWrap" style="overflow-y:auto;flex:1;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent">
+
     <!-- Teacher Nav -->
     <nav id="nav-teacher">
       <div class="nav-section">
@@ -2128,6 +2131,8 @@
         </div>
       </div>
     </nav>
+
+    </div><!-- /sidebarNavWrap -->
 
     <div class="sidebar-footer">
       <button onclick="showLanding()"
@@ -4827,8 +4832,6 @@ function showApp() {
       loadStudents();
     }
   }, 300);
-  // 팝업 미표시 조건이 없으면 로그인 후에도 팝업 표시
-  _maybeShowEventPopup();
 }
 
 // ── 탭 전환 ──
