@@ -1336,7 +1336,7 @@
         <h3>연락처 정보</h3>
         <div class="lp-contact-info-item">
           <div class="lp-contact-info-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-          <div class="lp-contact-info-text"><strong>이메일</strong><span>contact@paideiasolution.com</span></div>
+          <div class="lp-contact-info-text"><strong>이메일</strong><span>yoonbro1927@gmail.com</span></div>
         </div>
         <div class="lp-contact-info-item">
           <div class="lp-contact-info-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
@@ -3478,7 +3478,7 @@ async function submitContactForm() {
   if (!name || !email || !subject || !message) { showToast('모든 항목을 입력해주세요', '⚠️'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('이메일 주소를 확인해주세요', '⚠️'); return; }
   if (typeof emailjs === 'undefined' || !EMAILJS_SERVICE_ID) {
-    showToast('이메일 설정 오류. contact@paideiasolution.com 으로 직접 문의해 주세요.', 'ℹ️');
+    showToast('이메일 설정 오류. yoonbro1927@gmail.com 으로 직접 문의해 주세요.', 'ℹ️');
     return;
   }
   const tplId = (typeof EMAILJS_TPL_CONTACT !== 'undefined' && EMAILJS_TPL_CONTACT)
@@ -3488,19 +3488,20 @@ async function submitContactForm() {
   try {
     await emailjs.send(EMAILJS_SERVICE_ID, tplId, {
       subject:     `[문의] ${subject}`,
+      to_email:    'yoonbro1927@gmail.com',
+      admin_email: 'yoonbro1927@gmail.com',
       user_name:   name,
       user_email:  email,
       role_name:   '문의자',
       org_name:    subject,
       message:     message,
-      admin_email: 'yoonbro1927@gmail.com',
     });
     showToast('문의가 접수되었습니다. 빠른 시일 내 답변드리겠습니다.', '✅');
     ['contactName','contactEmail','contactSubject','contactMessage'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
   } catch(e) {
-    showToast('전송 실패. contact@paideiasolution.com 으로 직접 문의해 주세요.', '❌');
+    showToast('전송 실패. yoonbro1927@gmail.com 으로 직접 문의해 주세요.', '❌');
   } finally {
     if (btn) { btn.textContent = '문의 보내기'; btn.disabled = false; }
   }
