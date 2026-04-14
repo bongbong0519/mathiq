@@ -10343,6 +10343,136 @@ async function _geminiCallBatch(base64Images, mimeTypes) {
   return JSON.parse(jsonBlock.trim());
 }
 
+// ── 공통: 텍스트에서 JSON 배열 파싱 ──
+function _parseJsonArray(text) {
+  const jsonBlock = text.match(/```json\s*([\s\S]*?)```/)?.[1]
+    || text.match(/```\s*([\s\S]*?)```/)?.[1]
+    || text.match(/(\[[\s\S]*\])/)?.[1];
+  if (!jsonBlock) throw new Error('JSON 파싱 실패: ' + text.slice(0, 200));
+  return JSON.parse(jsonBlock.trim());
+}
+
+// ── 진행 단계 UI ──
+const _STEP_STATE = {
+  wait:    { icon: '○', color: 'var(--text3)', spin: false },
+  running: { icon: '●', color: '#4285f4',      spin: true  },
+  done:    { icon: '✓', color: 'var(--green)',  spin: false },
+  skip:    { icon: '–', color: 'var(--text3)',  spin: false },
+  error:   { icon: '✗', color: 'var(--red)',    spin: false },
+};
+
+function _initStepUI(statusEl) {
+  statusEl.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;text-align:left">
+      <div id="exStep1" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px">
+        <span id="exStep1Icon" style="font-size:15px;width:18px;text-align:center;color:var(--text3)">○</span>
+        <span style="font-weight:700;color:var(--text)">1단계</span>
+        <span style="color:var(--text2)">Gemini 1차 추출</span>
+        <span id="exStep1Detail" style="margin-left:auto;font-size:11.5px;color:var(--text3)">대기 중</span>
+      </div>
+      <div id="exStep2" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px">
+        <span id="exStep2Icon" style="font-size:15px;width:18px;text-align:center;color:var(--text3)">○</span>
+        <span style="font-weight:700;color:var(--text)">2단계</span>
+        <span style="color:var(--text2)">Claude 수식·내용 검토</span>
+        <span id="exStep2Detail" style="margin-left:auto;font-size:11.5px;color:var(--text3)">대기 중</span>
+      </div>
+      <div id="exStep3" style="display:flex;align-items:center;gap:10px;font-size:13px">
+        <span id="exStep3Icon" style="font-size:15px;width:18px;text-align:center;color:var(--text3)">○</span>
+        <span style="font-weight:700;color:var(--text)">3단계</span>
+        <span style="color:var(--text2)">Gemini 최종 검토</span>
+        <span id="exStep3Detail" style="margin-left:auto;font-size:11.5px;color:var(--text3)">대기 중</span>
+      </div>
+    </div>`;
+}
+
+function _setStep(n, state, detail) {
+  const cfg     = _STEP_STATE[state] || _STEP_STATE.wait;
+  const iconEl  = document.getElementById(`exStep${n}Icon`);
+  const detEl   = document.getElementById(`exStep${n}Detail`);
+  const rowEl   = document.getElementById(`exStep${n}`);
+  if (iconEl) { iconEl.textContent = cfg.icon; iconEl.style.color = cfg.color; }
+  if (detEl  && detail !== undefined) { detEl.textContent = detail; detEl.style.color = cfg.color; }
+  if (rowEl  && state === 'running') rowEl.style.opacity = '1';
+  if (rowEl  && state === 'wait')    rowEl.style.opacity = '0.55';
+  if (rowEl  && state !== 'wait' && state !== 'running') rowEl.style.opacity = '1';
+}
+
+// ── 2단계: Claude 검토 ──
+async function _claudeReview(questions) {
+  const apiKey = getApiKey();
+  if (!apiKey) return { result: questions, skipped: true };
+
+  const BATCH = 15;
+  let reviewed = [];
+  for (let i = 0; i < questions.length; i += BATCH) {
+    const chunk = questions.slice(i, i + BATCH);
+    const prompt = `다음은 수학 문제지에서 추출된 문제들입니다. 아래 기준으로 각 문제를 검토하고 수정하세요.
+
+[검토 기준]
+1. KaTeX 수식 오류 수정
+   - 인라인: $수식$ / 독립: $$수식$$
+   - 분수 \\\\frac{a}{b}, 제곱근 \\\\sqrt{a}, 합 \\\\sum, 적분 \\\\int 등 올바른 LaTeX 명령어 사용
+   - 깨진 수식, 미완성 수식, 이스케이프 오류 수정
+2. 내용 누락 확인
+   - 객관식 선택지(①~⑤) 또는 보기(ㄱ/ㄴ/ㄷ)가 있어야 할 자리에 없으면 "[선택지 누락]" / "[보기 누락]" 표시
+3. answer 정규화
+   - answer가 선택지 번호(예: "③")만 있으면 content에서 해당 선택지 내용을 찾아 실제 텍스트로 교체
+   - 정답이 없으면 null
+4. 오류 없는 문제는 그대로 유지
+
+반드시 동일한 JSON 배열 형식으로만 출력하세요. 다른 텍스트 없이 JSON만.
+
+검토할 문제 (${i + 1}~${i + chunk.length}번):
+${JSON.stringify(chunk, null, 2)}`;
+
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000,
+        messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `Claude HTTP ${res.status}`); }
+    const json = await res.json();
+    const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+    reviewed = reviewed.concat(_parseJsonArray(text));
+  }
+  return { result: reviewed, skipped: false };
+}
+
+// ── 3단계: Gemini 최종 검토 ──
+async function _geminiFinalReview(questions) {
+  const BATCH = 15;
+  let finalized = [];
+  for (let i = 0; i < questions.length; i += BATCH) {
+    const chunk = questions.slice(i, i + BATCH);
+    const prompt = `다음은 2단계 검토를 마친 수학 문제들입니다. 최종 완성도를 확인하고 오류가 있으면 수정하세요.
+
+[최종 검토 기준]
+1. 문제 완성도: content만 보고 문제를 풀 수 있는지 확인
+2. 수식 최종 확인: KaTeX 문법 오류 없는지 재확인
+3. 선택지·보기 완전성: 누락된 선택지·보기가 있으면 "[누락]" 표시 유지 또는 복원
+4. answer 형식: 선택지 번호가 아닌 실제 내용인지 확인
+5. 오류 없으면 그대로 유지 — 불필요한 수정 금지
+
+반드시 JSON 배열 형식으로만 출력하세요. 다른 텍스트 없이 JSON만.
+
+최종 검토할 문제 (${i + 1}~${i + chunk.length}번):
+${JSON.stringify(chunk, null, 2)}`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 8192, temperature: 0 } }) }
+    );
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `Gemini HTTP ${res.status}`); }
+    const json = await res.json();
+    const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+    finalized = finalized.concat(_parseJsonArray(text));
+  }
+  return finalized;
+}
+
 function quOnFileSelect(input) {
   const file = input.files[0];
   if (!file) return;
@@ -10363,22 +10493,26 @@ async function extractFromFile() {
   const status = document.getElementById('quExtractStatus');
   btn.disabled = true; btn.textContent = '분석 중...';
   status.style.display = '';
+  _initStepUI(status);
+  _setStep(1, 'running', '준비 중...');
+  _setStep(2, 'wait', '대기 중');
+  _setStep(3, 'wait', '대기 중');
 
   try {
+    // ════════════════════════════════
+    // STEP 1: Gemini 1차 추출
+    // ════════════════════════════════
     const isPdf = file.type === 'application/pdf';
     let base64Images, mimeTypes;
 
     if (isPdf) {
-      // ── PDF → 페이지별 이미지 ──
-      status.textContent = 'PDF를 이미지로 변환 중...';
+      _setStep(1, 'running', 'PDF 변환 중...');
       base64Images = await pdfToPageImages(file, (cur, total) => {
-        status.textContent = `PDF 변환 중... ${cur} / ${total} 페이지`;
+        _setStep(1, 'running', `PDF ${cur}/${total} 페이지 변환 중`);
       });
       mimeTypes = base64Images.map(() => 'image/jpeg');
-      status.textContent = `${base64Images.length}페이지 분석 중 (Gemini 2.5 Flash)...`;
     } else {
-      // ── 이미지 파일 직접 전송 ──
-      status.textContent = '이미지 분석 중 (Gemini 2.5 Flash)...';
+      _setStep(1, 'running', '이미지 준비 중...');
       const b64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload  = e => resolve(e.target.result.split(',')[1]);
@@ -10389,29 +10523,60 @@ async function extractFromFile() {
       mimeTypes    = [file.type || 'image/jpeg'];
     }
 
-    // ── 페이지 배치 처리 (6페이지씩) ──
     const BATCH = 6;
-    let allQuestions = [];
+    let step1Questions = [];
     for (let i = 0; i < base64Images.length; i += BATCH) {
       const batchImgs  = base64Images.slice(i, i + BATCH);
       const batchMimes = mimeTypes.slice(i, i + BATCH);
-      if (base64Images.length > BATCH) {
-        status.textContent = `페이지 ${i + 1}~${Math.min(i + BATCH, base64Images.length)} 분석 중...`;
-      }
-      const questions = await _geminiCallBatch(batchImgs, batchMimes);
-      allQuestions = allQuestions.concat(questions);
+      const detail = base64Images.length > BATCH
+        ? `페이지 ${i + 1}~${Math.min(i + BATCH, base64Images.length)} 분석 중`
+        : '문제 추출 중...';
+      _setStep(1, 'running', detail);
+      const qs = await _geminiCallBatch(batchImgs, batchMimes);
+      step1Questions = step1Questions.concat(qs);
+    }
+    _setStep(1, 'done', `${step1Questions.length}개 추출 완료`);
+
+    // ════════════════════════════════
+    // STEP 2: Claude 수식·내용 검토
+    // ════════════════════════════════
+    _setStep(2, 'running', '수식·내용 검토 중...');
+    let step2Questions;
+    try {
+      const { result, skipped } = await _claudeReview(step1Questions);
+      step2Questions = result;
+      _setStep(2, skipped ? 'skip' : 'done',
+        skipped ? 'API 키 없음 — 건너뜀' : `${step2Questions.length}개 검토 완료`);
+    } catch(e2) {
+      console.warn('[Claude review] 실패, 1단계 결과 사용:', e2);
+      step2Questions = step1Questions;
+      _setStep(2, 'error', '검토 실패 — 1단계 결과 유지');
     }
 
-    _extractedQuestions = allQuestions;
+    // ════════════════════════════════
+    // STEP 3: Gemini 최종 검토
+    // ════════════════════════════════
+    _setStep(3, 'running', '최종 완성도 검토 중...');
+    let finalQuestions;
+    try {
+      finalQuestions = await _geminiFinalReview(step2Questions);
+      _setStep(3, 'done', `${finalQuestions.length}개 최종 완료`);
+    } catch(e3) {
+      console.warn('[Gemini final review] 실패, 2단계 결과 사용:', e3);
+      finalQuestions = step2Questions;
+      _setStep(3, 'error', '검토 실패 — 2단계 결과 유지');
+    }
+
+    await new Promise(r => setTimeout(r, 800)); // 완료 상태 잠깐 보여주기
+    _extractedQuestions = finalQuestions;
     renderExtractedQuestions(_extractedQuestions);
-    showToast(`${_extractedQuestions.length}개 문제가 추출되었습니다`, '✅');
+    showToast(`${_extractedQuestions.length}개 문제 추출 완료 (3단계 검토)`, '✅');
   } catch(e) {
     showToast('추출 실패: ' + e.message, '❌');
     console.error('[extractFromFile]', e);
   } finally {
     btn.disabled = false; btn.textContent = '🔮 Gemini로 문제 추출';
     status.style.display = 'none';
-    status.textContent   = '분석 중...';
   }
 }
 
