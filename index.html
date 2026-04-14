@@ -1360,7 +1360,7 @@
         <div class="lp-page-title" style="margin-bottom:4px">과외매칭</div>
         <div style="font-size:13px;color:var(--lp-text3)">수학 선생님·입시전문가와 학생을 직접 연결합니다</div>
       </div>
-      <button id="lpTutorRegisterBtn" class="lp-btn lp-btn-primary" style="white-space:nowrap">📝 프로필 등록하기</button>
+      <button id="lpTutorRegisterBtn" class="lp-btn lp-btn-primary" style="white-space:nowrap" onclick="handleLpTutorRegisterClick()">📝 프로필 등록하기</button>
     </div>
 
     <!-- 탭 -->
@@ -3833,14 +3833,30 @@ function updateLpTutorRegisterBtn() {
   if (!btn) return;
   if (currentUser && currentProfile) {
     const isTeacher = ['teacher', 'expert', 'staff', 'admin', 'director'].includes(currentProfile.role);
-    const view = isTeacher ? 'tutor-profile' : 'tutee-register';
-    const label = isTeacher ? '📝 내 과외 프로필 등록/수정' : '📋 내 구인 등록/수정';
-    btn.textContent = label;
-    btn.onclick = () => { closeLpPage(); showApp(); showView(view); };
+    btn.textContent = isTeacher ? '📝 내 과외 프로필 등록/수정' : '📋 내 구인 등록/수정';
   } else {
     btn.textContent = '📝 프로필 등록하기';
-    btn.onclick = () => openAuthFromLanding('login');
   }
+}
+
+function handleLpTutorRegisterClick() {
+  // LP 페이지를 먼저 닫아야 auth overlay(z-index:999)가 LP(z-index:1100) 뒤에 숨지 않음
+  Object.values(LP_PAGES).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  if (!currentUser || !currentProfile) {
+    // 비로그인: LP 닫은 후 로그인 모달 표시
+    openAuthFromLanding('login');
+    return;
+  }
+
+  // 로그인: 역할에 맞는 대시보드 뷰로 이동
+  const isTeacher = ['teacher', 'expert', 'staff', 'admin', 'director'].includes(currentProfile.role);
+  const view = isTeacher ? 'tutor-profile' : 'tutee-register';
+  showApp();
+  showView(view);
 }
 
 async function loadLpTutors() {
