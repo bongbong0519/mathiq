@@ -1396,8 +1396,17 @@
           <div style="font-size:11px;font-weight:700;color:var(--lp-text3);margin-bottom:5px">최대 시급 (원)</div>
           <input id="lpTsRate" type="number" placeholder="예) 50000" style="padding:8px 10px;border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:13px;background:#fff;color:var(--lp-text);width:140px">
         </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--lp-text3);margin-bottom:5px">정렬</div>
+          <select id="lpTsSort" style="padding:8px 10px;border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:13px;background:#fff;color:var(--lp-text);min-width:130px" onchange="loadLpTutors()">
+            <option value="random">랜덤</option>
+            <option value="newest">최신 등록순</option>
+            <option value="rate_asc">시급 낮은순</option>
+            <option value="rate_desc">시급 높은순</option>
+          </select>
+        </div>
         <button class="lp-btn lp-btn-primary" style="padding:8px 18px;font-size:13px" onclick="loadLpTutors()">검색</button>
-        <button class="lp-btn lp-btn-ghost" style="padding:8px 14px;font-size:13px" onclick="document.getElementById('lpTsSubject').value='';document.getElementById('lpTsProvince').value='';document.getElementById('lpTsRate').value='';loadLpTutors()">초기화</button>
+        <button class="lp-btn lp-btn-ghost" style="padding:8px 14px;font-size:13px" onclick="document.getElementById('lpTsSubject').value='';document.getElementById('lpTsProvince').value='';document.getElementById('lpTsRate').value='';document.getElementById('lpTsSort').value='random';loadLpTutors()">초기화</button>
       </div>
       <div id="lpTutorList"><div style="text-align:center;padding:60px;color:var(--lp-text3)">불러오는 중...</div></div>
     </div>
@@ -3873,14 +3882,27 @@ async function loadLpTutors() {
   const subject  = document.getElementById('lpTsSubject')?.value || '';
   const province = document.getElementById('lpTsProvince')?.value || '';
   const maxRate  = parseInt(document.getElementById('lpTsRate')?.value || '0', 10);
+  const sort     = document.getElementById('lpTsSort')?.value || 'random';
 
   let q = sbClient.from('tutor_profiles').select('*').eq('is_active', true);
   if (subject)  q = q.contains('subject', [subject]);
   if (province && REGION_MAP[province]) q = q.overlaps('region', REGION_MAP[province]);
   if (maxRate)  q = q.lte('hourly_rate', maxRate);
-  q = q.order('created_at', { ascending: false });
+
+  // 정렬: 랜덤은 전체 로드 후 클라이언트에서 셔플
+  if (sort === 'newest')    q = q.order('created_at', { ascending: false });
+  else if (sort === 'rate_asc')  q = q.order('hourly_rate', { ascending: true,  nullsFirst: false });
+  else if (sort === 'rate_desc') q = q.order('hourly_rate', { ascending: false, nullsFirst: false });
+  else q = q.order('created_at', { ascending: false }); // 랜덤: DB에서 전체 로드 후 셔플
 
   const { data, error } = await q;
+  if (!error && sort === 'random' && data?.length > 1) {
+    // Fisher-Yates shuffle
+    for (let i = data.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [data[i], data[j]] = [data[j], data[i]];
+    }
+  }
   if (error) { wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--lp-text3)">오류: ${error.message}</div>`; return; }
   if (!data?.length) { wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--lp-text3)">등록된 선생님이 없습니다</div>'; return; }
 
@@ -7258,7 +7280,7 @@ async function deleteMaterial(id, filePath) {
 // ═══════════════════════════════════════
 
 const TEACH_MODE_KO = { online: '온라인', offline: '오프라인', both: '온·오프라인' };
-const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '지구과학', '한국사', '영어회화', '논술', '코딩'];
+const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '지구과학', '한국사', '영어회화', '논술', '코딩', '입시/컨설팅'];
 
 const REGION_MAP = {
   '서울': ['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'],
