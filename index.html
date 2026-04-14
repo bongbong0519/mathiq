@@ -3464,7 +3464,7 @@ function openLpPage(name) {
     loadNotices();
     const writeBtn = document.getElementById('noticeWriteBtn');
     if (writeBtn) {
-      const canWrite = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'director');
+      const canWrite = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'staff');
       writeBtn.style.display = canWrite ? '' : 'none';
     }
   }

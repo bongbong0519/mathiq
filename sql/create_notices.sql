@@ -1,7 +1,7 @@
 -- ══════════════════════════════════════
 --  notices: 공지사항 테이블
 --  로그인 없이 전체 읽기 가능 (public SELECT)
---  작성: admin, director / 수정: admin, director / 삭제: admin
+--  작성: admin, staff / 수정: admin, staff / 삭제: admin
 --  Supabase 대시보드 > SQL Editor에서 실행
 -- ══════════════════════════════════════
 
@@ -22,20 +22,22 @@ CREATE POLICY "notices_select_public"
   TO public
   USING (true);
 
--- 운영자/원장만 작성
-CREATE POLICY "notices_insert_admin_director"
+-- 운영자/운영진만 작성
+DROP POLICY IF EXISTS "notices_insert_admin_director" ON public.notices;
+CREATE POLICY "notices_insert_admin_staff"
   ON public.notices FOR INSERT
   TO authenticated
   WITH CHECK (
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'director')
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'staff')
   );
 
--- 운영자/원장만 수정
-CREATE POLICY "notices_update_admin_director"
+-- 운영자/운영진만 수정
+DROP POLICY IF EXISTS "notices_update_admin_director" ON public.notices;
+CREATE POLICY "notices_update_admin_staff"
   ON public.notices FOR UPDATE
   TO authenticated
   USING (
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'director')
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'staff')
   );
 
 -- 운영자만 삭제
