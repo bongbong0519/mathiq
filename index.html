@@ -6917,11 +6917,17 @@ async function approveTeacher(id, role) {
 }
 
 async function rejectTeacher(id, role) {
-  const { error } = await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', id);
+  // 1. 이메일 발송용 데이터를 삭제 전에 먼저 조회
+  const { data: profile } = await sbClient.from('profiles').select('name, email').eq('id', id).maybeSingle();
+
+  // 2. admin_delete_user RPC — profiles + auth.users + 관련 데이터 완전 삭제
+  const { error } = await sbClient.rpc('admin_delete_user', { target_user_id: id });
   if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
+
+  // 3. 거절 이메일 발송 (best-effort)
+  if (profile) sendApprovalEmail(profile.name, profile.email, role, false);
+
   showToast('거절되었습니다', '❌');
-  sbClient.from('profiles').select('name, email').eq('id', id).maybeSingle()
-    .then(({ data }) => { if (data) sendApprovalEmail(data.name, data.email, role, false); });
   _reloadAdminMemberTab(role);
 }
 
