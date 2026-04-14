@@ -3407,6 +3407,7 @@ async function handleLogout() {
 
 // 시작 - config.js 로딩 기다린 후 실행
 window.addEventListener('load', () => {
+  initEmailJS();
   setTimeout(initSupabase, 100);
 });
 
