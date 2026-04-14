@@ -3345,6 +3345,14 @@
   </main>
 </div><!-- /app-wrapper -->
 
+<!-- ════════════════════ POINT EDIT MODAL (운영자 전용) ════════════════════ -->
+<div id="point-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:700;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border-radius:var(--radius);padding:28px 24px;max-width:400px;width:90%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.18)">
+    <button onclick="closePointEditModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+    <div id="point-edit-modal-content"></div>
+  </div>
+</div>
+
 <!-- ════════════════════ SHARE MODAL ════════════════════ -->
 <div class="modal-overlay" id="shareModal">
   <div class="modal">
@@ -8590,6 +8598,59 @@ async function submitProfile() {
   document.getElementById('userAvatar').textContent = (currentProfile.name || '?')[0];
 }
 
+// ── 포인트 수정 (운영자 전용) ──
+function adminPointBtn(userId, userName, points, cash) {
+  const esc = s => (s || '').replace(/'/g, "\\'");
+  return `<button class="btn btn-ghost btn-xs" onclick="openPointEditModal('${userId}','${esc(userName)}',${points ?? 0},${cash ?? 0})" title="파이포인트/캐쉬 수정">🪙 포인트</button>`;
+}
+
+function openPointEditModal(userId, userName, points, cash) {
+  const modal   = document.getElementById('point-edit-modal');
+  const content = document.getElementById('point-edit-modal-content');
+  if (!modal || !content) return;
+  content.innerHTML = `
+    <div style="margin-bottom:22px">
+      <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">포인트 수정</div>
+      <div style="font-size:13px;color:var(--text3)">${userName}</div>
+    </div>
+    <div style="display:grid;gap:16px;margin-bottom:22px">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">🪙 파이포인트 <span style="color:var(--text3);font-weight:400">(현재 ${(points).toLocaleString()}P)</span></label>
+        <input id="pedit-points" type="number" class="form-input" style="width:100%" value="${points}" min="0" placeholder="0">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">💰 파이캐쉬 <span style="color:var(--text3);font-weight:400">(현재 ${(cash).toLocaleString()}C)</span></label>
+        <input id="pedit-cash" type="number" class="form-input" style="width:100%" value="${cash}" min="0" placeholder="0">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closePointEditModal()">취소</button>
+      <button class="btn btn-primary" style="flex:1" onclick="savePointEdit('${userId}','${userName.replace(/'/g,"\\'")}')">저장</button>
+    </div>`;
+  modal.style.display = 'flex';
+}
+
+async function savePointEdit(userId, userName) {
+  const pts  = parseInt(document.getElementById('pedit-points')?.value ?? '0', 10);
+  const cash = parseInt(document.getElementById('pedit-cash')?.value   ?? '0', 10);
+  if (isNaN(pts) || isNaN(cash) || pts < 0 || cash < 0) { showToast('올바른 숫자를 입력해주세요', '⚠️'); return; }
+
+  const { error } = await sbClient.from('profiles')
+    .update({ point_balance: pts, cash_balance: cash })
+    .eq('id', userId);
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+
+  showToast(`${userName} 님의 포인트가 수정되었습니다 (🪙${pts.toLocaleString()}P / 💰${cash.toLocaleString()}C)`, '✅');
+  closePointEditModal();
+  // 자기 자신의 포인트를 수정한 경우 사이드바/네비바도 즉시 반영
+  if (userId === currentUser?.id) updateBalanceDisplay(pts, cash);
+}
+
+function closePointEditModal() {
+  const modal = document.getElementById('point-edit-modal');
+  if (modal) modal.style.display = 'none';
+}
+
 async function loadAdminPendingTab() {
   if (!sbClient || !currentUser) return;
   const wrap = document.getElementById('admin-pending-wrap');
@@ -8613,9 +8674,10 @@ async function loadAdminPendingTab() {
       <td><span class="chip">${roleKo[p.role] || p.role}</span></td>
       <td class="text-muted text-sm">${p.organizations?.name || p.school || '—'}</td>
       <td class="text-muted text-sm">${p.created_at ? new Date(p.created_at).toLocaleDateString('ko-KR') : '—'}</td>
-      <td><div style="display:flex;gap:5px">
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">
         <button class="btn btn-green btn-xs" onclick="approveTeacher('${p.id}','${p.role}')">승인</button>
         <button class="btn btn-red btn-xs" onclick="rejectTeacher('${p.id}','${p.role}')">거절</button>
+        ${adminPointBtn(p.id, p.name, p.point_balance, p.cash_balance)}
       </div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
@@ -8705,14 +8767,15 @@ async function loadAdminTeacherTab() {
     return;
   }
   const esc = s => (s || '').replace(/'/g, "\\'");
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     teachers.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.school || '—'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
-      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'teacher')}<button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${esc(t.name)}')">학생 이전</button></div></td>
+      <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'teacher')}<button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${esc(t.name)}')">학생 이전</button>${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
@@ -8727,14 +8790,15 @@ async function loadAdminDirectorTab() {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 원장님이 없습니다</div></div>';
     return;
   }
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>기관명</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>기관명</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     directors.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.school || '—'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
-      <td>${adminActionBtns(t.id, t.name, t.status, 'director')}</td>
+      <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'director')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
@@ -8749,14 +8813,15 @@ async function loadAdminStudentProfilesTab() {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 학생이 없습니다</div></div>';
     return;
   }
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     students.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.school || t.region || '—'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
-      <td>${adminRoleDeleteBtn(t.id, t.name, 'student')}</td>
+      <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminRoleDeleteBtn(t.id, t.name, 'student')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
@@ -8771,13 +8836,14 @@ async function loadAdminParentTab() {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 학부모가 없습니다</div></div>';
     return;
   }
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     parents.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
-      <td>${adminRoleDeleteBtn(t.id, t.name, 'parent')}</td>
+      <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminRoleDeleteBtn(t.id, t.name, 'parent')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
