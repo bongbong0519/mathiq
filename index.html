@@ -1473,6 +1473,8 @@
           <button class="auth-role-btn" id="role-director" onclick="selectRole('director')">원장님</button>
           <button class="auth-role-btn selected" id="role-teacher" onclick="selectRole('teacher')">선생님</button>
           <button class="auth-role-btn" id="role-parent" onclick="selectRole('parent')">학부모</button>
+          <button class="auth-role-btn" id="role-member" onclick="selectRole('member')">일반회원</button>
+          <button class="auth-role-btn" id="role-expert" onclick="selectRole('expert')">입시전문가</button>
         </div>
       </div>
       <div class="auth-field">
@@ -1588,8 +1590,11 @@
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
         </div>
-        <div class="nav-item" onclick="openBoard('notice')">
+        <div class="nav-item" onclick="openBoard('admission')">
           <span class="icon">🎓</span> 입시정보
+        </div>
+        <div class="nav-item" onclick="openBoard('math')">
+          <span class="icon">📐</span> 수학커뮤니티
         </div>
       </div>
       <div class="nav-section">
@@ -1625,8 +1630,11 @@
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
         </div>
-        <div class="nav-item" onclick="openBoard('notice')">
+        <div class="nav-item" onclick="openBoard('admission')">
           <span class="icon">🎓</span> 입시정보
+        </div>
+        <div class="nav-item" onclick="openBoard('math')">
+          <span class="icon">📐</span> 수학커뮤니티
         </div>
       </div>
       <div class="nav-section">
@@ -1666,8 +1674,11 @@
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
         </div>
-        <div class="nav-item" onclick="openBoard('notice')">
+        <div class="nav-item" onclick="openBoard('admission')">
           <span class="icon">🎓</span> 입시정보
+        </div>
+        <div class="nav-item" onclick="openBoard('math')">
+          <span class="icon">📐</span> 수학커뮤니티
         </div>
       </div>
       <div class="nav-section">
@@ -1697,7 +1708,7 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">정보</div>
-        <div class="nav-item" onclick="openBoard('notice')">
+        <div class="nav-item" onclick="openBoard('admission')">
           <span class="icon">🎓</span> 입시정보
         </div>
         <div class="nav-item" onclick="openBoard('student')">
@@ -1716,14 +1727,52 @@
     <nav id="nav-parent" style="display:none">
       <div class="nav-section">
         <div class="nav-label">정보</div>
-        <div class="nav-item" onclick="openBoard('notice')">
+        <div class="nav-item" onclick="openBoard('admission')">
           <span class="icon">🎓</span> 입시정보
+        </div>
+        <div class="nav-item" onclick="openBoard('math')">
+          <span class="icon">📐</span> 수학커뮤니티
         </div>
         <div class="nav-item" onclick="openBoard('parent')">
           <span class="icon">💬</span> 학부모 커뮤니티
         </div>
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">계정</div>
+        <div class="nav-item" onclick="showView('profile')">
+          <span class="icon">👤</span> 내 정보
+        </div>
+      </div>
+    </nav>
+
+    <!-- Member Nav -->
+    <nav id="nav-member" style="display:none">
+      <div class="nav-section">
+        <div class="nav-label">커뮤니티</div>
+        <div class="nav-item active" onclick="openBoard('math')">
+          <span class="icon">📐</span> 수학커뮤니티
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">계정</div>
+        <div class="nav-item" onclick="showView('profile')">
+          <span class="icon">👤</span> 내 정보
+        </div>
+      </div>
+    </nav>
+
+    <!-- Expert Nav -->
+    <nav id="nav-expert" style="display:none">
+      <div class="nav-section">
+        <div class="nav-label">게시판</div>
+        <div class="nav-item active" onclick="openBoard('admission')">
+          <span class="icon">🎓</span> 입시정보
+        </div>
+        <div class="nav-item" onclick="openBoard('math')">
+          <span class="icon">📐</span> 수학커뮤니티
         </div>
       </div>
       <div class="nav-section">
@@ -3849,7 +3898,7 @@ async function loadProfile(autoNavigate = true) {
       role,
       name: meta.name || currentUser.email.split('@')[0],
       email: currentUser.email,
-      status: (role === 'teacher' || role === 'director') ? 'pending' : 'approved'
+      status: (role === 'teacher' || role === 'director' || role === 'expert') ? 'pending' : 'approved'
     }).select().maybeSingle();
     if (upsertErr) {
       console.error('loadProfile upsert error:', upsertErr.message, upsertErr);
@@ -3873,7 +3922,7 @@ async function loadProfile(autoNavigate = true) {
   }
 
   // 선생님/원장님 미승인 → 대기 화면 (autoNavigate일 때만)
-  if ((data.role === 'teacher' || data.role === 'director') && data.status !== 'approved') {
+  if ((data.role === 'teacher' || data.role === 'director' || data.role === 'expert') && data.status !== 'approved') {
     updateLandingNavAuth();
     if (autoNavigate) {
       document.getElementById('landingPage').style.display = 'none';
@@ -3891,13 +3940,16 @@ async function loadProfile(autoNavigate = true) {
     director: `원장 · ${data.school || ''}`,
     admin: '플랫폼 관리자',
     student: '학생',
-    parent: '학부모'
+    parent: '학부모',
+    member: '일반회원',
+    expert: '입시전문가',
+    staff: '운영진'
   };
   document.getElementById('userRoleTag').textContent = roleTagMap[data.role] || data.role;
   document.getElementById('userAvatar').textContent = (data.name || '?')[0];
 
   // 역할 버튼 / 네비게이션 표시
-  const roleForNav = { parent: 'parent', admin: 'admin', director: 'director', student: 'student' }[data.role] || 'teacher';
+  const roleForNav = { parent: 'parent', admin: 'admin', director: 'director', student: 'student', member: 'member', expert: 'expert', staff: 'admin' }[data.role] || 'teacher';
   const teacherBtn = document.getElementById('role-btn-teacher');
   const directorBtn = document.getElementById('role-btn-director');
   const adminBtn = document.getElementById('role-btn-admin');
@@ -3911,7 +3963,7 @@ async function loadProfile(autoNavigate = true) {
     if (teacherBtn) teacherBtn.style.display = '';
   }
   const roleSwitcher = document.querySelector('.role-switcher');
-  if (roleSwitcher) roleSwitcher.style.display = (data.role === 'parent' || data.role === 'student') ? 'none' : '';
+  if (roleSwitcher) roleSwitcher.style.display = ['parent', 'student', 'member', 'expert', 'staff'].includes(data.role) ? 'none' : '';
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   const activeBtn = document.getElementById('role-btn-' + roleForNav);
   if (activeBtn) activeBtn.classList.add('active');
@@ -6716,9 +6768,10 @@ async function deleteMaterial(id, filePath) {
 // ═══════════════════════════════════════
 
 const BOARD_META = {
-  notice:  { title: '입시정보',       subtitle: '입시 관련 최신 정보를 확인합니다',    writeRoles: ['admin'] },
-  student: { title: '학생 커뮤니티',  subtitle: '다른 학생들과 정보를 나눕니다',       writeRoles: ['student'] },
-  parent:  { title: '학부모 커뮤니티', subtitle: '다른 학부모님들과 정보를 나눕니다',   writeRoles: ['parent'] }
+  admission: { title: '입시정보',       subtitle: '입시 관련 최신 정보를 확인합니다',    writeRoles: ['admin', 'staff', 'expert'] },
+  math:      { title: '수학커뮤니티',   subtitle: '수학에 관해 자유롭게 이야기 나눠요', writeRoles: ['admin', 'staff', 'teacher', 'director', 'student', 'parent', 'member', 'expert'] },
+  student:   { title: '학생 커뮤니티',  subtitle: '다른 학생들과 정보를 나눕니다',       writeRoles: ['student'] },
+  parent:    { title: '학부모 커뮤니티', subtitle: '다른 학부모님들과 정보를 나눕니다',  writeRoles: ['parent'] }
 };
 const BOARD_PAGE_SIZE = 20;
 let currentBoard = null;
@@ -6733,6 +6786,7 @@ function canWriteBoard(board) {
 
 function canCommentBoard(board) {
   if (!currentProfile || currentProfile.status !== 'approved') return false;
+  if (board === 'math')    return true; // 전체 가입자 댓글 가능
   if (board === 'student') return currentProfile.role === 'student';
   if (board === 'parent')  return currentProfile.role === 'parent';
   return false;
@@ -7062,6 +7116,7 @@ function canCommentBoard_current() {
   if (!currentProfile || currentProfile.status !== 'approved') return false;
   // post-detail의 board 정보는 currentPostBoard 변수에서 가져옴
   if (typeof currentPostBoard === 'undefined') return false;
+  if (currentPostBoard === 'math')    return true;
   if (currentPostBoard === 'student') return currentProfile.role === 'student';
   if (currentPostBoard === 'parent')  return currentProfile.role === 'parent';
   return false;
@@ -7164,6 +7219,22 @@ const PROFILE_FIELDS = {
     { key: 'email', label: '이메일', type: 'email', readonly: true },
     { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' },
     { key: 'region', label: '지역', type: 'text', placeholder: '예) 서울 강남구' }
+  ],
+  member: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' }
+  ],
+  expert: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' },
+    { key: 'region', label: '지역/소속', type: 'text', placeholder: '예) 서울 강남 입시학원' }
+  ],
+  staff: [
+    { key: 'name', label: '이름', type: 'text', required: true },
+    { key: 'email', label: '이메일', type: 'email', readonly: true },
+    { key: 'phone', label: '연락처', type: 'tel', placeholder: '010-0000-0000' }
   ]
 };
 
@@ -7183,7 +7254,7 @@ async function loadProfileView() {
 
   const role = profile.role || 'teacher';
   const fields = PROFILE_FIELDS[role] || PROFILE_FIELDS.teacher;
-  const roleLabel = { teacher: '선생님', director: '원장님', admin: '운영자', student: '학생', parent: '학부모' }[role] || role;
+  const roleLabel = { teacher: '선생님', director: '원장님', admin: '운영자', student: '학생', parent: '학부모', member: '일반회원', expert: '입시전문가', staff: '운영진' }[role] || role;
 
   let html = `<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
     <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800">${(profile.name || '?')[0]}</div>
@@ -7262,7 +7333,7 @@ async function loadAdminPendingTab() {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">✅</div><div class="empty-state-text">승인 대기 중인 회원이 없습니다</div></div>';
     return;
   }
-  const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모' };
+  const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모', member: '일반회원', expert: '입시전문가', staff: '운영진' };
   const esc = s => (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
   wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>역할</th><th>기관명</th><th>가입일</th><th>관리</th></tr></thead><tbody>' +
     data.map(p => `<tr>
@@ -7319,7 +7390,7 @@ function stopPendingBadgePolling() {
 }
 
 async function adminDeleteUser(userId, userName, role) {
-  const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모' }[role] || role;
+  const roleKo = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모', member: '일반회원', expert: '입시전문가', staff: '운영진' }[role] || role;
   if (!confirm(`"${userName}" (${roleKo})을(를) 탈퇴 처리하시겠습니까?\n\n작성한 게시글·댓글·자료가 모두 삭제되고 로그인이 영구 차단됩니다.`)) return;
 
   const { error } = await sbClient.rpc('admin_delete_user', { target_user_id: userId });
