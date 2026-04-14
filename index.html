@@ -1859,6 +1859,9 @@
         <div class="nav-item" onclick="showView('reports')">
           <span class="icon">📋</span> 성적 리포트
         </div>
+        <div class="nav-item" onclick="showView('sms')">
+          <span class="icon">📲</span> 학부모 문자 발송
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">자료</div>
@@ -2121,6 +2124,7 @@
 
   <!-- ════════════════════ TOP BAR ════════════════════ -->
   <div class="app-topbar" id="appTopbar">
+    <span id="topbarTier" style="display:none;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.04em"></span>
     <div class="topbar-balance-chip" title="파이포인트">
       <span>🪙</span><span class="val" id="topbarPoints">0 P</span>
     </div>
@@ -2848,6 +2852,17 @@
       <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📁</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">수업 자료 업로드, 학생별 자료 배포 기능이<br>곧 추가될 예정입니다.</div></div></div>
     </div>
 
+    <!-- ══ 선생님: 학부모 문자 발송 ══ -->
+    <div id="view-sms" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📲 학부모 문자 발송</div>
+          <div class="page-sub">학생 성적·출결 안내 문자를 학부모에게 발송합니다</div>
+        </div>
+      </div>
+      <div id="sms-view-content"></div>
+    </div>
+
     <!-- ══ 원장님: 수익/결제 현황 ══ -->
     <div id="view-director-revenue" class="view" style="display:none">
       <div class="page-header"><div><h2 class="page-title">수익/결제 현황</h2><p class="page-subtitle">학원 수익과 결제 내역을 관리합니다</p></div></div>
@@ -3395,6 +3410,14 @@
   <div style="background:var(--bg);border-radius:var(--radius);padding:28px 24px;max-width:400px;width:90%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.18)">
     <button onclick="closePointEditModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
     <div id="point-edit-modal-content"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ TIER EDIT MODAL (운영자 전용) ════════════════════ -->
+<div id="tier-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:700;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border-radius:var(--radius);padding:28px 24px;max-width:400px;width:90%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.18)">
+    <button onclick="closeTierEditModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+    <div id="tier-edit-modal-content"></div>
   </div>
 </div>
 
@@ -4603,6 +4626,20 @@ function updateBalanceDisplay(points, cash) {
   }
 }
 
+function updateTierBadge(tier) {
+  const el = document.getElementById('topbarTier');
+  if (!el) return;
+  tier = tier || 'free';
+  const label = TIER_LABEL_KO[tier] || tier;
+  const color = TIER_COLOR[tier] || '#888';
+  el.textContent = '★ ' + label;
+  el.style.background = color + '22';
+  el.style.color = color;
+  el.style.border = '1px solid ' + color + '55';
+  el.style.display = '';
+  if (currentProfile) currentProfile.subscription_tier = tier;
+}
+
 async function loadProfile(autoNavigate = true) {
   if (!sbClient || !currentUser) return;
   let { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
@@ -4653,6 +4690,7 @@ async function loadProfile(autoNavigate = true) {
 
   // 사이드바 UI 업데이트
   updateBalanceDisplay(data.point_balance, data.cash_balance);
+  updateTierBadge(data.subscription_tier);
   document.getElementById('userName').textContent = data.name || currentUser.email;
   const roleTagMap = {
     teacher: `수학 교사 · ${data.region || data.school || ''}`,
@@ -5020,6 +5058,7 @@ function showView(viewId) {
         if (viewId === 'student-search') loadStudentSearch().catch(() => {});
         if (viewId === 'tutor-search')   loadTutorSearch().catch(() => {});
         if (viewId === 'tutee-register') loadTuteeRegister().catch(() => {});
+        if (viewId === 'sms')            loadSmsView();
       }
     } catch(e) {}
   }, 0);
@@ -5363,6 +5402,23 @@ function sgAnimateSteps() {
 
 async function sgGenerate() {
   if (sg.generating) return;
+
+  // ── 구독 티어 / 월 사용 횟수 체크 ──
+  const tier = currentProfile?.subscription_tier || 'free';
+  const aiLimit = TIER_AI_LIMIT[tier] ?? 0;
+  if (aiLimit === 0) {
+    showToast('AI 유사문제 생성은 베이직 이상 구독이 필요합니다. 요금제를 확인해주세요.', '🔒');
+    return;
+  }
+  const resetAt = currentProfile?.ai_usage_reset_at ? new Date(currentProfile.ai_usage_reset_at) : new Date(0);
+  const now = new Date();
+  const isNewMonth = now.getFullYear() !== resetAt.getFullYear() || now.getMonth() !== resetAt.getMonth();
+  const currentUsage = isNewMonth ? 0 : (currentProfile?.ai_usage_count ?? 0);
+  if (currentUsage >= aiLimit) {
+    showToast(`이번 달 사용 횟수를 초과했습니다. 구독을 업그레이드 해주세요 (${currentUsage}/${aiLimit}회 사용)`, '⛔');
+    return;
+  }
+
   const apiKey = document.getElementById('sg-api-key').value.trim();
   const input = sgGetInput();
   if (!apiKey || !input) return;
@@ -5506,6 +5562,18 @@ pos는 수학 좌표계 기준. viewport를 문제에 맞게 설정하세요.`;
     if (!match) throw new Error('응답 형식 오류');
     const parsed = JSON.parse(match[0]);
     sgRenderResults(parsed, hint);
+
+    // ── 월 사용 횟수 증가 ──
+    if (sbClient && currentUser) {
+      const newCount = isNewMonth ? 1 : currentUsage + 1;
+      const newReset = isNewMonth ? now.toISOString() : (currentProfile?.ai_usage_reset_at || now.toISOString());
+      sbClient.from('profiles').update({ ai_usage_count: newCount, ai_usage_reset_at: newReset })
+        .eq('id', currentUser.id).then(() => {});
+      if (currentProfile) {
+        currentProfile.ai_usage_count   = newCount;
+        currentProfile.ai_usage_reset_at = newReset;
+      }
+    }
 
     document.getElementById('sg-api-dot').style.background = 'var(--green)';
     document.getElementById('sg-api-dot').style.animation = '';
@@ -7495,6 +7563,15 @@ async function deleteMaterial(id, filePath) {
 const TEACH_MODE_KO = { online: '온라인', offline: '오프라인', both: '온·오프라인' };
 const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '지구과학', '한국사', '영어회화', '논술', '코딩', '입시/컨설팅'];
 
+// ── 구독 티어 ──
+const TIER_ORDER    = ['free', 'basic', 'standard', 'premium', 'pro'];
+const TIER_AI_LIMIT = { free: 0, basic: 10, standard: 30, premium: 100, pro: 300 };
+const TIER_LABEL_KO = { free: 'Free', basic: '베이직', standard: '스탠다드', premium: '프리미엄', pro: '프로' };
+const TIER_COLOR    = { free: '#888', basic: '#4c9be8', standard: '#3ecf8e', premium: 'var(--accent)', pro: '#9b59b6' };
+function tierAtLeast(current, required) {
+  return TIER_ORDER.indexOf(current || 'free') >= TIER_ORDER.indexOf(required);
+}
+
 const REGION_MAP = {
   '서울': ['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'],
   '부산': ['강서구','금정구','기장군','남구','동구','동래구','부산진구','북구','사상구','사하구','서구','수영구','연제구','영도구','중구','해운대구'],
@@ -8651,6 +8728,42 @@ async function submitProfile() {
   document.getElementById('userAvatar').textContent = (currentProfile.name || '?')[0];
 }
 
+// ── 학부모 문자 발송 뷰 ──
+function loadSmsView() {
+  const wrap = document.getElementById('sms-view-content');
+  if (!wrap) return;
+  const tier = currentProfile?.subscription_tier || 'free';
+  const canSms = tierAtLeast(tier, 'standard');
+  if (!canSms) {
+    const tierKo = TIER_LABEL_KO[tier] || tier;
+    wrap.innerHTML = `
+      <div class="card" style="text-align:center;padding:56px 24px">
+        <div style="font-size:48px;margin-bottom:20px">🔒</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:10px">스탠다드 이상 구독이 필요합니다</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:28px">
+          현재 구독: <strong>${tierKo}</strong><br>
+          학부모 문자 발송 기능은 <strong>스탠다드 (월 10,000원)</strong> 이상 구독에서 사용할 수 있습니다.
+        </div>
+        <button class="btn btn-primary" onclick="showLanding();openLpPage('pricing')" style="padding:12px 28px;font-size:14px">요금제 보기 →</button>
+      </div>`;
+    return;
+  }
+  // standard 이상: placeholder UI
+  const aiLimit = TIER_AI_LIMIT[tier] ?? 0;
+  wrap.innerHTML = `
+    <div class="card mb-24">
+      <div class="card-title">📋 발송 대상 선택</div>
+      <div class="empty-state" style="padding:40px 20px">
+        <div style="font-size:32px;margin-bottom:12px">📲</div>
+        <div class="empty-state-text">학부모 문자 발송 기능 준비 중</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">
+          학생별 성적·출결 안내 문자 발송 기능이 곧 추가될 예정입니다.<br>
+          현재 구독: <strong>${TIER_LABEL_KO[tier]}</strong>
+        </div>
+      </div>
+    </div>`;
+}
+
 // ── 포인트 수정 (운영자 전용) ──
 function adminPointBtn(userId, userName, points, cash) {
   const esc = s => (s || '').replace(/'/g, "\\'");
@@ -8701,6 +8814,51 @@ async function savePointEdit(userId, userName) {
 
 function closePointEditModal() {
   const modal = document.getElementById('point-edit-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ── 구독 티어 수정 (운영자 전용) ──
+function adminTierBtn(userId, userName, tier) {
+  const esc = s => (s || '').replace(/'/g, "\\'");
+  return `<button class="btn btn-ghost btn-xs" onclick="openTierEditModal('${userId}','${esc(userName)}','${tier||'free'}')" title="구독 티어 변경">★ 티어</button>`;
+}
+
+function openTierEditModal(userId, userName, currentTier) {
+  const modal   = document.getElementById('tier-edit-modal');
+  const content = document.getElementById('tier-edit-modal-content');
+  if (!modal || !content) return;
+  const options = TIER_ORDER.map(t =>
+    `<option value="${t}" ${t === currentTier ? 'selected' : ''}>${TIER_LABEL_KO[t] || t}</option>`
+  ).join('');
+  content.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">구독 티어 변경</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px">${userName}</div>
+    <div style="margin-bottom:20px">
+      <label class="form-label" style="margin-bottom:6px;display:block">구독 티어</label>
+      <select id="tedit-tier" class="form-input" style="width:100%">${options}</select>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveTierEdit('${userId}','${userName}')">저장</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeTierEditModal()">취소</button>
+    </div>`;
+  modal.style.display = 'flex';
+}
+
+async function saveTierEdit(userId, userName) {
+  const tier = document.getElementById('tedit-tier')?.value;
+  if (!tier) return;
+  const { error } = await sbClient.from('profiles').update({ subscription_tier: tier }).eq('id', userId);
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast(`${userName} 님의 구독 티어가 [${TIER_LABEL_KO[tier] || tier}](으)로 변경되었습니다`, '✅');
+  closeTierEditModal();
+  if (userId === currentUser?.id) updateTierBadge(tier);
+  // 현재 열려있는 탭 새로고침
+  const activeTab = document.querySelector('.admin-tab-btn.active');
+  if (activeTab) activeTab.click();
+}
+
+function closeTierEditModal() {
+  const modal = document.getElementById('tier-edit-modal');
   if (modal) modal.style.display = 'none';
 }
 
@@ -8820,15 +8978,16 @@ async function loadAdminTeacherTab() {
     return;
   }
   const esc = s => (s || '').replace(/'/g, "\\'");
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>티어</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     teachers.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.school || '—'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
+      <td class="text-sm">${TIER_LABEL_KO[t.subscription_tier||'free']||'Free'}</td>
       <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
-      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'teacher')}<button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${esc(t.name)}')">학생 이전</button>${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'teacher')}<button class="btn btn-ghost btn-xs" onclick="openAdminStudentModal('${t.id}','${esc(t.name)}')">학생 이전</button>${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}${adminTierBtn(t.id, t.name, t.subscription_tier)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
@@ -8843,15 +9002,16 @@ async function loadAdminDirectorTab() {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 원장님이 없습니다</div></div>';
     return;
   }
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>기관명</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>기관명</th><th>가입일</th><th>상태</th><th>티어</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     directors.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.school || '—'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
+      <td class="text-sm">${TIER_LABEL_KO[t.subscription_tier||'free']||'Free'}</td>
       <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
-      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'director')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminActionBtns(t.id, t.name, t.status, 'director')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}${adminTierBtn(t.id, t.name, t.subscription_tier)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
@@ -8866,15 +9026,16 @@ async function loadAdminStudentProfilesTab() {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 학생이 없습니다</div></div>';
     return;
   }
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>학교</th><th>가입일</th><th>상태</th><th>티어</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     students.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.school || t.region || '—'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
+      <td class="text-sm">${TIER_LABEL_KO[t.subscription_tier||'free']||'Free'}</td>
       <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
-      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminRoleDeleteBtn(t.id, t.name, 'student')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminRoleDeleteBtn(t.id, t.name, 'student')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}${adminTierBtn(t.id, t.name, t.subscription_tier)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
@@ -8889,14 +9050,15 @@ async function loadAdminParentTab() {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-text">가입한 학부모가 없습니다</div></div>';
     return;
   }
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th>상태</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th>상태</th><th>티어</th><th>포인트</th><th>관리</th></tr></thead><tbody>' +
     parents.map(t => `<tr>
       <td class="font-bold">${t.name || '(이름 없음)'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0,8) + '...'}</td>
       <td class="text-muted text-sm">${t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '—'}</td>
       <td>${adminStatusBadge(t.status)}</td>
+      <td class="text-sm">${TIER_LABEL_KO[t.subscription_tier||'free']||'Free'}</td>
       <td class="text-sm" style="white-space:nowrap">🪙${(t.point_balance??0).toLocaleString()} / 💰${(t.cash_balance??0).toLocaleString()}</td>
-      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminRoleDeleteBtn(t.id, t.name, 'parent')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}</div></td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">${adminRoleDeleteBtn(t.id, t.name, 'parent')}${adminPointBtn(t.id, t.name, t.point_balance, t.cash_balance)}${adminTierBtn(t.id, t.name, t.subscription_tier)}</div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
 }
