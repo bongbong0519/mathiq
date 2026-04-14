@@ -4827,6 +4827,8 @@ function showApp() {
       loadStudents();
     }
   }, 300);
+  // 팝업 미표시 조건이 없으면 로그인 후에도 팝업 표시
+  _maybeShowEventPopup();
 }
 
 // ── 탭 전환 ──
@@ -5222,6 +5224,12 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 // ── LP EVENT POPUP ──
+function _maybeShowEventPopup() {
+  const hideUntil = parseInt(localStorage.getItem('lpEventPopupHideUntil') || '0', 10);
+  if (Date.now() < hideUntil) return;           // 하루동안 안보기 적용 중
+  if (sessionStorage.getItem('lpEventPopupSeen')) return; // 이 세션에서 이미 봄
+  openLpEventPopup();
+}
 function openLpEventPopup() {
   const el = document.getElementById('lpEventPopup');
   if (el) el.style.display = 'flex';
@@ -5258,13 +5266,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('app-banner-on');
   }
 
-  // 오픈 이벤트 팝업 — 세션 첫 방문 시 자동 표시 (약간 딜레이)
-  // "하루동안 안보기" 체크 시 24시간 동안 표시 안 함
-  const hideUntil = parseInt(localStorage.getItem('lpEventPopupHideUntil') || '0', 10);
-  const popupBlocked = Date.now() < hideUntil;
-  if (!sessionStorage.getItem('lpEventPopupSeen') && !popupBlocked) {
-    setTimeout(openLpEventPopup, 600);
-  }
+  // 오픈 이벤트 팝업 — 페이지 로드 시 자동 표시
+  setTimeout(_maybeShowEventPopup, 600);
 
   document.querySelectorAll('.stat-value').forEach(el => {
     el.style.opacity = '0';
