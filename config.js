@@ -1,10 +1,8 @@
 const SUPABASE_URL = 'https://cmwuuksxziyemknwwvkc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_e1Xu-klaPd_bZKrKsZ8YsA_WEBnRWRh';
 
-// Gemini API (문제은행 PDF 추출)
-// GEMINI_API_KEY는 config.local.js에서 설정하세요 (git에 커밋되지 않음)
-// const GEMINI_API_KEY = 'your-key-here';
-if (typeof GEMINI_API_KEY === 'undefined') window.GEMINI_API_KEY = '';
+// Gemini API 키는 Vercel 환경 변수(GEMINI_API_KEY)로 관리합니다.
+// 프론트엔드는 /api/gemini 프록시를 통해 호출합니다.
 
 // EmailJS 설정 (https://www.emailjs.com 에서 발급)
 const EMAILJS_PUBLIC_KEY  = 'uEuxnjAAmPJcJMiEp';
