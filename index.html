@@ -1381,20 +1381,23 @@
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--lp-text3);margin-bottom:5px">과목</div>
           <select id="lpTsSubject" style="padding:8px 10px;border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:13px;background:#fff;color:var(--lp-text);min-width:120px">
-            <option value="">전체</option>
-            <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option>
+            <option value="">전체 과목</option>
+            ${SUBJECT_LIST.map(s=>`<option>${s}</option>`).join('')}
           </select>
         </div>
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--lp-text3);margin-bottom:5px">지역</div>
-          <input id="lpTsRegion" placeholder="예) 서울 강남" style="padding:8px 10px;border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:13px;background:#fff;color:var(--lp-text);width:150px">
+          <select id="lpTsProvince" style="padding:8px 10px;border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:13px;background:#fff;color:var(--lp-text);min-width:120px">
+            <option value="">전체 지역</option>
+            ${REGION_PROVINCES.map(p=>`<option>${p}</option>`).join('')}
+          </select>
         </div>
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--lp-text3);margin-bottom:5px">최대 시급 (원)</div>
           <input id="lpTsRate" type="number" placeholder="예) 50000" style="padding:8px 10px;border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:13px;background:#fff;color:var(--lp-text);width:140px">
         </div>
         <button class="lp-btn lp-btn-primary" style="padding:8px 18px;font-size:13px" onclick="loadLpTutors()">검색</button>
-        <button class="lp-btn lp-btn-ghost" style="padding:8px 14px;font-size:13px" onclick="document.getElementById('lpTsSubject').value='';document.getElementById('lpTsRegion').value='';document.getElementById('lpTsRate').value='';loadLpTutors()">초기화</button>
+        <button class="lp-btn lp-btn-ghost" style="padding:8px 14px;font-size:13px" onclick="document.getElementById('lpTsSubject').value='';document.getElementById('lpTsProvince').value='';document.getElementById('lpTsRate').value='';loadLpTutors()">초기화</button>
       </div>
       <div id="lpTutorList"><div style="text-align:center;padding:60px;color:var(--lp-text3)">불러오는 중...</div></div>
     </div>
@@ -1405,8 +1408,8 @@
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--lp-text3);margin-bottom:5px">과목</div>
           <select id="lpSsSubject" style="padding:8px 10px;border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:13px;background:#fff;color:var(--lp-text);min-width:120px">
-            <option value="">전체</option>
-            <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option>
+            <option value="">전체 과목</option>
+            ${SUBJECT_LIST.map(s=>`<option>${s}</option>`).join('')}
           </select>
         </div>
         <div>
@@ -2848,8 +2851,8 @@
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">과목</label>
             <select id="ssFilterSubject" class="form-input" style="width:140px;padding:7px 10px;font-size:13px">
-              <option value="">전체</option>
-              <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option>
+              <option value="">전체 과목</option>
+              ${SUBJECT_LIST.map(s=>`<option>${s}</option>`).join('')}
             </select>
           </div>
           <div>
@@ -2879,20 +2882,23 @@
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">과목</label>
             <select id="tsFilterSubject" class="form-input" style="width:140px;padding:7px 10px;font-size:13px">
-              <option value="">전체</option>
-              <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option>
+              <option value="">전체 과목</option>
+              ${SUBJECT_LIST.map(s=>`<option>${s}</option>`).join('')}
             </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">지역</label>
-            <input id="tsFilterRegion" class="form-input" placeholder="예) 서울 강남" style="width:150px;padding:7px 10px;font-size:13px">
+            <select id="tsFilterProvince" class="form-input" style="width:140px;padding:7px 10px;font-size:13px">
+              <option value="">전체 지역</option>
+              ${REGION_PROVINCES.map(p=>`<option>${p}</option>`).join('')}
+            </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">최대 시급 (원)</label>
             <input id="tsFilterRate" type="number" class="form-input" placeholder="예) 50000" style="width:150px;padding:7px 10px;font-size:13px">
           </div>
           <button class="btn btn-primary btn-sm" onclick="loadTutorSearch()">검색</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('tsFilterSubject').value='';document.getElementById('tsFilterRegion').value='';document.getElementById('tsFilterRate').value='';loadTutorSearch()">초기화</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('tsFilterSubject').value='';document.getElementById('tsFilterProvince').value='';document.getElementById('tsFilterRate').value='';loadTutorSearch()">초기화</button>
         </div>
       </div>
       <div id="tutor-search-wrap">
@@ -3864,14 +3870,14 @@ async function loadLpTutors() {
   if (!wrap || !sbClient) return;
   wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--lp-text3)">불러오는 중...</div>';
 
-  const subject = document.getElementById('lpTsSubject')?.value || '';
-  const region  = document.getElementById('lpTsRegion')?.value?.trim() || '';
-  const maxRate = parseInt(document.getElementById('lpTsRate')?.value || '0', 10);
+  const subject  = document.getElementById('lpTsSubject')?.value || '';
+  const province = document.getElementById('lpTsProvince')?.value || '';
+  const maxRate  = parseInt(document.getElementById('lpTsRate')?.value || '0', 10);
 
   let q = sbClient.from('tutor_profiles').select('*').eq('is_active', true);
-  if (subject) q = q.eq('subject', subject);
-  if (region)  q = q.ilike('region', `%${region}%`);
-  if (maxRate) q = q.lte('hourly_rate', maxRate);
+  if (subject)  q = q.contains('subject', [subject]);
+  if (province && REGION_MAP[province]) q = q.overlaps('region', REGION_MAP[province]);
+  if (maxRate)  q = q.lte('hourly_rate', maxRate);
   q = q.order('created_at', { ascending: false });
 
   const { data, error } = await q;
@@ -3899,8 +3905,8 @@ async function loadLpTutors() {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
-          <span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--lp-coral)">${t.subject || '—'}</span>
-          <span style="padding:3px 9px;background:#f5f5f7;border-radius:20px;font-size:12px;color:var(--lp-text2)">${t.region || '지역 미기재'}</span>
+          ${fmtSubject(t.subject, true)}
+          ${fmtRegion(t.region, true)}
           <span style="padding:3px 9px;background:#f5f5f7;border-radius:20px;font-size:12px;color:var(--lp-text2)">${TEACH_MODE_KO[t.teaching_mode] || '—'}</span>
         </div>
         <div style="font-size:15px;font-weight:800;color:var(--lp-coral)">시급 ${t.hourly_rate ? t.hourly_rate.toLocaleString() + '원' : '협의'}</div>
@@ -3972,8 +3978,8 @@ function openLpTutorDetail(id) {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-      ${[['과목', t.subject||'—', true], ['시급', t.hourly_rate ? t.hourly_rate.toLocaleString()+'원' : '협의', true],
-         ['지역', t.region||'—', false], ['수업방식', TEACH_MODE_KO[t.teaching_mode]||'—', false]].map(([label, val, accent]) =>
+      ${[['과목', fmtSubjectText(t.subject), true], ['시급', t.hourly_rate ? t.hourly_rate.toLocaleString()+'원' : '협의', true],
+         ['지역', fmtRegionText(t.region), false], ['수업방식', TEACH_MODE_KO[t.teaching_mode]||'—', false]].map(([label, val, accent]) =>
         `<div style="background:#fff8f6;border-radius:10px;padding:12px">
           <div style="font-size:11px;color:var(--lp-text3);font-weight:700;margin-bottom:4px">${label}</div>
           <div style="font-size:14px;font-weight:700;color:${accent ? 'var(--lp-coral)' : 'var(--lp-text)'}">${val}</div>
@@ -7252,7 +7258,30 @@ async function deleteMaterial(id, filePath) {
 // ═══════════════════════════════════════
 
 const TEACH_MODE_KO = { online: '온라인', offline: '오프라인', both: '온·오프라인' };
-const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '기타'];
+const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '지구과학', '한국사', '영어회화', '논술', '코딩'];
+
+const REGION_MAP = {
+  '서울': ['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'],
+  '부산': ['강서구','금정구','기장군','남구','동구','동래구','부산진구','북구','사상구','사하구','서구','수영구','연제구','영도구','중구','해운대구'],
+  '대구': ['남구','달서구','달성군','동구','북구','서구','수성구','중구'],
+  '인천': ['강화군','계양구','남동구','동구','미추홀구','부평구','서구','연수구','옹진군','중구'],
+  '광주': ['광산구','남구','동구','북구','서구'],
+  '대전': ['대덕구','동구','서구','유성구','중구'],
+  '울산': ['남구','동구','북구','울주군','중구'],
+  '세종': ['세종시'],
+  '경기': ['가평군','고양시','과천시','광명시','광주시','구리시','군포시','김포시','남양주시','동두천시','부천시','성남시','수원시','시흥시','안산시','안성시','안양시','양주시','양평군','여주시','연천군','오산시','용인시','의왕시','의정부시','이천시','파주시','평택시','포천시','하남시','화성시'],
+  '강원': ['강릉시','고성군','동해시','삼척시','속초시','양구군','양양군','영월군','원주시','인제군','정선군','철원군','춘천시','태백시','평창군','홍천군','화천군','횡성군'],
+  '충북': ['괴산군','단양군','보은군','영동군','옥천군','음성군','제천시','증평군','진천군','청주시','충주시'],
+  '충남': ['계룡시','공주시','금산군','논산시','당진시','보령시','부여군','서산시','서천군','아산시','예산군','천안시','청양군','태안군','홍성군'],
+  '전북': ['고창군','군산시','김제시','남원시','무주군','부안군','순창군','완주군','익산시','임실군','장수군','전주시','정읍시','진안군'],
+  '전남': ['강진군','고흥군','곡성군','광양시','구례군','나주시','담양군','목포시','무안군','보성군','순천시','신안군','여수시','영광군','영암군','완도군','장성군','장흥군','진도군','함평군','해남군','화순군'],
+  '경북': ['경산시','경주시','고령군','구미시','김천시','문경시','봉화군','상주시','성주군','안동시','영덕군','영양군','영주시','영천시','예천군','울릉군','울진군','의성군','청도군','청송군','칠곡군','포항시'],
+  '경남': ['거제시','거창군','고성군','김해시','남해군','밀양시','사천시','산청군','양산시','의령군','진주시','창녕군','창원시','통영시','하동군','함안군','함양군','합천군'],
+  '제주': ['서귀포시','제주시']
+};
+const REGION_PROVINCES = Object.keys(REGION_MAP);
+const DISTRICT_TO_PROVINCE = {};
+REGION_PROVINCES.forEach(prov => { REGION_MAP[prov].forEach(d => { DISTRICT_TO_PROVINCE[d] = prov; }); });
 
 // 아바타 HTML 생성 (photo_url 있으면 이미지, 없으면 이니셜)
 function avatarHtml(photoUrl, name, size, isLp = false) {
@@ -7300,6 +7329,51 @@ async function uploadTutorPhoto(file) {
   return data.publicUrl + '?t=' + Date.now();
 }
 
+// ── 과목/지역 표시 헬퍼 ──
+function fmtSubject(s, isLp = false) {
+  const arr = Array.isArray(s) ? s : (s ? [s] : []);
+  const bg = 'rgba(255,107,107,0.1)';
+  const col = isLp ? 'var(--lp-coral)' : 'var(--accent)';
+  const gbg = isLp ? '#f5f5f7' : 'var(--bg3)';
+  const gcol = isLp ? 'var(--lp-text2)' : 'var(--text2)';
+  if (!arr.length) return `<span style="padding:3px 9px;background:${gbg};border-radius:20px;font-size:12px;color:${gcol}">—</span>`;
+  return arr.slice(0, 3).map(x => `<span style="padding:3px 9px;background:${bg};border-radius:20px;font-size:12px;font-weight:600;color:${col}">${x}</span>`).join('')
+    + (arr.length > 3 ? `<span style="padding:3px 9px;background:${gbg};border-radius:20px;font-size:12px;color:${gcol}">+${arr.length-3}</span>` : '');
+}
+function fmtRegion(r, isLp = false) {
+  const arr = Array.isArray(r) ? r : (r ? [r] : []);
+  const bg = isLp ? '#f5f5f7' : 'var(--bg3)';
+  const col = isLp ? 'var(--lp-text2)' : 'var(--text2)';
+  if (!arr.length) return `<span style="padding:3px 9px;background:${bg};border-radius:20px;font-size:12px;color:${col}">지역 미기재</span>`;
+  const prov = DISTRICT_TO_PROVINCE[arr[0]] || '';
+  const label = prov ? (arr.length === 1 ? `${prov} ${arr[0]}` : `${prov} 외 ${arr.length-1}개`) : arr[0];
+  return `<span style="padding:3px 9px;background:${bg};border-radius:20px;font-size:12px;color:${col}">${label}</span>`;
+}
+function fmtSubjectText(s) {
+  const arr = Array.isArray(s) ? s : (s ? [s] : []);
+  return arr.join(', ') || '—';
+}
+function fmtRegionText(r) {
+  const arr = Array.isArray(r) ? r : (r ? [r] : []);
+  if (!arr.length) return '—';
+  const prov = DISTRICT_TO_PROVINCE[arr[0]] || '';
+  return prov ? `${prov} ${arr.join(', ')}` : arr.join(', ');
+}
+
+function onTpProvinceChange() {
+  const province = document.getElementById('tp-province')?.value;
+  const wrap = document.getElementById('tp-districts-wrap');
+  if (!wrap) return;
+  if (!province || !REGION_MAP[province]) {
+    wrap.innerHTML = '<span style="font-size:12px;color:var(--text3)">광역시/도를 먼저 선택해주세요</span>';
+    return;
+  }
+  wrap.innerHTML = REGION_MAP[province].map(d => `
+    <label style="display:inline-flex;align-items:center;cursor:pointer;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:transparent;color:var(--text2);transition:all 0.12s" id="tp-dist-${d.replace(/[^a-zA-Z0-9가-힣]/g,'_')}">
+      <input type="checkbox" name="tp-regions" value="${d}" style="display:none" onchange="const l=this.closest('label');l.style.background=this.checked?'var(--accent)':'transparent';l.style.color=this.checked?'#fff':'var(--text2)';l.style.borderColor=this.checked?'var(--accent)':'var(--border)'"> ${d}
+    </label>`).join('');
+}
+
 // ── 선생님: 과외 프로필 등록 ──
 async function loadTutorProfile() {
   if (!sbClient || !currentUser) return;
@@ -7313,6 +7387,10 @@ async function loadTutorProfile() {
     toggleBtn.textContent = p.is_active !== false ? '활성화 중' : '비활성';
     toggleBtn.className   = p.is_active !== false ? 'btn btn-green btn-sm' : 'btn btn-ghost btn-sm';
   }
+
+  const savedSubjects = Array.isArray(p.subject) ? p.subject : (p.subject ? [p.subject] : []);
+  const savedRegions  = Array.isArray(p.region)  ? p.region  : (p.region  ? [p.region]  : []);
+  const savedProvince = savedRegions.length > 0 ? (DISTRICT_TO_PROVINCE[savedRegions[0]] || '') : '';
 
   wrap.innerHTML = `
     <div style="display:grid;gap:16px">
@@ -7330,14 +7408,32 @@ async function loadTutorProfile() {
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">과목 <span style="color:var(--red)">*</span></label>
-        <select id="tp-subject" class="form-input" style="width:100%">
-          ${SUBJECT_LIST.map(s => `<option ${p.subject === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:8px">과목 <span style="color:var(--red)">*</span> <span style="font-size:11px;font-weight:400;color:var(--text3)">(복수 선택 가능)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          ${SUBJECT_LIST.map(s => {
+            const checked = savedSubjects.includes(s);
+            return `<label style="display:inline-flex;align-items:center;cursor:pointer;padding:5px 12px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid ${checked?'var(--accent)':'var(--border)'};background:${checked?'var(--accent)':'transparent'};color:${checked?'#fff':'var(--text2)'};transition:all 0.12s">
+              <input type="checkbox" name="tp-subjects" value="${s}" ${checked?'checked':''} style="display:none" onchange="const l=this.closest('label');l.style.background=this.checked?'var(--accent)':'transparent';l.style.color=this.checked?'#fff':'var(--text2)';l.style.borderColor=this.checked?'var(--accent)':'var(--border)'"> ${s}
+            </label>`;
+          }).join('')}
+        </div>
       </div>
       <div class="form-group">
-        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">지역 <span style="color:var(--red)">*</span></label>
-        <input id="tp-region" class="form-input" style="width:100%" placeholder="예) 서울 강남구" value="${p.region || ''}">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:8px">활동지역 <span style="color:var(--red)">*</span> <span style="font-size:11px;font-weight:400;color:var(--text3)">(구/군 복수 선택 가능)</span></label>
+        <select id="tp-province" class="form-input" style="width:100%;margin-bottom:10px" onchange="onTpProvinceChange()">
+          <option value="">광역시/도 선택</option>
+          ${REGION_PROVINCES.map(prov => `<option value="${prov}" ${prov===savedProvince?'selected':''}>${prov}</option>`).join('')}
+        </select>
+        <div id="tp-districts-wrap" style="display:flex;flex-wrap:wrap;gap:6px;padding:12px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border);min-height:48px">
+          ${savedProvince && REGION_MAP[savedProvince]
+            ? REGION_MAP[savedProvince].map(d => {
+                const checked = savedRegions.includes(d);
+                return `<label style="display:inline-flex;align-items:center;cursor:pointer;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid ${checked?'var(--accent)':'var(--border)'};background:${checked?'var(--accent)':'transparent'};color:${checked?'#fff':'var(--text2)'};transition:all 0.12s">
+                  <input type="checkbox" name="tp-regions" value="${d}" ${checked?'checked':''} style="display:none" onchange="const l=this.closest('label');l.style.background=this.checked?'var(--accent)':'transparent';l.style.color=this.checked?'#fff':'var(--text2)';l.style.borderColor=this.checked?'var(--accent)':'var(--border)'"> ${d}
+                </label>`;
+              }).join('')
+            : '<span style="font-size:12px;color:var(--text3)">광역시/도를 먼저 선택해주세요</span>'}
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">시급 (원) <span style="color:var(--red)">*</span></label>
@@ -7369,15 +7465,17 @@ async function loadTutorProfile() {
 
 async function saveTutorProfile() {
   if (!sbClient || !currentUser) return;
-  const subject  = document.getElementById('tp-subject')?.value?.trim();
-  const region   = document.getElementById('tp-region')?.value?.trim();
+  const subject  = Array.from(document.querySelectorAll('input[name="tp-subjects"]:checked')).map(el => el.value);
+  const region   = Array.from(document.querySelectorAll('input[name="tp-regions"]:checked')).map(el => el.value);
   const rate     = parseInt(document.getElementById('tp-rate')?.value || '0', 10);
   const education  = document.getElementById('tp-education')?.value?.trim();
   const experience = document.getElementById('tp-experience')?.value?.trim();
   const mode     = document.getElementById('tp-mode')?.value;
   const intro    = document.getElementById('tp-intro')?.value?.trim();
 
-  if (!subject || !region || !rate) { showToast('과목, 지역, 시급은 필수입니다', '⚠️'); return; }
+  if (!subject.length) { showToast('과목을 하나 이상 선택해주세요', '⚠️'); return; }
+  if (!region.length)  { showToast('활동지역을 하나 이상 선택해주세요', '⚠️'); return; }
+  if (!rate)           { showToast('시급을 입력해주세요', '⚠️'); return; }
 
   const photoFile = document.getElementById('tp-photo-input')?.files?.[0];
   let photoUrl = null;
@@ -7470,14 +7568,14 @@ async function loadTutorSearch() {
   if (!wrap) return;
   wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
 
-  const subject = document.getElementById('tsFilterSubject')?.value || '';
-  const region  = document.getElementById('tsFilterRegion')?.value?.trim() || '';
-  const maxRate = parseInt(document.getElementById('tsFilterRate')?.value || '0', 10);
+  const subject  = document.getElementById('tsFilterSubject')?.value || '';
+  const province = document.getElementById('tsFilterProvince')?.value || '';
+  const maxRate  = parseInt(document.getElementById('tsFilterRate')?.value || '0', 10);
 
   let q = sbClient.from('tutor_profiles').select('*').eq('is_active', true);
-  if (subject) q = q.eq('subject', subject);
-  if (region)  q = q.ilike('region', `%${region}%`);
-  if (maxRate) q = q.lte('hourly_rate', maxRate);
+  if (subject)  q = q.contains('subject', [subject]);
+  if (province && REGION_MAP[province]) q = q.overlaps('region', REGION_MAP[province]);
+  if (maxRate)  q = q.lte('hourly_rate', maxRate);
   q = q.order('created_at', { ascending: false });
 
   const { data, error } = await q;
@@ -7503,8 +7601,8 @@ async function loadTutorSearch() {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-          <span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${t.subject || '—'}</span>
-          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${t.region || '지역 미기재'}</span>
+          ${fmtSubject(t.subject, false)}
+          ${fmtRegion(t.region, false)}
           <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${TEACH_MODE_KO[t.teaching_mode] || '—'}</span>
         </div>
         <div style="font-size:14px;font-weight:800;color:var(--accent)">시급 ${t.hourly_rate ? t.hourly_rate.toLocaleString() + '원' : '협의'}</div>
@@ -7534,7 +7632,7 @@ function openTutorDetail(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">과목</div>
-        <div style="font-size:15px;font-weight:700;color:var(--accent)">${t.subject || '—'}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">${fmtSubjectText(t.subject)}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">시급</div>
@@ -7542,7 +7640,7 @@ function openTutorDetail(id) {
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">지역</div>
-        <div style="font-size:14px;font-weight:600;color:var(--text)">${t.region || '—'}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${fmtRegionText(t.region)}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">수업 방식</div>
