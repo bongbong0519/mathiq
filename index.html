@@ -3083,91 +3083,81 @@ async function checkSession() {
 
 async function loadProfile() {
   if (!sbClient || !currentUser) return;
-  const { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+  let { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+
+  // 프로필이 없으면 기본값으로 1회만 생성 (재귀 없음)
   if (!data) {
-    // 프로필 없으면 user_metadata에서 역할 확인 후 생성
     const meta = currentUser.user_metadata || {};
     const role = meta.role || 'teacher';
-    const needsApproval = (role === 'teacher' || role === 'director');
-    await sbClient.from('profiles').upsert({
+    const { error: upsertErr, data: created } = await sbClient.from('profiles').upsert({
       id: currentUser.id,
-      role: role,
+      role,
       name: meta.name || currentUser.email.split('@')[0],
       email: currentUser.email,
-      status: needsApproval ? 'pending' : 'approved'
-    });
-    await loadProfile();
+      status: (role === 'teacher' || role === 'director') ? 'pending' : 'approved'
+    }).select().maybeSingle();
+    if (upsertErr) {
+      console.error('loadProfile upsert error:', upsertErr.message, upsertErr);
+      return; // 실패 시 무한 재귀 방지
+    }
+    data = created;
+    if (!data) return;
+  }
+
+  currentProfile = data;
+
+  // 탈퇴 계정 차단
+  if (data.status === 'deleted') {
+    await sbClient.auth.signOut();
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('appWrapper').style.display = 'none';
+    alert('탈퇴 처리된 계정입니다.\n자세한 사항은 운영자에게 문의해주세요.');
+    showLanding();
     return;
   }
-  if (data) {
-    currentProfile = data;
 
-    // 승인 상태 체크
-    // 학생이면 학생 뷰로 이동
-    // admin은 바로 통과
-    // 탈퇴 처리된 계정 차단
-    if (data.status === 'deleted') {
-      await sbClient.auth.signOut();
-      document.getElementById('authOverlay').style.display = 'none';
-      document.getElementById('appWrapper').style.display = 'none';
-      alert('탈퇴 처리된 계정입니다.\n자세한 사항은 운영자에게 문의해주세요.');
-      showLanding();
-      return;
-    }
-    if ((data.role === 'teacher' || data.role === 'director') && data.status !== 'approved') {
-      document.getElementById('authOverlay').style.display = 'none';
-      document.getElementById('appWrapper').style.display = 'none';
-      document.getElementById('pendingOverlay').style.display = 'flex';
-      return;
-    }
-
-    // UI 업데이트
-    document.getElementById('userName').textContent = data.name || currentUser.email;
-    const roleTagMap = {
-      teacher: `수학 교사 · ${data.region || data.school || ''}`,
-      director: `원장 · ${data.school || ''}`,
-      admin: '플랫폼 관리자',
-      student: '학생',
-      parent: '학부모'
-    };
-    document.getElementById('userRoleTag').textContent = roleTagMap[data.role] || data.role;
-    document.getElementById('userAvatar').textContent = (data.name || '?')[0];
-
-    // 역할에 따라 네비게이션 결정
-    const roleForNav = { parent: 'parent', admin: 'admin', director: 'director', student: 'student' }[data.role] || 'teacher';
-
-    // 역할 버튼 권한 제어
-    const teacherBtn = document.getElementById('role-btn-teacher');
-    const directorBtn = document.getElementById('role-btn-director');
-    const adminBtn = document.getElementById('role-btn-admin');
-
-    // 기본적으로 모두 숨기고 역할에 따라 표시
-    [teacherBtn, directorBtn, adminBtn].forEach(b => { if (b) b.style.display = 'none'; });
-
-    if (data.role === 'admin') {
-      if (teacherBtn) teacherBtn.style.display = '';
-      if (directorBtn) directorBtn.style.display = '';
-      if (adminBtn) adminBtn.style.display = '';
-      startPendingBadgePolling();
-    } else if (data.role === 'director') {
-      if (directorBtn) directorBtn.style.display = '';
-    } else if (data.role === 'teacher') {
-      if (teacherBtn) teacherBtn.style.display = '';
-    } else if (data.role === 'parent') {
-      // 학부모는 role-switcher 숨김
-    }
-
-    // 학부모는 role-switcher 자체를 숨김
-    const roleSwitcher = document.querySelector('.role-switcher');
-    if (roleSwitcher) roleSwitcher.style.display = (data.role === 'parent' || data.role === 'student') ? 'none' : '';
-
-    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-    const activeBtn = document.getElementById('role-btn-' + roleForNav);
-    if (activeBtn) activeBtn.classList.add('active');
-    document.querySelectorAll('nav[id^="nav-"]').forEach(n => n.style.display = 'none');
-    const activeNav = document.getElementById('nav-' + roleForNav);
-    if (activeNav) activeNav.style.display = 'block';
+  // 선생님/원장님 미승인 → 대기 화면
+  if ((data.role === 'teacher' || data.role === 'director') && data.status !== 'approved') {
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('appWrapper').style.display = 'none';
+    document.getElementById('pendingOverlay').style.display = 'flex';
+    return;
   }
+
+  // 사이드바 UI 업데이트
+  document.getElementById('userName').textContent = data.name || currentUser.email;
+  const roleTagMap = {
+    teacher: `수학 교사 · ${data.region || data.school || ''}`,
+    director: `원장 · ${data.school || ''}`,
+    admin: '플랫폼 관리자',
+    student: '학생',
+    parent: '학부모'
+  };
+  document.getElementById('userRoleTag').textContent = roleTagMap[data.role] || data.role;
+  document.getElementById('userAvatar').textContent = (data.name || '?')[0];
+
+  // 역할 버튼 / 네비게이션 표시
+  const roleForNav = { parent: 'parent', admin: 'admin', director: 'director', student: 'student' }[data.role] || 'teacher';
+  const teacherBtn = document.getElementById('role-btn-teacher');
+  const directorBtn = document.getElementById('role-btn-director');
+  const adminBtn = document.getElementById('role-btn-admin');
+  [teacherBtn, directorBtn, adminBtn].forEach(b => { if (b) b.style.display = 'none'; });
+  if (data.role === 'admin') {
+    [teacherBtn, directorBtn, adminBtn].forEach(b => { if (b) b.style.display = ''; });
+    startPendingBadgePolling();
+  } else if (data.role === 'director') {
+    if (directorBtn) directorBtn.style.display = '';
+  } else if (data.role === 'teacher') {
+    if (teacherBtn) teacherBtn.style.display = '';
+  }
+  const roleSwitcher = document.querySelector('.role-switcher');
+  if (roleSwitcher) roleSwitcher.style.display = (data.role === 'parent' || data.role === 'student') ? 'none' : '';
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById('role-btn-' + roleForNav);
+  if (activeBtn) activeBtn.classList.add('active');
+  document.querySelectorAll('nav[id^="nav-"]').forEach(n => n.style.display = 'none');
+  const activeNav = document.getElementById('nav-' + roleForNav);
+  if (activeNav) activeNav.style.display = 'block';
 }
 
 function showApp() {
@@ -3363,28 +3353,24 @@ async function handleSignup() {
       .is('owner_id', null);
   }
 
-  // 프로필 저장
+  // 프로필 저장 (upsert: 중복 키 충돌 방지)
   const profileData = {
     id: data.user.id,
     role: selectedRole,
     name,
     email,
-    school: (selectedRole === 'teacher' || selectedRole === 'director') ? selectedOrgName : null,
-    organization_id: orgId,
-    region: null,
+    school: (selectedRole === 'teacher' || selectedRole === 'director') ? (selectedOrgName || null) : null,
     status: (selectedRole === 'teacher' || selectedRole === 'director') ? 'pending' : 'approved'
   };
+  // organization_id는 컬럼이 없을 경우를 대비해 별도 처리
+  if (orgId) profileData.organization_id = orgId;
 
-  const { error: profileError } = await sbClient.from('profiles').insert(profileData);
+  const { error: profileError } = await sbClient.from('profiles').upsert(profileData);
   if (profileError) {
-    console.error('Profile insert error:', profileError);
-    const { error: retryError } = await sbClient.from('profiles').upsert(profileData);
-    if (retryError) {
-      console.error('Profile upsert retry error:', retryError);
-      btn.disabled = false; btn.textContent = '✨ 회원가입';
-      showAuthError('signupError', '프로필 저장에 실패했습니다. 관리자에게 문의해주세요.');
-      return;
-    }
+    console.error('Profile upsert error:', profileError.message, profileError);
+    btn.disabled = false; btn.textContent = '✨ 회원가입';
+    showAuthError('signupError', `프로필 저장 실패: ${profileError.message}`);
+    return;
   }
 
   btn.disabled = false; btn.textContent = '✨ 회원가입';
