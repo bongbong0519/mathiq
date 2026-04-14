@@ -1148,7 +1148,15 @@
           <a onclick="openLpPage('pricing')">요금제</a>
         </div>
       </div>
-      <button class="lp-nav-link" onclick="openOrgApplyFromLanding()">기관 등록</button>
+      <button class="lp-nav-link" onclick="openTutorMatchFromLanding()">과외매칭</button>
+      <div class="lp-nav-drop">
+        <button class="lp-nav-link">커뮤니티 <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="lp-dropdown">
+          <a onclick="openBoardFromLanding('math')">수학커뮤니티</a>
+          <a onclick="openViewFromLanding('materials')">자료실</a>
+          <a onclick="showToast('블로그·칼럼은 준비 중입니다', '🚧')">블로그·칼럼 <span style="font-size:11px;color:var(--lp-text3);margin-left:4px">준비중</span></a>
+        </div>
+      </div>
       <button class="lp-nav-link" onclick="openLpPage('notices')">공지사항</button>
       <button class="lp-nav-link" onclick="openLpPage('contact')">문의하기</button>
     </div>
@@ -3532,6 +3540,30 @@ function openOrgApplyFromLanding() {
   const landing = document.getElementById('landingPage');
   if (landing) landing.style.display = 'none';
   openOrgApplyModal();
+}
+
+function openTutorMatchFromLanding() {
+  showToast('과외매칭 서비스는 준비 중입니다', '🚧');
+}
+
+// 랜딩에서 게시판 이동 (로그인 필요)
+function openBoardFromLanding(board) {
+  if (!currentUser || !currentProfile) {
+    openAuthFromLanding('login');
+    return;
+  }
+  showApp();
+  openBoard(board);
+}
+
+// 랜딩에서 내부 뷰 이동 (로그인 필요)
+function openViewFromLanding(view) {
+  if (!currentUser || !currentProfile) {
+    openAuthFromLanding('login');
+    return;
+  }
+  showApp();
+  showView(view);
 }
 
 // ── 공지사항 ──
