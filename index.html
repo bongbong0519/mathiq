@@ -3997,6 +3997,8 @@ function switchAuthTab(tab) {
   document.getElementById('signupForm').style.display = tab === 'signup' ? 'flex' : 'none';
   document.getElementById('loginTab').classList.toggle('active', tab === 'login');
   document.getElementById('signupTab').classList.toggle('active', tab === 'signup');
+  // 회원가입 탭 전환 시 현재 선택된 역할에 맞게 필드 상태 동기화
+  if (tab === 'signup') selectRole(selectedRole);
 }
 
 // ── 역할 선택 ──
