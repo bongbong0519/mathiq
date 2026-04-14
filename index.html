@@ -924,7 +924,7 @@
   .lp-footer-info { font-size: 11px; color: var(--lp-text3); }
   /* ══ LP PAGES ══ */
   .lp-page {
-    position: fixed; inset: 0; z-index: 300; background: var(--lp-bg);
+    position: fixed; inset: 0; z-index: 1100; background: var(--lp-bg);
     overflow-y: auto; display: flex; flex-direction: column;
     animation: lpPageIn 0.22s ease;
   }
@@ -1141,7 +1141,7 @@
           <a onclick="openLpPage('pricing')">요금제</a>
         </div>
       </div>
-      <button class="lp-nav-link" onclick="openOrgApplyModal()">기관 등록</button>
+      <button class="lp-nav-link" onclick="openOrgApplyFromLanding()">기관 등록</button>
       <button class="lp-nav-link" onclick="openLpPage('notices')">공지사항</button>
       <button class="lp-nav-link" onclick="openLpPage('contact')">문의하기</button>
     </div>
@@ -3356,7 +3356,10 @@ const LP_PAGES = {
 };
 
 function openLpPage(name) {
-  // 모든 LP 페이지 숨기기
+  // 랜딩 숨기기
+  const landing = document.getElementById('landingPage');
+  if (landing) landing.style.display = 'none';
+  // 모든 LP 페이지 숨기고 해당 페이지만 열기
   Object.values(LP_PAGES).forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -3380,6 +3383,13 @@ function closeLpPage() {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
+  showLanding();
+}
+
+function openOrgApplyFromLanding() {
+  const landing = document.getElementById('landingPage');
+  if (landing) landing.style.display = 'none';
+  openOrgApplyModal();
 }
 
 // ── 공지사항 ──
