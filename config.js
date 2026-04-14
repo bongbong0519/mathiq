@@ -7,3 +7,4 @@ const EMAILJS_SERVICE_ID  = 'service_eysit3g';
 const EMAILJS_TPL_USER     = 'template_2upkcoi';
 const EMAILJS_TPL_ADMIN    = 'template_evwa3cv';
 const EMAILJS_TPL_APPROVAL = 'template_2upkcoi'; // 승인/거절 알림 (별도 템플릿 만들면 ID 교체)
+const EMAILJS_TPL_CONTACT  = '';                  // 문의하기 템플릿 ID (없으면 EMAILJS_TPL_ADMIN 재사용)
