@@ -20,23 +20,23 @@
   onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 <style>
   :root {
-    --bg: #0a0c10;
-    --bg2: #111318;
-    --bg3: #181c23;
-    --border: #232830;
-    --border2: #2e3540;
-    --text: #e8eaf0;
-    --text2: #8b92a0;
-    --text3: #545c6b;
-    --accent: #4f8ef7;
-    --accent2: #6c6ef5;
+    --bg: #ffffff;
+    --bg2: #fff8f6;
+    --bg3: #fff0ec;
+    --border: rgba(255,107,107,0.14);
+    --border2: rgba(255,107,107,0.26);
+    --text: #1d1d2e;
+    --text2: #6b7080;
+    --text3: #a8adc0;
+    --accent: #ff6b6b;
+    --accent2: #ff9472;
     --green: #3ecf8e;
     --red: #f56565;
     --yellow: #f6ad55;
     --purple: #b794f4;
     --pink: #f687b3;
     --cyan: #63b3ed;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --shadow: 0 4px 24px rgba(255,107,107,0.12);
     --radius: 12px;
     --radius-sm: 8px;
   }
@@ -51,14 +51,14 @@
     overflow-x: hidden;
   }
 
-  /* ── GRID NOISE TEXTURE ── */
+  /* ── SUBTLE BACKGROUND TINT ── */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
     background-image:
-      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,142,247,0.06) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(108,110,245,0.05) 0%, transparent 60%);
+      radial-gradient(ellipse 70% 50% at 5% 0%, rgba(255,148,114,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 40% at 95% 100%, rgba(255,107,107,0.05) 0%, transparent 55%);
     pointer-events: none;
     z-index: 0;
   }
@@ -137,7 +137,7 @@
     margin-bottom: 1px;
   }
   .nav-item:hover { background: var(--border); color: var(--text); }
-  .nav-item.active { background: rgba(79,142,247,0.12); color: var(--accent); }
+  .nav-item.active { background: rgba(255,107,107,0.1); color: var(--accent); }
   .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
   .nav-item .badge {
     margin-left: auto;
@@ -199,7 +199,7 @@
     white-space: nowrap;
   }
   .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: #3a7be8; transform: translateY(-1px); }
+  .btn-primary:hover { background: #e85555; transform: translateY(-1px); }
   .btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
   .btn-ghost:hover { color: var(--text); border-color: var(--text3); }
   .btn-green { background: rgba(62,207,142,0.12); color: var(--green); border: 1px solid rgba(62,207,142,0.25); }
@@ -280,7 +280,7 @@
     color: var(--text);
   }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,0.02); }
+  tr:hover td { background: rgba(255,107,107,0.03); }
 
   /* ── DIFFICULTY BADGE (NEW) ── */
   .diff-badge {
@@ -427,7 +427,7 @@
     max-width: 95vw;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.18);
     animation: slideUp 0.25s ease;
   }
   @keyframes slideUp {
@@ -465,8 +465,8 @@
     text-align: center;
     transition: all 0.2s;
   }
-  .share-method:hover { border-color: var(--accent); background: rgba(79,142,247,0.05); }
-  .share-method.selected { border-color: var(--accent); background: rgba(79,142,247,0.1); }
+  .share-method:hover { border-color: var(--accent); background: rgba(255,107,107,0.05); }
+  .share-method.selected { border-color: var(--accent); background: rgba(255,107,107,0.1); }
   .share-method-icon { font-size: 24px; margin-bottom: 8px; }
   .share-method-name { font-size: 13px; font-weight: 700; color: var(--text); }
   .share-method-desc { font-size: 11px; color: var(--text3); margin-top: 3px; }
@@ -1152,7 +1152,7 @@
       <button class="lp-nav-link" onclick="openLpPage('notices')">공지사항</button>
       <button class="lp-nav-link" onclick="openLpPage('contact')">문의하기</button>
     </div>
-    <div class="lp-nav-auth">
+    <div class="lp-nav-auth" id="lpNavAuth">
       <button class="lp-btn lp-btn-ghost" onclick="openAuthFromLanding('login')">로그인</button>
       <button class="lp-btn lp-btn-primary" onclick="openAuthFromLanding('signup')">회원가입</button>
     </div>
@@ -3353,7 +3353,9 @@ function openAuthFromLanding(tab) {
 function showLanding() {
   document.getElementById('landingPage').style.display = '';
   document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('appWrapper').style.display = 'none';
   startLpSlider();
+  updateLandingNavAuth();
 }
 
 // ── Landing Slider ──
@@ -3392,6 +3394,33 @@ function startLpSlider() {
 
 function stopLpSlider() {
   if (_lpProgressTimer) { clearInterval(_lpProgressTimer); _lpProgressTimer = null; }
+}
+
+// ── 랜딩 네비 로그인 상태 업데이트 ──
+function updateLandingNavAuth() {
+  const navAuth = document.getElementById('lpNavAuth');
+  if (!navAuth) return;
+  if (currentUser && currentProfile) {
+    const name = currentProfile.name || currentUser.email;
+    const isPending = (currentProfile.role === 'teacher' || currentProfile.role === 'director')
+      && currentProfile.status !== 'approved';
+    navAuth.innerHTML = isPending
+      ? `<span style="font-size:12px;color:var(--lp-text3);font-weight:600">${name}</span>
+         <span style="font-size:11px;color:var(--lp-text3);padding:5px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:8px">승인 대기 중</span>
+         <button class="lp-btn lp-btn-ghost" onclick="handleLogout()">로그아웃</button>`
+      : `<span style="font-size:13px;color:var(--lp-text2);font-weight:600">${name}</span>
+         <button class="lp-btn lp-btn-primary" onclick="goToDashboard()">대시보드 →</button>
+         <button class="lp-btn lp-btn-ghost" onclick="handleLogout()">로그아웃</button>`;
+  } else {
+    navAuth.innerHTML =
+      `<button class="lp-btn lp-btn-ghost" onclick="openAuthFromLanding('login')">로그인</button>
+       <button class="lp-btn lp-btn-primary" onclick="openAuthFromLanding('signup')">회원가입</button>`;
+  }
+}
+
+function goToDashboard() {
+  if (!currentUser || !currentProfile) { openAuthFromLanding('login'); return; }
+  showApp();
 }
 
 // ── LP Pages (서비스소개 / 요금제 / 공지사항 / 문의하기) ──
@@ -3760,18 +3789,19 @@ function initSupabase() {
 
 async function checkSession() {
   const { data: { session } } = await sbClient.auth.getSession();
+  // 항상 랜딩 먼저 표시
+  document.getElementById('appWrapper').style.display = 'none';
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('pendingOverlay').style.display = 'none';
+  showLanding();
   if (session) {
     currentUser = session.user;
-    // showApp은 loadProfile 내부에서 approved 확인 후 호출
-    document.getElementById('authOverlay').style.display = 'none';
-    await loadProfile();
-  } else {
-    showLanding();
-    document.getElementById('appWrapper').style.display = 'none';
+    // 프로필 로드만 (대시보드 이동 X) → 랜딩 네비 업데이트
+    await loadProfile(false);
   }
 }
 
-async function loadProfile() {
+async function loadProfile(autoNavigate = true) {
   if (!sbClient || !currentUser) return;
   let { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
 
@@ -3799,6 +3829,7 @@ async function loadProfile() {
   // 탈퇴 계정 차단
   if (data.status === 'deleted') {
     await sbClient.auth.signOut();
+    currentUser = null; currentProfile = null;
     document.getElementById('authOverlay').style.display = 'none';
     document.getElementById('appWrapper').style.display = 'none';
     alert('탈퇴 처리된 계정입니다.\n자세한 사항은 운영자에게 문의해주세요.');
@@ -3806,11 +3837,15 @@ async function loadProfile() {
     return;
   }
 
-  // 선생님/원장님 미승인 → 대기 화면
+  // 선생님/원장님 미승인 → 대기 화면 (autoNavigate일 때만)
   if ((data.role === 'teacher' || data.role === 'director') && data.status !== 'approved') {
-    document.getElementById('authOverlay').style.display = 'none';
-    document.getElementById('appWrapper').style.display = 'none';
-    document.getElementById('pendingOverlay').style.display = 'flex';
+    updateLandingNavAuth();
+    if (autoNavigate) {
+      document.getElementById('landingPage').style.display = 'none';
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('appWrapper').style.display = 'none';
+      document.getElementById('pendingOverlay').style.display = 'flex';
+    }
     return;
   }
 
@@ -3849,8 +3884,11 @@ async function loadProfile() {
   const activeNav = document.getElementById('nav-' + roleForNav);
   if (activeNav) activeNav.style.display = 'block';
 
-  // 승인 확인 완료 후 앱 화면 표시 (pending/deleted는 이미 return됨)
-  showApp();
+  // 랜딩 네비 버튼 업데이트 (대시보드 이동 버튼 표시)
+  updateLandingNavAuth();
+
+  // 승인 확인 완료 후 앱 화면 표시 (autoNavigate=true일 때만)
+  if (autoNavigate) showApp();
 }
 
 function showApp() {
@@ -4091,7 +4129,7 @@ async function handleLogout() {
   currentUser = null; currentProfile = null;
   document.getElementById('appWrapper').style.display = 'none';
   document.getElementById('pendingOverlay').style.display = 'none';
-  showLanding();
+  showLanding(); // showLanding 내부에서 updateLandingNavAuth() 호출됨
 }
 
 // 시작 - config.js 로딩 기다린 후 실행
