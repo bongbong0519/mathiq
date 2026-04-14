@@ -1279,13 +1279,109 @@
     <div class="lp-page-logo">파이데이아<span>솔루션</span></div>
     <button class="lp-page-back" onclick="closeLpPage()">← 홈으로</button>
   </nav>
-  <div class="lp-page-body" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px)">
-    <div class="lp-pricing-card">
-      <div class="lp-pricing-icon">🚀</div>
-      <h2>요금제 추후 공개 예정</h2>
-      <p>현재 모든 기능을 <strong>무료</strong>로 체험하실 수 있습니다.<br>정식 요금제는 준비 중이며, 출시 전 사전 안내 이메일을 발송할 예정입니다.</p>
-      <div class="lp-pricing-badge">현재 전체 무료 이용 가능</div>
+  <div class="lp-page-body" style="padding:48px 24px 80px;max-width:1080px;margin:0 auto">
+    <!-- 헤더 -->
+    <div style="text-align:center;margin-bottom:48px">
+      <div style="display:inline-block;padding:5px 16px;border-radius:20px;background:rgba(255,107,107,0.1);font-size:13px;font-weight:700;color:var(--lp-coral);margin-bottom:14px">구독 요금제</div>
+      <h2 style="font-size:clamp(26px,4vw,38px);font-weight:900;color:var(--lp-text);margin:0 0 12px;line-height:1.2">나에게 맞는 플랜을 선택하세요</h2>
+      <p style="font-size:15px;color:var(--lp-text2);margin:0">파이포인트로 AI 기능과 매칭 서비스를 자유롭게 이용하세요</p>
     </div>
+
+    <!-- 티어 카드 그리드 -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;align-items:start">
+
+      <!-- 베이직 -->
+      <div style="border:1.5px solid rgba(255,107,107,0.2);border-radius:20px;padding:28px 24px;background:#fff;position:relative;transition:box-shadow 0.18s" onmouseover="this.style.boxShadow='0 8px 32px rgba(255,107,107,0.12)'" onmouseout="this.style.boxShadow=''">
+        <div style="font-size:13px;font-weight:700;color:var(--lp-text3);letter-spacing:0.06em;margin-bottom:8px">BASIC</div>
+        <div style="font-size:13px;font-weight:800;color:var(--lp-text);margin-bottom:4px">베이직</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:20px">
+          <span style="font-size:32px;font-weight:900;color:var(--lp-text)">5,000</span>
+          <span style="font-size:14px;color:var(--lp-text2);font-weight:600">원/월</span>
+        </div>
+        <div style="height:1px;background:rgba(255,107,107,0.1);margin-bottom:20px"></div>
+        <ul style="list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:11px">
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>파이포인트 <strong>5,000점</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>AI 유사문제 생성 <strong>월 30회</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>과외 매칭 기능</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(180,180,190,1)"><span style="width:18px;height:18px;border-radius:50%;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">—</span>학생 성적 관리</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(180,180,190,1)"><span style="width:18px;height:18px;border-radius:50%;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">—</span>학부모 문자 발송</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(180,180,190,1)"><span style="width:18px;height:18px;border-radius:50%;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">—</span>과외비 결제 대행</li>
+        </ul>
+        <button class="lp-btn" style="width:100%;padding:12px;border-radius:12px;font-size:14px;font-weight:700;background:transparent;border:1.5px solid rgba(255,107,107,0.4);color:var(--lp-coral);cursor:pointer" onclick="openAuthFromLanding('login')">시작하기</button>
+      </div>
+
+      <!-- 스탠다드 -->
+      <div style="border:1.5px solid rgba(255,107,107,0.2);border-radius:20px;padding:28px 24px;background:#fff;position:relative;transition:box-shadow 0.18s" onmouseover="this.style.boxShadow='0 8px 32px rgba(255,107,107,0.12)'" onmouseout="this.style.boxShadow=''">
+        <div style="font-size:13px;font-weight:700;color:var(--lp-text3);letter-spacing:0.06em;margin-bottom:8px">STANDARD</div>
+        <div style="font-size:13px;font-weight:800;color:var(--lp-text);margin-bottom:4px">스탠다드</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:20px">
+          <span style="font-size:32px;font-weight:900;color:var(--lp-text)">10,000</span>
+          <span style="font-size:14px;color:var(--lp-text2);font-weight:600">원/월</span>
+        </div>
+        <div style="height:1px;background:rgba(255,107,107,0.1);margin-bottom:20px"></div>
+        <ul style="list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:11px">
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>파이포인트 <strong>10,000점</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>AI 유사문제 생성 <strong>월 100회</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>과외 매칭 기능</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>학생 성적 관리</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(180,180,190,1)"><span style="width:18px;height:18px;border-radius:50%;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">—</span>학부모 문자 발송</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(180,180,190,1)"><span style="width:18px;height:18px;border-radius:50%;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">—</span>과외비 결제 대행</li>
+        </ul>
+        <button class="lp-btn" style="width:100%;padding:12px;border-radius:12px;font-size:14px;font-weight:700;background:transparent;border:1.5px solid rgba(255,107,107,0.4);color:var(--lp-coral);cursor:pointer" onclick="openAuthFromLanding('login')">시작하기</button>
+      </div>
+
+      <!-- 프리미엄 (추천) -->
+      <div style="border:2px solid var(--lp-coral);border-radius:20px;padding:28px 24px;background:linear-gradient(160deg,#fff5f5,#fff);position:relative;transition:box-shadow 0.18s;box-shadow:0 4px 24px rgba(255,107,107,0.13)" onmouseover="this.style.boxShadow='0 12px 40px rgba(255,107,107,0.22)'" onmouseout="this.style.boxShadow='0 4px 24px rgba(255,107,107,0.13)'">
+        <div style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--lp-coral),#ff9472);color:#fff;font-size:11px;font-weight:800;padding:4px 14px;border-radius:20px;letter-spacing:0.06em;white-space:nowrap">인기 ★</div>
+        <div style="font-size:13px;font-weight:700;color:var(--lp-coral);letter-spacing:0.06em;margin-bottom:8px">PREMIUM</div>
+        <div style="font-size:13px;font-weight:800;color:var(--lp-text);margin-bottom:4px">프리미엄</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:20px">
+          <span style="font-size:32px;font-weight:900;color:var(--lp-coral)">30,000</span>
+          <span style="font-size:14px;color:var(--lp-text2);font-weight:600">원/월</span>
+        </div>
+        <div style="height:1px;background:rgba(255,107,107,0.18);margin-bottom:20px"></div>
+        <ul style="list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:11px">
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>파이포인트 <strong>30,000점</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>AI 유사문제 생성 <strong>무제한</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>과외 매칭 기능</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>학생 성적 관리</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>학부모 문자 발송</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(180,180,190,1)"><span style="width:18px;height:18px;border-radius:50%;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">—</span>과외비 결제 대행</li>
+        </ul>
+        <button class="lp-btn lp-btn-primary" style="width:100%;padding:12px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer" onclick="openAuthFromLanding('login')">시작하기</button>
+      </div>
+
+      <!-- 프로 -->
+      <div style="border:1.5px solid rgba(255,107,107,0.2);border-radius:20px;padding:28px 24px;background:#fff;position:relative;transition:box-shadow 0.18s" onmouseover="this.style.boxShadow='0 8px 32px rgba(255,107,107,0.12)'" onmouseout="this.style.boxShadow=''">
+        <div style="font-size:13px;font-weight:700;color:var(--lp-text3);letter-spacing:0.06em;margin-bottom:8px">PRO</div>
+        <div style="font-size:13px;font-weight:800;color:var(--lp-text);margin-bottom:4px">프로</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:20px">
+          <span style="font-size:32px;font-weight:900;color:var(--lp-text)">50,000</span>
+          <span style="font-size:14px;color:var(--lp-text2);font-weight:600">원/월</span>
+        </div>
+        <div style="height:1px;background:rgba(255,107,107,0.1);margin-bottom:20px"></div>
+        <ul style="list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:11px">
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>파이포인트 <strong>50,000점</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>AI 유사문제 생성 <strong>무제한</strong></li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>과외 매칭 기능</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>학생 성적 관리</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>학부모 문자 발송</li>
+          <li style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--lp-text)"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,107,107,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--lp-coral);flex-shrink:0">✓</span>과외비 결제 대행</li>
+        </ul>
+        <button class="lp-btn" style="width:100%;padding:12px;border-radius:12px;font-size:14px;font-weight:700;background:linear-gradient(135deg,#2d2d3a,#1a1a2e);border:none;color:#fff;cursor:pointer" onclick="openAuthFromLanding('login')">시작하기</button>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- 하단 안내 -->
+    <div style="text-align:center;margin-top:52px;padding:28px;background:rgba(255,107,107,0.05);border-radius:16px;border:1px solid rgba(255,107,107,0.1)">
+      <div style="font-size:15px;font-weight:700;color:var(--lp-text);margin-bottom:8px">💡 파이포인트란?</div>
+      <div style="font-size:13px;color:var(--lp-text2);line-height:1.8">
+        파이포인트는 플랫폼 내 AI 기능, 자료 다운로드, 매칭 서비스 등에 사용되는 포인트입니다.<br>
+        구독 시 매월 자동으로 충전되며, 이월되지 않습니다.
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1346,12 +1442,6 @@
     <div class="lp-page-logo">파이데이아<span>솔루션</span></div>
     <button class="lp-page-back" onclick="closeLpPage()">← 홈으로</button>
   </nav>
-  <!-- 오픈 이벤트 배너 -->
-  <div style="background:linear-gradient(90deg,var(--lp-coral),#ff9472);padding:12px 24px;text-align:center;font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;flex-shrink:0">
-    <span>🎉 오픈 이벤트</span>
-    <span style="width:1px;height:13px;background:rgba(255,255,255,0.4);display:inline-block"></span>
-    <span>매칭 수수료 <s style="opacity:0.7;font-weight:400">정상가 20%</s> → <strong>이벤트 기간 무료</strong></span>
-  </div>
   <!-- 본문 -->
   <div class="lp-page-body" style="flex:1">
     <!-- 헤더 -->
