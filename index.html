@@ -3578,7 +3578,7 @@
 </div>
 
 <!-- ════════════════════ MESSAGE COMPOSE MODAL ════════════════════ -->
-<div id="msgComposeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center">
+<div id="msgComposeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1500;align-items:center;justify-content:center">
   <div style="background:var(--bg);border-radius:var(--radius);padding:0;width:92%;max-width:500px;box-shadow:0 8px 40px rgba(0,0,0,0.18);overflow:hidden">
     <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:16px;font-weight:800;color:var(--text)">✉️ 쪽지 보내기</div>
@@ -3601,7 +3601,7 @@
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button onclick="closeMsgCompose()" class="btn btn-ghost">취소</button>
-        <button onclick="sendMessage()" class="btn btn-primary" id="msgSendBtn">보내기</button>
+        <button onclick="submitMsg()" class="btn btn-primary" id="msgSendBtn">보내기</button>
       </div>
     </div>
   </div>
@@ -9788,8 +9788,10 @@ function closeMsgCompose() {
 }
 
 // 쪽지 전송
-async function sendMessage() {
-  if (!sbClient || !currentUser || !_msgComposeReceiverId) return;
+async function submitMsg() {
+  if (!sbClient)                  { showToast('서버에 연결되지 않았습니다', '❌'); return; }
+  if (!currentUser)               { showToast('로그인이 필요합니다', '🔒'); return; }
+  if (!_msgComposeReceiverId)     { showToast('받는 사람 정보가 없습니다', '⚠️'); return; }
   const title = document.getElementById('msgComposeTitle').value.trim();
   const body  = document.getElementById('msgComposeBody').value.trim();
   if (!title) { showToast('제목을 입력하세요', '⚠️'); return; }
@@ -9803,7 +9805,7 @@ async function sendMessage() {
   });
   btn.disabled = false; btn.textContent = '보내기';
   if (error) { showToast('전송 실패: ' + error.message, '❌'); return; }
-  showToast('쪽지를 보냈습니다', '✅');
+  showToast('쪽지를 보냈습니다 ✅', '✉️');
   closeMsgCompose();
 }
 </script>
