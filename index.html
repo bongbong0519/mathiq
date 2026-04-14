@@ -6535,9 +6535,9 @@ function adminStatusBadge(status) {
 function adminActionBtns(id, name, status, role) {
   const esc = s => (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
   let approval = '';
-  if (status === 'pending') approval = `<button class="btn btn-green btn-xs" onclick="approveTeacher('${id}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectTeacher('${id}')">거절</button>`;
-  else if (status === 'approved') approval = `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${id}')">승인 취소</button>`;
-  else approval = `<button class="btn btn-green btn-xs" onclick="approveTeacher('${id}')">승인</button>`;
+  if (status === 'pending') approval = `<button class="btn btn-green btn-xs" onclick="approveTeacher('${id}','${role}')">승인</button><button class="btn btn-red btn-xs" onclick="rejectTeacher('${id}','${role}')">거절</button>`;
+  else if (status === 'approved') approval = `<button class="btn btn-ghost btn-xs" onclick="rejectTeacher('${id}','${role}')">승인 취소</button>`;
+  else approval = `<button class="btn btn-green btn-xs" onclick="approveTeacher('${id}','${role}')">승인</button>`;
   const del = `<button class="btn btn-xs" style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.25);color:var(--red)" onclick="adminDeleteUser('${id}','${esc(name)}','${role}')">탈퇴</button>`;
   return `<div style="display:flex;gap:5px;flex-wrap:wrap">${approval}${del}</div>`;
 }
@@ -6824,18 +6824,27 @@ async function transferStudent(studentId, newTeacherId, currentTeacherId, curren
   openAdminStudentModal(currentTeacherId, currentTeacherName);
 }
 
-async function approveTeacher(id) {
-  await sbClient.from('profiles').update({ status: 'approved' }).eq('id', id);
-  showToast('승인되었습니다', '✅');
-  loadAdminTeachers();
+function _reloadAdminMemberTab(role) {
+  if (role === 'teacher')       loadAdminTeacherTab();
+  else if (role === 'director') loadAdminDirectorTab();
+  else if (role === 'student')  loadAdminStudentProfilesTab();
+  else if (role === 'parent')   loadAdminParentTab();
+  else                          loadAdminTeachers(); // fallback
   checkPendingBadge();
 }
 
-async function rejectTeacher(id) {
-  await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', id);
+async function approveTeacher(id, role) {
+  const { error } = await sbClient.from('profiles').update({ status: 'approved' }).eq('id', id);
+  if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
+  showToast('승인되었습니다', '✅');
+  _reloadAdminMemberTab(role);
+}
+
+async function rejectTeacher(id, role) {
+  const { error } = await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', id);
+  if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
   showToast('거절되었습니다', '❌');
-  loadAdminTeachers();
-  checkPendingBadge();
+  _reloadAdminMemberTab(role);
 }
 
 function sgEsc(s) {
