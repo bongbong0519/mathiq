@@ -3864,14 +3864,23 @@ function updateLandingNavAuth() {
   const navAuth = document.getElementById('lpNavAuth');
   if (!navAuth) return;
   if (currentUser && currentProfile) {
-    const name = currentProfile.name || currentUser.email;
+    const name     = currentProfile.name || currentUser.email;
+    const pts      = (currentProfile.point_balance ?? 0).toLocaleString();
+    const cash     = (currentProfile.cash_balance   ?? 0).toLocaleString();
+    const balHtml  = `<span style="display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:var(--lp-text2);background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.15);border-radius:20px;padding:4px 12px;white-space:nowrap">
+      <span title="파이포인트">🪙 <span style="color:var(--lp-coral)">${pts}</span>P</span>
+      <span style="width:1px;height:12px;background:rgba(0,0,0,0.1);display:inline-block"></span>
+      <span title="파이캐쉬">💰 <span style="color:var(--lp-coral)">${cash}</span>C</span>
+    </span>`;
     const isPending = (currentProfile.role === 'teacher' || currentProfile.role === 'director')
       && currentProfile.status !== 'approved';
     navAuth.innerHTML = isPending
-      ? `<span style="font-size:12px;color:var(--lp-text3);font-weight:600">${name}</span>
+      ? `${balHtml}
+         <span style="font-size:12px;color:var(--lp-text3);font-weight:600">${name}</span>
          <span style="font-size:11px;color:var(--lp-text3);padding:5px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:8px">승인 대기 중</span>
          <button class="lp-btn lp-btn-ghost" onclick="handleLogout()">로그아웃</button>`
-      : `<span style="font-size:13px;color:var(--lp-text2);font-weight:600">${name}</span>
+      : `${balHtml}
+         <span style="font-size:13px;color:var(--lp-text2);font-weight:600">${name}</span>
          <button class="lp-btn lp-btn-primary" onclick="goToDashboard()">대시보드 →</button>
          <button class="lp-btn lp-btn-ghost" onclick="handleLogout()">로그아웃</button>`;
   } else {
@@ -4523,8 +4532,14 @@ async function checkSession() {
 function updateBalanceDisplay(points, cash) {
   const p = document.getElementById('sidebarPoints');
   const c = document.getElementById('sidebarCash');
-  if (p) p.textContent = ((points ?? 0)).toLocaleString() + ' P';
-  if (c) c.textContent = ((cash   ?? 0)).toLocaleString() + ' C';
+  if (p) p.textContent = (points ?? 0).toLocaleString() + ' P';
+  if (c) c.textContent = (cash   ?? 0).toLocaleString() + ' C';
+  // 랜딩 네비에도 반영 (currentProfile이 있을 때만)
+  if (currentProfile) {
+    currentProfile.point_balance = points ?? currentProfile.point_balance ?? 0;
+    currentProfile.cash_balance  = cash   ?? currentProfile.cash_balance  ?? 0;
+    updateLandingNavAuth();
+  }
 }
 
 async function loadProfile(autoNavigate = true) {
