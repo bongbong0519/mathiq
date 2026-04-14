@@ -189,11 +189,41 @@
   .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
   .user-role-tag { font-size: 10px; color: var(--text3); }
 
+  /* ── APP TOPBAR ── */
+  .app-topbar {
+    position: fixed;
+    top: 0; left: 240px; right: 0;
+    height: 48px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 24px;
+    gap: 8px;
+  }
+  .topbar-balance-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  .topbar-balance-chip .val { color: var(--text); }
+
   /* ── MAIN CONTENT ── */
   .main-content {
     margin-left: 240px;
     flex: 1;
     padding: 28px 32px;
+    padding-top: 76px;
     min-height: 100vh;
     overflow-y: auto;
   }
@@ -2083,6 +2113,16 @@
       </div>
     </div>
   </aside>
+
+  <!-- ════════════════════ TOP BAR ════════════════════ -->
+  <div class="app-topbar" id="appTopbar">
+    <div class="topbar-balance-chip" title="파이포인트">
+      <span>🪙</span><span class="val" id="topbarPoints">0 P</span>
+    </div>
+    <div class="topbar-balance-chip" title="파이캐쉬">
+      <span>💰</span><span class="val" id="topbarCash">0 C</span>
+    </div>
+  </div>
 
   <!-- ════════════════════ MAIN ════════════════════ -->
   <main class="main-content">
@@ -4538,10 +4578,18 @@ async function checkSession() {
 }
 
 function updateBalanceDisplay(points, cash) {
+  const pStr = (points ?? 0).toLocaleString() + ' P';
+  const cStr = (cash   ?? 0).toLocaleString() + ' C';
+  // 사이드바 푸터
   const p = document.getElementById('sidebarPoints');
   const c = document.getElementById('sidebarCash');
-  if (p) p.textContent = (points ?? 0).toLocaleString() + ' P';
-  if (c) c.textContent = (cash   ?? 0).toLocaleString() + ' C';
+  if (p) p.textContent = pStr;
+  if (c) c.textContent = cStr;
+  // 상단 헤더 topbar
+  const tp = document.getElementById('topbarPoints');
+  const tc = document.getElementById('topbarCash');
+  if (tp) tp.textContent = pStr;
+  if (tc) tc.textContent = cStr;
   // 랜딩 네비에도 반영 (currentProfile이 있을 때만)
   if (currentProfile) {
     currentProfile.point_balance = points ?? currentProfile.point_balance ?? 0;
