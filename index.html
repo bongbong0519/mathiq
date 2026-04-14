@@ -3039,10 +3039,14 @@ function sendApprovalEmail(userName, userEmail, userRole, approved) {
   if (typeof emailjs === 'undefined') return;
   if (!EMAILJS_SERVICE_ID || !EMAILJS_TPL_APPROVAL) return;
   const roleName = ROLE_LABEL_KO[userRole] || userRole;
+  const subject  = approved
+    ? '[MathIQ] 가입 신청 승인이 완료되었습니다'
+    : '[MathIQ] 가입 신청이 거절되었습니다';
   const statusMsg = approved
     ? '✅ 가입이 승인되었습니다! 이제 MathIQ에 로그인하여 이용하실 수 있습니다.'
     : '❌ 가입이 거절되었습니다. 자세한 내용은 운영자에게 문의해 주세요.';
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TPL_APPROVAL, {
+    subject,
     to_name:    userName || '회원',
     to_email:   userEmail,
     role_name:  roleName,
@@ -3060,19 +3064,21 @@ async function sendSignupEmails(userName, userEmail, userRole, orgName) {
 
   // 1. 가입자 이메일
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TPL_USER, {
-    to_name:   userName,
-    to_email:  userEmail,
-    role_name: roleName,
-    org_name:  orgName || '—',
+    subject:    '[MathIQ] 가입 신청이 완료되었습니다',
+    to_name:    userName,
+    to_email:   userEmail,
+    role_name:  roleName,
+    org_name:   orgName || '—',
     is_pending: isPending ? '승인 대기 중입니다. 운영자 승인 후 이용 가능합니다.' : '바로 이용하실 수 있습니다.',
   }).catch(e => console.warn('User email failed:', e));
 
   // 2. 운영자 알림 이메일
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TPL_ADMIN, {
-    user_name:  userName,
-    user_email: userEmail,
-    role_name:  roleName,
-    org_name:   orgName || '—',
+    subject:     '[MathIQ] 새 회원 가입 신청',
+    user_name:   userName,
+    user_email:  userEmail,
+    role_name:   roleName,
+    org_name:    orgName || '—',
     admin_email: 'yoonbro1927@gmail.com',
   }).catch(e => console.warn('Admin email failed:', e));
 }
