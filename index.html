@@ -10270,22 +10270,36 @@ async function extractFromFile() {
 
 [추출 규칙]
 1. 문서에 있는 모든 문제를 빠짐없이 추출한다. 문제 번호 순서대로 추출한다.
-2. 문제 본문은 절대 생략하거나 자르지 않는다. 보기(①②③④⑤), 조건, 단서, 지문 포함 전체를 content에 담는다.
+
+2. 문제 본문(content)에 반드시 포함해야 할 것:
+   a) 문제 지문 전체 (조건, 단서 포함)
+   b) [보기]가 있는 경우: "보기" 블록 전체 (ㄱ. 내용 / ㄴ. 내용 / ㄷ. 내용 등 모두 포함)
+   c) 객관식 선택지: ① 내용 ② 내용 ③ 내용 ④ 내용 ⑤ 내용 전부 포함
+   - 절대 생략하지 않는다. content는 그 문제만 보고 풀 수 있을 만큼 완전해야 한다.
+
 3. 수식은 반드시 KaTeX 형식으로 변환한다.
    - 인라인 수식: $수식$ (예: $x^2 + 3x - 2 = 0$)
    - 독립 수식/분수/적분 등: $$수식$$ (예: $$\\frac{a}{b} = \\sqrt{c}$$)
    - 그리스 문자·특수기호도 LaTeX 명령어로 표현 (예: $\\alpha$, $\\pi$, $\\geq$)
+
 4. 그림·도표·그래프·좌표계가 포함된 문제는 해당 위치에 [그림 참조] 를 삽입한다.
-5. 정답이 문서에 표시되어 있으면 반드시 answer에 기재한다. 없으면 null로 둔다.
+
+5. 정답(answer) 처리:
+   - 정답이 문서에 표시되어 있으면 반드시 기재한다.
+   - 객관식의 경우: 정답 번호(예: ③)가 아니라 해당 선택지의 실제 텍스트 내용을 기재한다.
+     (예: 정답이 ③이고 그 내용이 "$2x+1$"이면 answer는 "$2x+1$"로 기재)
+   - 정답이 없으면 null로 둔다.
+
 6. question_type 판별 기준:
    - 번호형 선택지(①~⑤)가 있으면 "객관식"
    - 빈칸·숫자 답 요구 시 "단답형"
    - 서술·풀이 과정 요구 시 "서술형"
+
 7. difficulty는 문제 복잡도와 계산량을 기준으로 1(매우쉬움)~5(매우어려움)로 판단한다.
 
 [출력 형식]
 반드시 JSON 배열만 출력한다. 설명·머리말·꼬리말 등 다른 텍스트는 절대 출력하지 않는다.
-[{"content":"문제 전체 본문","answer":"정답 또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5}, ...]`;
+[{"content":"문제 전체 본문 (선택지·보기 포함)","answer":"정답 실제 내용 또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5}, ...]`;
 
     const userPrompt = '위 문서에서 수학 문제를 모두 추출하여 JSON 배열로 출력하세요.';
 
@@ -10328,15 +10342,19 @@ async function extractFromFile() {
   }
 }
 
+function _exEsc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function renderExtractedQuestions(list) {
-  const wrap = document.getElementById('quExtractResults');
-  const listEl = document.getElementById('quExtractList');
+  const wrap    = document.getElementById('quExtractResults');
+  const listEl  = document.getElementById('quExtractList');
   const countEl = document.getElementById('quExtractCount');
   wrap.style.display = '';
   countEl.textContent = list.length + '개';
   listEl.innerHTML = list.map((q, i) => `
     <div class="card" style="margin-bottom:10px;padding:14px 16px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
         <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exType-${i}">
           <option value="단답형" ${q.question_type==='단답형'?'selected':''}>단답형</option>
@@ -10346,10 +10364,50 @@ function renderExtractedQuestions(list) {
         <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exDiff-${i}">
           ${[1,2,3,4,5].map(d => `<option value="${d}" ${q.difficulty==d?'selected':''}>${'★'.repeat(d)} ${QB_DIFF_LABEL[d]}</option>`).join('')}
         </select>
+        <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px" onclick="exToggleEdit(${i})">✏️ 편집</button>
       </div>
-      <textarea id="exContent-${i}" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box">${q.content || ''}</textarea>
-      <input type="text" id="exAnswer-${i}" placeholder="정답" value="${q.answer || ''}" style="margin-top:6px;width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);box-sizing:border-box">
+      <!-- KaTeX 렌더링 미리보기 -->
+      <div id="exPreview-${i}" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;background:var(--bg2);color:var(--text);white-space:pre-wrap;line-height:1.9;min-height:40px">${_exEsc(q.content || '')}</div>
+      <!-- 편집용 영역 (기본 숨김) -->
+      <div id="exEdit-${i}" style="display:none;margin-top:8px">
+        <textarea id="exContent-${i}" rows="5" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box" oninput="exUpdatePreview(${i})">${_exEsc(q.content || '')}</textarea>
+      </div>
+      <!-- 정답 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <span style="font-size:12px;color:var(--text2);white-space:nowrap">정답</span>
+        <input type="text" id="exAnswer-${i}" placeholder="정답 (없으면 빈칸)" value="${_exEsc(q.answer || '')}" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text)">
+      </div>
     </div>`).join('');
+
+  // innerHTML 설정 후 KaTeX 렌더링
+  _exRenderMath(listEl);
+}
+
+function _exRenderMath(el) {
+  if (typeof renderMathInElement === 'function') {
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true  },
+        { left: '$',  right: '$',  display: false }
+      ],
+      throwOnError: false
+    });
+  }
+}
+
+function exToggleEdit(i) {
+  const editDiv = document.getElementById('exEdit-' + i);
+  if (!editDiv) return;
+  editDiv.style.display = editDiv.style.display === 'none' ? '' : 'none';
+}
+
+function exUpdatePreview(i) {
+  const ta      = document.getElementById('exContent-' + i);
+  const preview = document.getElementById('exPreview-'  + i);
+  if (!ta || !preview) return;
+  // textContent로 설정하면 자동 HTML 이스케이프 + KaTeX 재처리 가능
+  preview.textContent = ta.value;
+  _exRenderMath(preview);
 }
 
 async function saveExtractedQuestions() {
