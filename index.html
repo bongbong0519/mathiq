@@ -1148,13 +1148,13 @@
           <a onclick="openLpPage('pricing')">요금제</a>
         </div>
       </div>
-      <button class="lp-nav-link" onclick="openTutorMatchFromLanding()">과외매칭</button>
+      <button class="lp-nav-link" onclick="openLpPage('tutor')">과외매칭</button>
       <div class="lp-nav-drop">
         <button class="lp-nav-link">커뮤니티 <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
         <div class="lp-dropdown">
           <a onclick="openBoardFromLanding('math')">수학커뮤니티</a>
           <a onclick="openViewFromLanding('materials')">자료실</a>
-          <a onclick="showToast('블로그·칼럼은 준비 중입니다', '🚧')">블로그·칼럼 <span style="font-size:11px;color:var(--lp-text3);margin-left:4px">준비중</span></a>
+          <a onclick="openLpPage('blog')">블로그·칼럼 <span style="font-size:11px;color:var(--lp-text3);margin-left:4px">준비중</span></a>
         </div>
       </div>
       <button class="lp-nav-link" onclick="openLpPage('notices')">공지사항</button>
@@ -1338,6 +1338,44 @@
 </div>
 
 <!-- 문의하기 -->
+<!-- 과외매칭 Coming Soon -->
+<div id="lpPageTutor" class="lp-page" style="display:none">
+  <nav class="lp-page-nav">
+    <div class="lp-page-logo">파이데이아<span>솔루션</span></div>
+    <button class="lp-page-back" onclick="closeLpPage()">← 홈으로</button>
+  </nav>
+  <div class="lp-page-body" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px)">
+    <div style="text-align:center;max-width:480px">
+      <div style="font-size:64px;margin-bottom:24px">🔗</div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:2px;color:var(--lp-coral);text-transform:uppercase;margin-bottom:12px">Coming Soon</div>
+      <div style="font-size:30px;font-weight:900;color:var(--lp-text);margin-bottom:16px;line-height:1.3">과외매칭</div>
+      <div style="font-size:15px;color:var(--lp-text2);line-height:1.8;margin-bottom:32px">
+        입시전문가·수학 선생님과 학생을 바로 연결하는<br>과외매칭 서비스를 준비 중입니다.<br>곧 만나보실 수 있습니다!
+      </div>
+      <button class="lp-btn lp-btn-primary" onclick="closeLpPage()">홈으로 돌아가기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 블로그/칼럼 Coming Soon -->
+<div id="lpPageBlog" class="lp-page" style="display:none">
+  <nav class="lp-page-nav">
+    <div class="lp-page-logo">파이데이아<span>솔루션</span></div>
+    <button class="lp-page-back" onclick="closeLpPage()">← 홈으로</button>
+  </nav>
+  <div class="lp-page-body" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px)">
+    <div style="text-align:center;max-width:480px">
+      <div style="font-size:64px;margin-bottom:24px">✍️</div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:2px;color:var(--lp-coral);text-transform:uppercase;margin-bottom:12px">Coming Soon</div>
+      <div style="font-size:30px;font-weight:900;color:var(--lp-text);margin-bottom:16px;line-height:1.3">블로그·칼럼</div>
+      <div style="font-size:15px;color:var(--lp-text2);line-height:1.8;margin-bottom:32px">
+        입시 전략·수학 학습법·교육 트렌드를 다루는<br>블로그·칼럼 서비스를 준비 중입니다.<br>곧 유익한 콘텐츠로 찾아뵙겠습니다!
+      </div>
+      <button class="lp-btn lp-btn-primary" onclick="closeLpPage()">홈으로 돌아가기</button>
+    </div>
+  </div>
+</div>
+
 <div id="lpPageContact" class="lp-page" style="display:none">
   <nav class="lp-page-nav">
     <div class="lp-page-logo">파이데이아<span>솔루션</span></div>
@@ -3502,6 +3540,8 @@ const LP_PAGES = {
   pricing: 'lpPagePricing',
   notices: 'lpPageNotices',
   contact: 'lpPageContact',
+  tutor:   'lpPageTutor',
+  blog:    'lpPageBlog',
 };
 
 function openLpPage(name) {
