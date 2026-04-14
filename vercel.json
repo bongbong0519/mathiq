@@ -6,6 +6,7 @@
   },
   "rewrites": [
     { "source": "/api/proxy", "destination": "/api/proxy.js" },
+    { "source": "/api/gemini", "destination": "/api/gemini.js" },
     { "source": "/api/school", "destination": "/api/school.js" },
     { "source": "/api/create-student", "destination": "/api/create-student.js" }
   ]
