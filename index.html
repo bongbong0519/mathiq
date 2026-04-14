@@ -2965,6 +2965,14 @@
       <div id="student-search-wrap">
         <div class="empty-state" style="padding:60px"><div class="empty-state-icon">🔍</div><div class="empty-state-text">불러오는 중...</div></div>
       </div>
+
+      <!-- 연락처 열람 모달 -->
+      <div id="student-contact-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:600;align-items:center;justify-content:center">
+        <div style="background:var(--bg);border-radius:var(--radius);padding:28px 24px;max-width:380px;width:90%;position:relative;box-shadow:var(--shadow)">
+          <button onclick="closeStudentContactModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+          <div id="student-contact-modal-content"></div>
+        </div>
+      </div>
     </div>
 
     <!-- ══ VIEW: TUTOR SEARCH (학생/학부모 - 과외 선생님 찾기) ══ -->
@@ -7648,10 +7656,20 @@ async function loadStudentSearch() {
   }
 
   const profileMap = await fetchProfileMap(data.map(t => t.user_id));
+  window._studentProfileMap = profileMap;
+
+  // 이미 열람한 연락처 목록 pre-fetch
+  let viewedSet = new Set();
+  if (currentUser) {
+    const { data: views } = await sbClient.from('tutor_contact_views').select('tutee_id').eq('tutor_id', currentUser.id);
+    (views || []).forEach(v => viewedSet.add(v.tutee_id));
+  }
+  window._viewedTuteeSet = viewedSet;
 
   wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">` +
     data.map(t => {
       const p = profileMap[t.user_id] || {};
+      const isViewed = viewedSet.has(t.id);
       return `
       <div class="card" style="cursor:default">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -7668,9 +7686,114 @@ async function loadStudentSearch() {
         </div>
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">희망 시급 <span style="color:var(--accent)">${t.desired_rate ? t.desired_rate.toLocaleString() + '원' : '협의'}</span></div>
         ${t.intro ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">${t.intro}</div>` : ''}
-        <div style="margin-top:12px;font-size:12px;color:var(--text3)">📧 ${p.email || '—'}</div>
+        <div id="sc-${t.id}" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+          ${isViewed
+            ? `<div style="font-size:12px;color:var(--accent);font-weight:600">📧 ${p.email || '—'}</div>`
+            : `<button class="btn btn-ghost btn-sm" style="font-size:12px;width:100%" onclick="openStudentContact('${t.id}','${t.user_id}')">📧 연락처 보기 <span style="color:var(--accent);font-weight:700">(-500P)</span></button>`}
+        </div>
       </div>`;
     }).join('') + '</div>';
+}
+
+// ── 연락처 열람 ──
+async function openStudentContact(tuteeId, tuteeUserId) {
+  if (!currentUser) { showToast('로그인이 필요합니다', '⚠️'); return; }
+  const modal   = document.getElementById('student-contact-modal');
+  const content = document.getElementById('student-contact-modal-content');
+  if (!modal || !content) return;
+
+  const p     = (window._studentProfileMap || {})[tuteeUserId] || {};
+  const email = p.email || '—';
+  const name  = p.name  || '—';
+
+  if (window._viewedTuteeSet?.has(tuteeId)) {
+    content.innerHTML = `
+      <div style="margin-bottom:16px">
+        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">연락처 정보</div>
+        <div style="font-size:12px;color:var(--text3)">이미 열람한 학생 — 포인트 차감 없음</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">이름</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">${name}</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">이메일</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">📧 ${email}</div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="closeStudentContactModal()">닫기</button>`;
+    modal.style.display = 'flex';
+    return;
+  }
+
+  content.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3)">불러오는 중...</div>`;
+  modal.style.display = 'flex';
+
+  const { data: prof } = await sbClient.from('profiles').select('point_balance').eq('id', currentUser.id).single();
+  const balance   = prof?.point_balance ?? 0;
+  const canAfford = balance >= 500;
+
+  content.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px">연락처 열람</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.7">
+        연락처를 열람하면 <strong style="color:var(--accent)">500 파이포인트</strong>가 차감됩니다.<br>
+        한 번 열람하면 이후 무료로 재확인 가능합니다.
+      </div>
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--border);margin-bottom:18px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:var(--text2)">현재 잔여 포인트</span>
+      <span style="font-size:17px;font-weight:800;color:${canAfford ? 'var(--accent)' : 'var(--red)'}">${balance.toLocaleString()} P</span>
+    </div>
+    ${!canAfford ? `<div style="background:rgba(255,68,68,0.06);border-radius:var(--radius-sm);padding:11px 14px;border:1px solid rgba(255,68,68,0.18);font-size:13px;color:var(--red);margin-bottom:16px">포인트가 부족합니다. 구독을 업그레이드해 주세요.</div>` : ''}
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeStudentContactModal()">취소</button>
+      <button class="btn btn-primary" style="flex:1" ${!canAfford ? 'disabled' : ''} onclick="confirmViewContact('${tuteeId}','${tuteeUserId}')">500P로 열람</button>
+    </div>`;
+}
+
+async function confirmViewContact(tuteeId, tuteeUserId) {
+  const content = document.getElementById('student-contact-modal-content');
+  if (content) content.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3)">처리 중...</div>`;
+
+  const { error: rpcErr } = await sbClient.rpc('deduct_points', { amount: 500 });
+  if (rpcErr) {
+    showToast('포인트 차감 실패: ' + rpcErr.message, '❌');
+    closeStudentContactModal();
+    return;
+  }
+
+  await sbClient.from('tutor_contact_views').insert({ tutor_id: currentUser.id, tutee_id: tuteeId });
+
+  window._viewedTuteeSet = window._viewedTuteeSet || new Set();
+  window._viewedTuteeSet.add(tuteeId);
+  if (currentProfile) currentProfile.point_balance = (currentProfile.point_balance || 0) - 500;
+
+  const p     = (window._studentProfileMap || {})[tuteeUserId] || {};
+  const email = p.email || '—';
+  const name  = p.name  || '—';
+
+  if (content) {
+    content.innerHTML = `
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:32px;margin-bottom:8px">✅</div>
+        <div style="font-size:15px;font-weight:800;color:var(--text)">열람 완료</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">500 파이포인트가 차감되었습니다</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">이름</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">${name}</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">이메일</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">📧 ${email}</div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="closeStudentContactModal()">닫기</button>`;
+  }
+
+  // 카드 버튼 → 이메일로 교체
+  const cardContact = document.getElementById(`sc-${tuteeId}`);
+  if (cardContact) cardContact.innerHTML = `<div style="font-size:12px;color:var(--accent);font-weight:600">📧 ${email}</div>`;
+}
+
+function closeStudentContactModal() {
+  const modal = document.getElementById('student-contact-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 // ── 학생/학부모: 과외 찾기 ──
