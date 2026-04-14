@@ -785,123 +785,129 @@
 
 
   /* ── LANDING PAGE ── */
+  /* ══ LANDING — one-screen, no scroll ══ */
   .landing {
-    position: fixed; inset: 0; z-index: 1000; overflow-y: auto;
+    position: fixed; inset: 0; z-index: 1000; overflow: hidden;
+    display: flex; flex-direction: column;
     background: var(--bg);
     background-image:
-      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,142,247,0.10) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(108,110,245,0.08) 0%, transparent 60%);
-    color: var(--text);
-    font-family: 'Pretendard', sans-serif;
+      radial-gradient(ellipse 70% 50% at 15% 20%, rgba(79,142,247,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 85% 85%, rgba(108,110,245,0.08) 0%, transparent 60%);
+    color: var(--text); font-family: 'Pretendard', sans-serif;
   }
-  .landing-nav {
-    display: flex; align-items: center; justify-content: space-between;
-    max-width: 1100px; margin: 0 auto; padding: 24px 32px;
+  /* NAV */
+  .lp-nav {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 60px; border-bottom: 1px solid rgba(255,255,255,0.06);
   }
-  .landing-nav-logo { font-family: 'Space Mono', monospace; font-size: 24px; font-weight: 700; }
-  .landing-nav-logo span { color: var(--accent); }
-  .landing-nav-right { display: flex; gap: 12px; }
-  .landing-nav-btn {
-    padding: 9px 22px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  .lp-logo { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; }
+  .lp-logo span { color: var(--accent); }
+  .lp-nav-links { display: flex; align-items: center; gap: 2px; }
+  .lp-nav-link {
+    padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    color: var(--text2); cursor: pointer; border: none; background: transparent;
+    font-family: inherit; transition: all 0.15s; display: flex; align-items: center; gap: 4px;
+  }
+  .lp-nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .lp-nav-link svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; flex-shrink: 0; }
+  .lp-nav-drop { position: relative; }
+  .lp-nav-drop:hover > .lp-nav-link svg { transform: rotate(180deg); }
+  .lp-dropdown {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px;
+    padding: 6px; min-width: 136px; z-index: 20;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+    opacity: 0; transform: translateY(-6px); pointer-events: none; transition: all 0.18s;
+  }
+  .lp-nav-drop:hover .lp-dropdown { opacity: 1; transform: translateY(0); pointer-events: all; }
+  .lp-dropdown a {
+    display: block; padding: 9px 12px; font-size: 13px; font-weight: 600; color: var(--text2);
+    border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .lp-dropdown a:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+  .lp-nav-auth { display: flex; align-items: center; gap: 8px; }
+  .lp-btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 700;
     cursor: pointer; font-family: inherit; transition: all 0.2s; border: none;
   }
-  .landing-nav-btn.ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
-  .landing-nav-btn.ghost:hover { color: var(--text); border-color: var(--text3); }
-  .landing-nav-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
-  .landing-nav-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,142,247,0.35); }
-
-  .landing-hero {
-    max-width: 1100px; margin: 0 auto; padding: 80px 32px 60px; text-align: center;
+  .lp-btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+  .lp-btn-ghost:hover { color: var(--text); border-color: var(--text3); }
+  .lp-btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .lp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,142,247,0.4); }
+  /* BODY */
+  .lp-body {
+    flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center;
+    padding: 0 40px 14px; max-width: 1100px; width: 100%; margin: 0 auto;
   }
-  .landing-badge {
-    display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
-    background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.2); color: var(--accent); margin-bottom: 24px;
+  /* HERO */
+  .lp-hero { flex-shrink: 0; text-align: center; padding: 22px 0 18px; width: 100%; }
+  .lp-hero-badge {
+    display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.2); color: var(--accent);
+    margin-bottom: 12px; letter-spacing: 0.03em;
   }
-  .landing-hero h1 {
-    font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.25; margin: 0 0 20px;
-    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 50%, var(--accent2) 100%);
+  .lp-hero h1 {
+    font-size: clamp(24px, 3.2vw, 40px); font-weight: 800; line-height: 1.25; margin: 0 0 10px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 60%, var(--accent2) 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
-  .landing-hero p { font-size: clamp(15px, 2vw, 18px); color: var(--text2); line-height: 1.7; max-width: 600px; margin: 0 auto 36px; }
-  .landing-hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-  .landing-hero-btn {
-    padding: 14px 36px; border-radius: 12px; font-size: 15px; font-weight: 800;
+  .lp-hero p { font-size: 14px; color: var(--text2); line-height: 1.6; margin: 0 auto 16px; max-width: 520px; }
+  .lp-hero-btns { display: flex; gap: 10px; justify-content: center; }
+  .lp-hero-btn {
+    padding: 11px 28px; border-radius: 10px; font-size: 14px; font-weight: 800;
     cursor: pointer; font-family: inherit; transition: all 0.2s; border: none;
   }
-  .landing-hero-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
-  .landing-hero-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(79,142,247,0.4); }
-  .landing-hero-btn.outline { background: transparent; color: var(--text); border: 1px solid var(--border2); }
-  .landing-hero-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
-
-  .landing-section {
-    max-width: 1100px; margin: 0 auto; padding: 60px 32px;
+  .lp-hero-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .lp-hero-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(79,142,247,0.4); }
+  .lp-hero-btn.outline { background: transparent; color: var(--text); border: 1px solid var(--border2); }
+  .lp-hero-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  /* SLIDER */
+  .lp-slider-wrap { flex-shrink: 0; width: 100%; padding-bottom: 14px; }
+  .lp-section-label {
+    text-align: center; font-size: 10px; font-weight: 700; color: var(--text3);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;
   }
-  .landing-section-title {
-    text-align: center; font-size: clamp(22px, 3vw, 32px); font-weight: 800; margin-bottom: 12px;
+  .lp-slider { border-radius: 14px; border: 1px solid var(--border); background: var(--bg2); overflow: hidden; }
+  .lp-slide { display: none; align-items: center; gap: 20px; padding: 18px 24px; animation: lpFadeIn 0.4s ease; }
+  .lp-slide.active { display: flex; }
+  @keyframes lpFadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+  .lp-slide-icon {
+    flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 12px;
   }
-  .landing-section-sub {
-    text-align: center; font-size: 14px; color: var(--text3); margin-bottom: 48px;
-  }
-
-  /* 강점 4가지 */
-  .landing-features {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;
-  }
-  .landing-feature {
-    background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 32px 28px;
-    transition: all 0.25s;
-  }
-  .landing-feature:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.3); }
-  .landing-feature-icon { margin-bottom: 16px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 12px; }
-  .landing-feature-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .landing-feature h3 { font-size: 17px; font-weight: 800; margin: 0 0 10px; }
-  .landing-feature p { font-size: 13px; color: var(--text2); line-height: 1.7; margin: 0; }
-
-  /* 요금제 */
-  .landing-pricing {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;
-  }
-  .landing-plan {
-    background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 36px 28px;
-    text-align: center; position: relative; transition: all 0.25s;
-  }
-  .landing-plan.featured { border-color: var(--accent); box-shadow: 0 0 40px rgba(79,142,247,0.12); }
-  .landing-plan-badge {
-    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
-    font-size: 11px; font-weight: 800; padding: 4px 16px; border-radius: 12px;
-  }
-  .landing-plan h3 { font-size: 18px; font-weight: 800; margin: 0 0 8px; }
-  .landing-plan .plan-price { font-size: 36px; font-weight: 800; font-family: 'Space Mono', monospace; margin: 16px 0 4px; }
-  .landing-plan .plan-price span { font-size: 14px; font-weight: 500; color: var(--text3); }
-  .landing-plan .plan-desc { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
-  .landing-plan ul { list-style: none; padding: 0; margin: 0 0 24px; text-align: left; }
-  .landing-plan ul li { font-size: 13px; color: var(--text2); padding: 6px 0; border-bottom: 1px solid var(--border); }
-  .landing-plan ul li::before { content: "✓ "; color: var(--green); font-weight: 700; }
-  .landing-plan-btn {
-    width: 100%; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700;
-    cursor: pointer; font-family: inherit; border: none; transition: all 0.2s;
-  }
-  .landing-plan-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
-  .landing-plan-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,142,247,0.35); }
-  .landing-plan-btn.outline { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
-  .landing-plan-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* 역할 선택 */
-  .landing-roles {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;
-  }
-  .landing-role {
+  .lp-slide-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .lp-slide-title { font-size: 15px; font-weight: 800; margin: 0 0 3px; }
+  .lp-slide-desc { font-size: 13px; color: var(--text2); line-height: 1.55; margin: 0; }
+  .lp-slide-num { margin-left: auto; flex-shrink: 0; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .lp-progress { height: 3px; background: rgba(255,255,255,0.05); }
+  .lp-progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0; transition: width 0.08s linear; }
+  .lp-dots { display: flex; justify-content: center; gap: 6px; margin-top: 9px; }
+  .lp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); cursor: pointer; transition: all 0.25s; flex-shrink: 0; }
+  .lp-dot.active { background: var(--accent); width: 20px; border-radius: 3px; }
+  /* ROLES */
+  .lp-roles-wrap { flex-shrink: 0; width: 100%; }
+  .lp-roles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .lp-role {
     background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
-    padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.25s;
+    padding: 18px 12px; text-align: center; cursor: pointer; transition: all 0.25s;
   }
-  .landing-role:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.3); }
-  .landing-role-icon { margin-bottom: 12px; width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center; background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 14px; }
-  .landing-role-icon svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .landing-role h4 { font-size: 15px; font-weight: 800; margin: 0 0 6px; }
-  .landing-role p { font-size: 12px; color: var(--text3); line-height: 1.6; margin: 0; }
-
-  /* 역할 상세 모달 */
+  .lp-role:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(79,142,247,0.15); }
+  .lp-role-icon {
+    margin: 0 auto 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.15); border-radius: 12px;
+  }
+  .lp-role-icon svg { width: 20px; height: 20px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .lp-role h4 { font-size: 13px; font-weight: 800; margin: 0 0 4px; }
+  .lp-role p { font-size: 11px; color: var(--text3); line-height: 1.5; margin: 0; }
+  /* FOOTER */
+  .lp-footer {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 44px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;
+  }
+  .lp-footer-logo { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+  .lp-footer-logo span { color: var(--accent); }
+  .lp-footer-info { font-size: 11px; color: var(--text3); }
+  /* ROLE MODAL */
   .role-modal-overlay {
     display: none; position: fixed; inset: 0; z-index: 1001;
     background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
@@ -921,15 +927,11 @@
   .role-modal .role-features li { font-size: 13px; color: var(--text2); padding: 8px 0; border-bottom: 1px solid var(--border); }
   .role-modal .role-features li::before { content: "→ "; color: var(--accent); font-weight: 700; }
   .role-modal-btns { display: flex; gap: 10px; }
-  .role-modal-btns button { flex: 1; }
-
-  .landing-footer {
-    max-width: 1100px; margin: 0 auto; padding: 40px 32px; border-top: 1px solid var(--border);
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
-  }
-  .landing-footer-logo { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; }
-  .landing-footer-logo span { color: var(--accent); }
-  .landing-footer-info { font-size: 12px; color: var(--text3); line-height: 1.7; }
+  .role-modal-btns button { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; border: none; transition: all 0.2s; }
+  .rm-btn-outline { background: transparent; color: var(--text2); border: 1px solid var(--border2) !important; }
+  .rm-btn-outline:hover { border-color: var(--accent) !important; color: var(--accent); }
+  .rm-btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .rm-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,142,247,0.35); }
 
   /* ── AUTH SCREEN ── */
   .auth-overlay {
@@ -983,109 +985,125 @@
 <div class="landing" id="landingPage">
 
   <!-- NAV -->
-  <nav class="landing-nav">
-    <div class="landing-nav-logo">Math<span>IQ</span></div>
-    <div class="landing-nav-right">
-      <button class="landing-nav-btn ghost" onclick="openOrgApplyModal()">기관 등록 신청</button>
-      <button class="landing-nav-btn ghost" onclick="openAuthFromLanding('login')">로그인</button>
-      <button class="landing-nav-btn primary" onclick="openAuthFromLanding('signup')">무료 시작하기</button>
+  <nav class="lp-nav">
+    <div class="lp-logo">Math<span>IQ</span></div>
+    <div class="lp-nav-links">
+      <div class="lp-nav-drop">
+        <button class="lp-nav-link">소개 <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="lp-dropdown">
+          <a onclick="showToast('서비스 소개 페이지 준비 중입니다','ℹ️')">서비스 소개</a>
+          <a onclick="showToast('요금제 페이지 준비 중입니다','ℹ️')">요금제</a>
+        </div>
+      </div>
+      <button class="lp-nav-link" onclick="openOrgApplyModal()">기관 등록</button>
+      <button class="lp-nav-link" onclick="showToast('공지사항 준비 중입니다','ℹ️')">공지사항</button>
+      <button class="lp-nav-link" onclick="showToast('문의: contact@paideiaedu.com','📧')">문의하기</button>
+    </div>
+    <div class="lp-nav-auth">
+      <button class="lp-btn lp-btn-ghost" onclick="openAuthFromLanding('login')">로그인</button>
+      <button class="lp-btn lp-btn-primary" onclick="openAuthFromLanding('signup')">회원가입</button>
     </div>
   </nav>
 
+  <!-- BODY -->
+  <div class="lp-body">
+
   <!-- HERO -->
-  <section class="landing-hero">
-    <div class="landing-badge">파이데이아에듀가 만든 수학 학습 플랫폼</div>
+  <div class="lp-hero">
+    <div class="lp-hero-badge">파이데이아에듀가 만든 수학 학습 플랫폼</div>
     <h1>AI가 분석하고,<br>선생님이 완성하는 수학 교육</h1>
     <p>학생별 취약점 분석부터 AI 유사문제 생성까지.<br>현직 수학 선생님이 설계한 학습 관리 플랫폼, MathIQ.</p>
-    <div class="landing-hero-btns">
-      <button class="landing-hero-btn primary" onclick="openAuthFromLanding('signup')">무료로 시작하기</button>
-      <button class="landing-hero-btn outline" onclick="document.getElementById('landing-features').scrollIntoView({behavior:'smooth'})">더 알아보기</button>
+    <div class="lp-hero-btns">
+      <button class="lp-hero-btn primary" onclick="openAuthFromLanding('signup')">무료로 시작하기</button>
+      <button class="lp-hero-btn outline" onclick="openAuthFromLanding('login')">로그인</button>
     </div>
-  </section>
+  </div>
 
-  <!-- 강점 4가지 -->
-  <section class="landing-section" id="landing-features">
-    <div class="landing-section-title">왜 MathIQ인가요?</div>
-    <div class="landing-section-sub">현직 수학 선생님이 직접 만든, 진짜 현장 중심 플랫폼</div>
-    <div class="landing-features">
-      <div class="landing-feature">
-        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <h3>현역 선생님이 설계</h3>
-        <p>교육 현장을 잘 아는 현직 수학 교사가 직접 기획하고 만들었습니다. 이론이 아닌 실전 중심 설계.</p>
+  <!-- STRENGTH SLIDER -->
+  <div class="lp-slider-wrap">
+    <div class="lp-section-label">왜 MathIQ인가요</div>
+    <div class="lp-slider" id="lpSlider">
+      <div class="lp-slide active">
+        <div class="lp-slide-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><div class="lp-slide-title">현역 선생님이 설계</div><div class="lp-slide-desc">교육 현장을 잘 아는 현직 수학 교사가 직접 기획. 이론이 아닌 실전 중심 설계입니다.</div></div>
+        <div class="lp-slide-num">01 / 04</div>
       </div>
-      <div class="landing-feature">
-        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-        <h3>선생님 중심 설계</h3>
-        <p>학생 관리, 시험 등록, 성적 분석까지 선생님 업무 흐름에 맞춘 직관적 인터페이스.</p>
+      <div class="lp-slide">
+        <div class="lp-slide-icon"><svg viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-2 4-4 4s-4-2.05-4-4a4 4 0 0 1 4-4z"/><path d="M12 14c-4 0-7 1-7 3v1h14v-1c0-2-3-3-7-3z"/><circle cx="18" cy="16" r="3"/><path d="M18 15v2l1.5.75"/></svg></div>
+        <div><div class="lp-slide-title">AI 유사문제 생성</div><div class="lp-slide-desc">틀린 문제와 유사한 문제를 AI가 자동 생성. 취약 단원을 반복 학습하여 완전 학습을 달성합니다.</div></div>
+        <div class="lp-slide-num">02 / 04</div>
       </div>
-      <div class="landing-feature">
-        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-2 4-4 4s-4-2.05-4-4a4 4 0 0 1 4-4z"/><path d="M12 14c-4 0-7 1-7 3v1h14v-1c0-2-3-3-7-3z"/><path d="M9 2h6M12 6v4"/><circle cx="18" cy="16" r="3"/><path d="M18 15v2l1.5.75"/></svg></div>
-        <h3>AI 유사문제 생성</h3>
-        <p>틀린 문제와 유사한 문제를 AI가 자동으로 생성합니다. 취약 단원을 반복 학습하여 완전 학습을 달성.</p>
+      <div class="lp-slide">
+        <div class="lp-slide-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <div><div class="lp-slide-title">선생님 중심 설계</div><div class="lp-slide-desc">학생 관리, 시험 등록, 성적 분석까지 선생님 업무 흐름에 맞춘 직관적 인터페이스입니다.</div></div>
+        <div class="lp-slide-num">03 / 04</div>
       </div>
-      <div class="landing-feature">
-        <div class="landing-feature-icon"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-        <h3>합리적인 가격</h3>
-        <p>비싼 학원 프로그램 없이도 체계적인 학습 관리가 가능합니다. 소규모 학원과 개인 과외에 최적화된 가격 정책.</p>
+      <div class="lp-slide">
+        <div class="lp-slide-icon"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div><div class="lp-slide-title">합리적인 가격</div><div class="lp-slide-desc">비싼 학원 프로그램 없이도 체계적 학습 관리. 소규모 학원과 개인 과외에 최적화된 가격 정책.</div></div>
+        <div class="lp-slide-num">04 / 04</div>
       </div>
+      <div class="lp-progress"><div class="lp-progress-bar" id="lpProgressBar"></div></div>
     </div>
-  </section>
+    <div class="lp-dots">
+      <span class="lp-dot active" onclick="goLpSlide(0)"></span>
+      <span class="lp-dot" onclick="goLpSlide(1)"></span>
+      <span class="lp-dot" onclick="goLpSlide(2)"></span>
+      <span class="lp-dot" onclick="goLpSlide(3)"></span>
+    </div>
+  </div>
 
-  <!-- 요금제 -->
-  <section class="landing-section">
-    <div class="landing-section-title">요금제</div>
-    <div class="landing-section-sub">합리적인 가격으로 곧 찾아갑니다</div>
-    <div style="text-align:center;padding:48px 20px">
+  <!-- (요금제 섹션 제거됨 — 슬라이더로 통합) -->
+  <div style="display:none">
       <div style="width:56px;height:56px;display:inline-flex;align-items:center;justify-content:center;background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.15);border-radius:16px;margin-bottom:16px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f8ef7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3"/></svg></div>
       <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:12px">요금제 추후 공개</div>
       <div style="font-size:14px;color:var(--text2);line-height:1.8;max-width:400px;margin:0 auto 28px">
         현재 모든 기능을 무료로 체험하실 수 있습니다.<br>
         정식 요금제는 준비 중이며, 곧 안내드리겠습니다.
       </div>
-      <button class="landing-hero-btn primary" onclick="openAuthFromLanding('signup')">무료로 체험하기</button>
-    </div>
-  </section>
+  </div><!-- /hidden pricing -->
 
-  <!-- 역할 선택 -->
-  <section class="landing-section">
-    <div class="landing-section-title">나에게 맞는 역할을 선택하세요</div>
-    <div class="landing-section-sub">각 역할별로 최적화된 기능을 제공합니다</div>
-    <div class="landing-roles">
-      <div class="landing-role" onclick="openRoleModal('admin')">
-        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+  <!-- ROLES -->
+  <div class="lp-roles-wrap">
+    <div class="lp-section-label">역할별 시작하기</div>
+    <div class="lp-roles">
+      <div class="lp-role" onclick="openRoleModal('admin')">
+        <div class="lp-role-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
         <h4>운영자</h4>
-        <p>전체 시스템 관리<br>회원 승인 · 통계</p>
+        <p>시스템 관리<br>회원 승인</p>
       </div>
-      <div class="landing-role" onclick="openRoleModal('teacher')">
-        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
-        <h4>선생님 / 원장님</h4>
-        <p>학생 관리 · 시험 등록<br>AI 유사문제 생성<br><span style="color:var(--accent);font-size:11px">학원 원장님도 선생님으로 가입 후<br>기관 등록이 가능합니다</span></p>
+      <div class="lp-role" onclick="openRoleModal('director')">
+        <div class="lp-role-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <h4>원장님</h4>
+        <p>기관 관리<br>선생님 관리</p>
       </div>
-      <div class="landing-role" onclick="openRoleModal('student')">
-        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/></svg></div>
+      <div class="lp-role" onclick="openRoleModal('teacher')">
+        <div class="lp-role-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+        <h4>선생님</h4>
+        <p>학생 관리<br>AI 유사문제</p>
+      </div>
+      <div class="lp-role" onclick="openRoleModal('student')">
+        <div class="lp-role-icon"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/></svg></div>
         <h4>학생</h4>
-        <p>내 성적 확인<br>오답 유사문제 풀기</p>
+        <p>성적 확인<br>오답 분석</p>
       </div>
-      <div class="landing-role" onclick="openRoleModal('parent')">
-        <div class="landing-role-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      <div class="lp-role" onclick="openRoleModal('parent')">
+        <div class="lp-role-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h4>학부모</h4>
-        <p>커뮤니티 · 입시정보<br>자녀 학습 현황</p>
+        <p>커뮤니티<br>입시정보</p>
       </div>
     </div>
-  </section>
+  </div>
+
+  </div><!-- /lp-body -->
 
   <!-- FOOTER -->
-  <footer class="landing-footer">
-    <div>
-      <div class="landing-footer-logo">Math<span>IQ</span></div>
-      <div class="landing-footer-info">파이데이아에듀 | 수학 학습 분석 플랫폼</div>
-    </div>
-    <div class="landing-footer-info" style="text-align:right">
-      문의: contact@paideiaedu.com<br>
-      &copy; 2026 파이데이아에듀. All rights reserved.
-    </div>
+  <footer class="lp-footer">
+    <div class="lp-footer-logo">Math<span>IQ</span></div>
+    <div class="lp-footer-info">© 2026 파이데이아에듀 · contact@paideiaedu.com</div>
   </footer>
-</div>
+
+</div><!-- /landing -->
 
 <!-- ════ ROLE DETAIL MODAL ════ -->
 <div class="role-modal-overlay" id="roleModalOverlay" onclick="if(event.target===this)closeRoleModal()">
@@ -1095,8 +1113,8 @@
     <div class="role-desc" id="roleModalDesc"></div>
     <ul class="role-features" id="roleModalFeatures"></ul>
     <div class="role-modal-btns">
-      <button class="landing-plan-btn outline" onclick="closeRoleModal();openAuthFromLanding('signup')">회원가입</button>
-      <button class="landing-plan-btn primary" onclick="closeRoleModal();openAuthFromLanding('login')">로그인</button>
+      <button class="rm-btn-outline" onclick="closeRoleModal();openAuthFromLanding('signup')">회원가입</button>
+      <button class="rm-btn-primary" onclick="closeRoleModal();openAuthFromLanding('login')">로그인</button>
     </div>
   </div>
 </div>
@@ -3015,6 +3033,7 @@ function closeRoleModal() {
 }
 
 function openAuthFromLanding(tab) {
+  stopLpSlider();
   document.getElementById('landingPage').style.display = 'none';
   document.getElementById('authOverlay').style.display = 'flex';
   if (tab) switchAuthTab(tab);
@@ -3022,6 +3041,45 @@ function openAuthFromLanding(tab) {
 function showLanding() {
   document.getElementById('landingPage').style.display = '';
   document.getElementById('authOverlay').style.display = 'none';
+  startLpSlider();
+}
+
+// ── Landing Slider ──
+let _lpIdx = 0;
+let _lpProgressTimer = null;
+const LP_DURATION = 4000;
+
+function goLpSlide(idx) {
+  const slides = document.querySelectorAll('.lp-slide');
+  const dots   = document.querySelectorAll('.lp-dot');
+  if (!slides.length) return;
+  slides[_lpIdx].classList.remove('active');
+  dots[_lpIdx].classList.remove('active');
+  _lpIdx = ((idx % slides.length) + slides.length) % slides.length;
+  slides[_lpIdx].classList.add('active');
+  dots[_lpIdx].classList.add('active');
+  const bar = document.getElementById('lpProgressBar');
+  if (bar) bar.style.width = '0%';
+}
+
+function startLpSlider() {
+  stopLpSlider();
+  let elapsed = 0;
+  const bar = document.getElementById('lpProgressBar');
+  if (bar) bar.style.width = '0%';
+  _lpProgressTimer = setInterval(() => {
+    elapsed += 60;
+    const pct = Math.min((elapsed / LP_DURATION) * 100, 100);
+    if (bar) bar.style.width = pct + '%';
+    if (elapsed >= LP_DURATION) {
+      elapsed = 0;
+      goLpSlide(_lpIdx + 1);
+    }
+  }, 60);
+}
+
+function stopLpSlider() {
+  if (_lpProgressTimer) { clearInterval(_lpProgressTimer); _lpProgressTimer = null; }
 }
 
 // ── EmailJS 초기화 ──
@@ -3439,6 +3497,7 @@ async function handleLogout() {
 // 시작 - config.js 로딩 기다린 후 실행
 window.addEventListener('load', () => {
   initEmailJS();
+  startLpSlider();
   setTimeout(initSupabase, 100);
 });
 
