@@ -1650,6 +1650,15 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">과외매칭</div>
+        <div class="nav-item" onclick="showView('tutor-profile')">
+          <span class="icon">📝</span> 과외 프로필 등록
+        </div>
+        <div class="nav-item" onclick="showView('student-search')">
+          <span class="icon">🔎</span> 학생 찾기
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -1768,6 +1777,15 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">과외매칭</div>
+        <div class="nav-item" onclick="showView('tutor-search')">
+          <span class="icon">🔎</span> 과외 찾기
+        </div>
+        <div class="nav-item" onclick="showView('tutee-register')">
+          <span class="icon">📋</span> 과외 구인 등록
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -1790,6 +1808,15 @@
         </div>
         <div class="nav-item" onclick="showView('materials')">
           <span class="icon">📚</span> 자료실
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">과외매칭</div>
+        <div class="nav-item" onclick="showView('tutor-search')">
+          <span class="icon">🔎</span> 과외 찾기
+        </div>
+        <div class="nav-item" onclick="showView('tutee-register')">
+          <span class="icon">📋</span> 과외 구인 등록
         </div>
       </div>
       <div class="nav-section">
@@ -2719,6 +2746,115 @@
           <div id="profile-form-container">
             <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: TUTOR PROFILE (선생님 과외 프로필 등록) ══ -->
+    <div id="view-tutor-profile" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">과외 프로필 등록</h2>
+          <p class="page-sub">학생·학부모에게 노출될 과외 선생님 프로필을 작성합니다</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" id="tutorProfileToggleBtn" onclick="toggleTutorActive()">활성화 중</button>
+        </div>
+      </div>
+      <div class="card" style="max-width:640px">
+        <div id="tutor-profile-wrap" style="padding:8px 0">
+          <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: STUDENT SEARCH (선생님 - 학생 구인 목록) ══ -->
+    <div id="view-student-search" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">학생 찾기</h2>
+          <p class="page-sub">학생·학부모가 등록한 과외 구인 목록입니다</p>
+        </div>
+      </div>
+      <!-- 필터 -->
+      <div class="card" style="margin-bottom:20px;padding:16px 20px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">과목</label>
+            <select id="ssFilterSubject" class="form-input" style="width:140px;padding:7px 10px;font-size:13px">
+              <option value="">전체</option>
+              <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">지역</label>
+            <input id="ssFilterRegion" class="form-input" placeholder="예) 서울 강남" style="width:150px;padding:7px 10px;font-size:13px">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="loadStudentSearch()">검색</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ssFilterSubject').value='';document.getElementById('ssFilterRegion').value='';loadStudentSearch()">초기화</button>
+        </div>
+      </div>
+      <div id="student-search-wrap">
+        <div class="empty-state" style="padding:60px"><div class="empty-state-icon">🔍</div><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: TUTOR SEARCH (학생/학부모 - 과외 선생님 찾기) ══ -->
+    <div id="view-tutor-search" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">과외 찾기</h2>
+          <p class="page-sub">등록된 과외 선생님을 검색합니다</p>
+        </div>
+      </div>
+      <!-- 필터 -->
+      <div class="card" style="margin-bottom:20px;padding:16px 20px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">과목</label>
+            <select id="tsFilterSubject" class="form-input" style="width:140px;padding:7px 10px;font-size:13px">
+              <option value="">전체</option>
+              <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">지역</label>
+            <input id="tsFilterRegion" class="form-input" placeholder="예) 서울 강남" style="width:150px;padding:7px 10px;font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">최대 시급 (원)</label>
+            <input id="tsFilterRate" type="number" class="form-input" placeholder="예) 50000" style="width:150px;padding:7px 10px;font-size:13px">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="loadTutorSearch()">검색</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('tsFilterSubject').value='';document.getElementById('tsFilterRegion').value='';document.getElementById('tsFilterRate').value='';loadTutorSearch()">초기화</button>
+        </div>
+      </div>
+      <div id="tutor-search-wrap">
+        <div class="empty-state" style="padding:60px"><div class="empty-state-icon">🔍</div><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
+      <!-- 선생님 상세 패널 -->
+      <div id="tutor-detail-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;align-items:center;justify-content:center">
+        <div style="background:var(--bg);border-radius:var(--radius);padding:32px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;position:relative">
+          <button onclick="closeTutorDetail()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+          <div id="tutor-detail-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: TUTEE REGISTER (학생/학부모 - 과외 구인 등록) ══ -->
+    <div id="view-tutee-register" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">과외 구인 등록</h2>
+          <p class="page-sub">원하는 과외 조건을 등록하면 선생님이 먼저 연락드립니다</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" id="tuteeProfileToggleBtn" onclick="toggleTuteeActive()">활성화 중</button>
+        </div>
+      </div>
+      <div class="card" style="max-width:640px">
+        <div id="tutee-register-wrap" style="padding:8px 0">
+          <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
         </div>
       </div>
     </div>
@@ -4375,6 +4511,10 @@ function showView(viewId) {
         if (viewId === 'director-students') loadDirectorStudents().catch(() => {});
         if (viewId === 'admin-teachers') loadAdminTeachers().catch(() => {});
         if (viewId === 'admin-students') loadAdminStudents().catch(() => {});
+        if (viewId === 'tutor-profile')  loadTutorProfile().catch(() => {});
+        if (viewId === 'student-search') loadStudentSearch().catch(() => {});
+        if (viewId === 'tutor-search')   loadTutorSearch().catch(() => {});
+        if (viewId === 'tutee-register') loadTuteeRegister().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -6841,6 +6981,314 @@ async function deleteMaterial(id, filePath) {
   } catch (e) {
     showToast('삭제 실패: ' + e.message, '❌');
   }
+}
+
+// ═══════════════════════════════════════
+//  과외매칭 엔진
+// ═══════════════════════════════════════
+
+const TEACH_MODE_KO = { online: '온라인', offline: '오프라인', both: '온·오프라인' };
+const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '기타'];
+
+// ── 선생님: 과외 프로필 등록 ──
+async function loadTutorProfile() {
+  if (!sbClient || !currentUser) return;
+  const wrap = document.getElementById('tutor-profile-wrap');
+  if (!wrap) return;
+
+  const { data } = await sbClient.from('tutor_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
+  const p = data || {};
+  const toggleBtn = document.getElementById('tutorProfileToggleBtn');
+  if (toggleBtn) {
+    toggleBtn.textContent = p.is_active !== false ? '활성화 중' : '비활성';
+    toggleBtn.className   = p.is_active !== false ? 'btn btn-green btn-sm' : 'btn btn-ghost btn-sm';
+  }
+
+  wrap.innerHTML = `
+    <div style="display:grid;gap:16px">
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">과목 <span style="color:var(--red)">*</span></label>
+        <select id="tp-subject" class="form-input" style="width:100%">
+          ${SUBJECT_LIST.map(s => `<option ${p.subject === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">지역 <span style="color:var(--red)">*</span></label>
+        <input id="tp-region" class="form-input" style="width:100%" placeholder="예) 서울 강남구" value="${p.region || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">시급 (원) <span style="color:var(--red)">*</span></label>
+        <input id="tp-rate" type="number" class="form-input" style="width:100%" placeholder="예) 40000" value="${p.hourly_rate || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">학력</label>
+        <input id="tp-education" class="form-input" style="width:100%" placeholder="예) ○○대학교 수학과 졸업" value="${p.education || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">경력</label>
+        <input id="tp-experience" class="form-input" style="width:100%" placeholder="예) 수학 과외 5년" value="${p.experience || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">수업 방식 <span style="color:var(--red)">*</span></label>
+        <select id="tp-mode" class="form-input" style="width:100%">
+          <option value="online" ${p.teaching_mode==='online'?'selected':''}>온라인</option>
+          <option value="offline" ${p.teaching_mode==='offline'?'selected':''}>오프라인</option>
+          <option value="both" ${(!p.teaching_mode||p.teaching_mode==='both')?'selected':''}>온·오프라인</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">자기소개</label>
+        <textarea id="tp-intro" class="form-input" style="width:100%;min-height:100px;resize:vertical" placeholder="학생에게 보여질 자기소개를 작성해주세요">${p.intro || ''}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveTutorProfile()">저장하기</button>
+    </div>`;
+}
+
+async function saveTutorProfile() {
+  if (!sbClient || !currentUser) return;
+  const subject  = document.getElementById('tp-subject')?.value?.trim();
+  const region   = document.getElementById('tp-region')?.value?.trim();
+  const rate     = parseInt(document.getElementById('tp-rate')?.value || '0', 10);
+  const education  = document.getElementById('tp-education')?.value?.trim();
+  const experience = document.getElementById('tp-experience')?.value?.trim();
+  const mode     = document.getElementById('tp-mode')?.value;
+  const intro    = document.getElementById('tp-intro')?.value?.trim();
+
+  if (!subject || !region || !rate) { showToast('과목, 지역, 시급은 필수입니다', '⚠️'); return; }
+
+  const payload = { user_id: currentUser.id, subject, region, hourly_rate: rate,
+    education: education || null, experience: experience || null,
+    teaching_mode: mode, intro: intro || null, updated_at: new Date().toISOString() };
+
+  const { error } = await sbClient.from('tutor_profiles').upsert(payload, { onConflict: 'user_id' });
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast('과외 프로필이 저장되었습니다!', '✅');
+  loadTutorProfile();
+}
+
+async function toggleTutorActive() {
+  if (!sbClient || !currentUser) return;
+  const { data } = await sbClient.from('tutor_profiles').select('is_active').eq('user_id', currentUser.id).maybeSingle();
+  const next = data ? !data.is_active : false;
+  await sbClient.from('tutor_profiles').upsert({ user_id: currentUser.id, is_active: next }, { onConflict: 'user_id' });
+  showToast(next ? '프로필이 활성화되었습니다' : '프로필이 비활성화되었습니다', next ? '✅' : '⏸️');
+  loadTutorProfile();
+}
+
+// ── 선생님: 학생 찾기 ──
+async function loadStudentSearch() {
+  if (!sbClient) return;
+  const wrap = document.getElementById('student-search-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  const subject = document.getElementById('ssFilterSubject')?.value || '';
+  const region  = document.getElementById('ssFilterRegion')?.value?.trim() || '';
+
+  let q = sbClient.from('tutee_profiles').select('*, profiles(name, email)').eq('is_active', true);
+  if (subject) q = q.eq('subject', subject);
+  if (region)  q = q.ilike('region', `%${region}%`);
+  q = q.order('created_at', { ascending: false });
+
+  const { data, error } = await q;
+  if (error || !data?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-icon">📋</div><div class="empty-state-text">검색 결과가 없습니다</div></div>';
+    return;
+  }
+
+  wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">` +
+    data.map(t => `
+      <div class="card" style="cursor:default">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:800;flex-shrink:0">${(t.profiles?.name || '?')[0]}</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${t.profiles?.name || '이름 없음'}</div>
+            <div style="font-size:12px;color:var(--text3)">${t.grade || '학년 미기재'}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+          <span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${t.subject || '—'}</span>
+          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${t.region || '지역 미기재'}</span>
+          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${TEACH_MODE_KO[t.teaching_mode] || '—'}</span>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">희망 시급 <span style="color:var(--accent)">${t.desired_rate ? t.desired_rate.toLocaleString() + '원' : '협의'}</span></div>
+        ${t.intro ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">${t.intro}</div>` : ''}
+        <div style="margin-top:12px;font-size:12px;color:var(--text3)">📧 ${t.profiles?.email || '—'}</div>
+      </div>`).join('') + '</div>';
+}
+
+// ── 학생/학부모: 과외 찾기 ──
+async function loadTutorSearch() {
+  if (!sbClient) return;
+  const wrap = document.getElementById('tutor-search-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  const subject = document.getElementById('tsFilterSubject')?.value || '';
+  const region  = document.getElementById('tsFilterRegion')?.value?.trim() || '';
+  const maxRate = parseInt(document.getElementById('tsFilterRate')?.value || '0', 10);
+
+  let q = sbClient.from('tutor_profiles').select('*, profiles(name)').eq('is_active', true);
+  if (subject) q = q.eq('subject', subject);
+  if (region)  q = q.ilike('region', `%${region}%`);
+  if (maxRate) q = q.lte('hourly_rate', maxRate);
+  q = q.order('created_at', { ascending: false });
+
+  const { data, error } = await q;
+  if (error || !data?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-icon">🔍</div><div class="empty-state-text">검색 결과가 없습니다</div></div>';
+    return;
+  }
+
+  wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">` +
+    data.map(t => `
+      <div class="card" style="cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow=''" onclick="openTutorDetail('${t.id}')">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;flex-shrink:0">${(t.profiles?.name || '?')[0]}</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${t.profiles?.name || '선생님'}</div>
+            <div style="font-size:12px;color:var(--text3)">${t.education || '학력 미기재'}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+          <span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${t.subject || '—'}</span>
+          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${t.region || '지역 미기재'}</span>
+          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${TEACH_MODE_KO[t.teaching_mode] || '—'}</span>
+        </div>
+        <div style="font-size:14px;font-weight:800;color:var(--accent)">시급 ${t.hourly_rate ? t.hourly_rate.toLocaleString() + '원' : '협의'}</div>
+        ${t.intro ? `<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${t.intro}</div>` : ''}
+        <div style="margin-top:10px;font-size:11px;color:var(--text3)">클릭하여 상세 보기 →</div>
+      </div>`).join('') + '</div>';
+
+  window._tutorSearchData = data;
+}
+
+function openTutorDetail(id) {
+  const t = (window._tutorSearchData || []).find(x => x.id === id);
+  if (!t) return;
+  const panel = document.getElementById('tutor-detail-panel');
+  const content = document.getElementById('tutor-detail-content');
+  if (!panel || !content) return;
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;flex-shrink:0">${(t.profiles?.name || '?')[0]}</div>
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${t.profiles?.name || '선생님'}</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:2px">${t.education || ''}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">과목</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">${t.subject || '—'}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">시급</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">${t.hourly_rate ? t.hourly_rate.toLocaleString() + '원' : '협의'}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">지역</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${t.region || '—'}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">수업 방식</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${TEACH_MODE_KO[t.teaching_mode] || '—'}</div>
+      </div>
+    </div>
+    ${t.experience ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">경력</div><div style="font-size:13px;color:var(--text)">${t.experience}</div></div>` : ''}
+    ${t.intro ? `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">자기소개</div><div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${t.intro}</div></div>` : ''}
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:13px;color:var(--text2)">
+      문의는 운영자를 통해 연락처를 안내받으세요.<br>
+      <a href="#" onclick="openLpPage('contact');closeTutorDetail()" style="color:var(--accent);font-weight:600">문의하기 →</a>
+    </div>`;
+
+  panel.style.display = 'flex';
+}
+
+function closeTutorDetail() {
+  const panel = document.getElementById('tutor-detail-panel');
+  if (panel) panel.style.display = 'none';
+}
+
+// ── 학생/학부모: 과외 구인 등록 ──
+async function loadTuteeRegister() {
+  if (!sbClient || !currentUser) return;
+  const wrap = document.getElementById('tutee-register-wrap');
+  if (!wrap) return;
+
+  const { data } = await sbClient.from('tutee_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
+  const p = data || {};
+  const toggleBtn = document.getElementById('tuteeProfileToggleBtn');
+  if (toggleBtn) {
+    toggleBtn.textContent = p.is_active !== false ? '활성화 중' : '비활성';
+    toggleBtn.className   = p.is_active !== false ? 'btn btn-green btn-sm' : 'btn btn-ghost btn-sm';
+  }
+
+  wrap.innerHTML = `
+    <div style="display:grid;gap:16px">
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">원하는 과목 <span style="color:var(--red)">*</span></label>
+        <select id="tr-subject" class="form-input" style="width:100%">
+          ${SUBJECT_LIST.map(s => `<option ${p.subject === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">지역 <span style="color:var(--red)">*</span></label>
+        <input id="tr-region" class="form-input" style="width:100%" placeholder="예) 서울 강남구" value="${p.region || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">희망 시급 (원)</label>
+        <input id="tr-rate" type="number" class="form-input" style="width:100%" placeholder="예) 35000 (협의 시 비워두세요)" value="${p.desired_rate || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">학년</label>
+        <input id="tr-grade" class="form-input" style="width:100%" placeholder="예) 중3, 고1" value="${p.grade || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">수업 방식 <span style="color:var(--red)">*</span></label>
+        <select id="tr-mode" class="form-input" style="width:100%">
+          <option value="online" ${p.teaching_mode==='online'?'selected':''}>온라인</option>
+          <option value="offline" ${p.teaching_mode==='offline'?'selected':''}>오프라인</option>
+          <option value="both" ${(!p.teaching_mode||p.teaching_mode==='both')?'selected':''}>온·오프라인</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">추가 메모</label>
+        <textarea id="tr-intro" class="form-input" style="width:100%;min-height:80px;resize:vertical" placeholder="원하는 수업 방향, 취약 단원 등을 자유롭게 적어주세요">${p.intro || ''}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveTuteeProfile()">저장하기</button>
+    </div>`;
+}
+
+async function saveTuteeProfile() {
+  if (!sbClient || !currentUser) return;
+  const subject = document.getElementById('tr-subject')?.value?.trim();
+  const region  = document.getElementById('tr-region')?.value?.trim();
+  const rate    = parseInt(document.getElementById('tr-rate')?.value || '0', 10);
+  const grade   = document.getElementById('tr-grade')?.value?.trim();
+  const mode    = document.getElementById('tr-mode')?.value;
+  const intro   = document.getElementById('tr-intro')?.value?.trim();
+
+  if (!subject || !region) { showToast('과목과 지역은 필수입니다', '⚠️'); return; }
+
+  const payload = { user_id: currentUser.id, subject, region,
+    desired_rate: rate || null, grade: grade || null,
+    teaching_mode: mode, intro: intro || null, updated_at: new Date().toISOString() };
+
+  const { error } = await sbClient.from('tutee_profiles').upsert(payload, { onConflict: 'user_id' });
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast('구인 등록이 저장되었습니다!', '✅');
+  loadTuteeRegister();
+}
+
+async function toggleTuteeActive() {
+  if (!sbClient || !currentUser) return;
+  const { data } = await sbClient.from('tutee_profiles').select('is_active').eq('user_id', currentUser.id).maybeSingle();
+  const next = data ? !data.is_active : false;
+  await sbClient.from('tutee_profiles').upsert({ user_id: currentUser.id, is_active: next }, { onConflict: 'user_id' });
+  showToast(next ? '구인이 활성화되었습니다' : '구인이 비활성화되었습니다', next ? '✅' : '⏸️');
+  loadTuteeRegister();
 }
 
 // ═══════════════════════════════════════
