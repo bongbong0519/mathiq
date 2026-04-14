@@ -154,6 +154,29 @@
     padding: 16px;
     border-top: 1px solid var(--border);
   }
+  .balance-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .balance-chip {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background 0.15s;
+  }
+  .balance-chip .val { color: var(--text); font-size: 13px; }
   .user-info { display: flex; align-items: center; gap: 10px; }
   .user-avatar {
     width: 32px; height: 32px;
@@ -2040,6 +2063,14 @@
         onmouseout="this.style.background='var(--bg2)';this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">
         <span style="font-size:15px">🏠</span> 메인페이지
       </button>
+      <div class="balance-bar">
+        <div class="balance-chip" title="파이포인트">
+          <span>🪙</span><span class="val" id="sidebarPoints">0 P</span>
+        </div>
+        <div class="balance-chip" title="파이캐쉬">
+          <span>💰</span><span class="val" id="sidebarCash">0 C</span>
+        </div>
+      </div>
       <div class="user-info">
         <div class="user-avatar" id="userAvatar">봉</div>
         <div style="flex:1;min-width:0">
@@ -4489,6 +4520,13 @@ async function checkSession() {
   }
 }
 
+function updateBalanceDisplay(points, cash) {
+  const p = document.getElementById('sidebarPoints');
+  const c = document.getElementById('sidebarCash');
+  if (p) p.textContent = ((points ?? 0)).toLocaleString() + ' P';
+  if (c) c.textContent = ((cash   ?? 0)).toLocaleString() + ' C';
+}
+
 async function loadProfile(autoNavigate = true) {
   if (!sbClient || !currentUser) return;
   let { data } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
@@ -4538,6 +4576,7 @@ async function loadProfile(autoNavigate = true) {
   }
 
   // 사이드바 UI 업데이트
+  updateBalanceDisplay(data.point_balance, data.cash_balance);
   document.getElementById('userName').textContent = data.name || currentUser.email;
   const roleTagMap = {
     teacher: `수학 교사 · ${data.region || data.school || ''}`,
@@ -7764,7 +7803,10 @@ async function confirmViewContact(tuteeId, tuteeUserId) {
 
   window._viewedTuteeSet = window._viewedTuteeSet || new Set();
   window._viewedTuteeSet.add(tuteeId);
-  if (currentProfile) currentProfile.point_balance = (currentProfile.point_balance || 0) - 500;
+  if (currentProfile) {
+    currentProfile.point_balance = (currentProfile.point_balance || 0) - 500;
+    updateBalanceDisplay(currentProfile.point_balance, currentProfile.cash_balance);
+  }
 
   const p     = (window._studentProfileMap || {})[tuteeUserId] || {};
   const email = p.email || '—';
