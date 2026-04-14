@@ -10154,9 +10154,13 @@ async function quAutoTag() {
   const btn = document.getElementById('quAutoTagBtn');
   btn.disabled = true; btn.textContent = '분석 중...';
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001', max_tokens: 300,
         messages: [{ role: 'user', content: `다음 수학 문제를 분석하여 JSON으로 태깅해줘. 반드시 아래 형식만 출력해:
@@ -10165,8 +10169,12 @@ async function quAutoTag() {
 문제: ${content}` }]
       })
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
     const json = await res.json();
-    const text = json.content?.[0]?.text || '';
+    const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
     const match = text.match(/\{[\s\S]*?\}/);
     if (!match) throw new Error('파싱 실패');
     const tag = JSON.parse(match[0]);
@@ -10255,24 +10263,38 @@ async function extractFromFile() {
       reader.readAsDataURL(file);
     });
 
-    const isPdf  = file.type === 'application/pdf';
+    const isPdf   = file.type === 'application/pdf';
     const imgType = file.type || 'image/jpeg';
+    const prompt  = '수학 문제를 모두 추출해줘. 반드시 JSON 배열만 출력해. 다른 텍스트 절대 금지.\n형식: [{"content":"문제본문(KaTeX수식은 $...$로 표현)","answer":"정답","question_type":"객관식|단답형|서술형","difficulty":1~5}]';
 
-    const content = isPdf
-      ? [{ type: 'text', text: '이 PDF에서 수학 문제를 모두 추출해줘. 각 문제를 JSON 배열로 반환해. 형식: [{"content":"문제본문(KaTeX수식 포함)","answer":"정답","type":"객관식|단답형|서술형","difficulty":1~5}]' },
-         { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }]
-      : [{ type: 'text', text: '이 이미지에서 수학 문제를 모두 추출해줘. 각 문제를 JSON 배열로 반환해. 형식: [{"content":"문제본문(KaTeX수식은 $...$로 표현)","answer":"정답","type":"객관식|단답형|서술형","difficulty":1~5}]' },
-         { type: 'image', source: { type: 'base64', media_type: imgType, data: base64 } }];
+    const messages = isPdf
+      ? [{ role: 'user', content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      : [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: imgType, data: base64 } },
+          { type: 'text', text: prompt }
+        ]}];
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // 유사문제 생성기와 동일한 /api/proxy 경유
+    const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-opus-4-6', max_tokens: 4096, messages: [{ role: 'user', content }] })
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, messages })
     });
-    const json = await res.json();
-    const text = json.content?.[0]?.text || '';
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+    const json  = await res.json();
+    const text  = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
     const match = text.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('문제 추출 결과를 파싱할 수 없습니다');
+    if (!match) throw new Error('문제 추출 결과를 파싱할 수 없습니다 (응답: ' + text.slice(0, 100) + ')');
     _extractedQuestions = JSON.parse(match[0]);
     renderExtractedQuestions(_extractedQuestions);
     showToast(`${_extractedQuestions.length}개 문제가 추출되었습니다`, '✅');
