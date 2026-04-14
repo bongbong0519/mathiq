@@ -931,6 +931,8 @@
   }
   .lp-btn-ghost { background: transparent; color: var(--lp-text2); border: 1px solid rgba(0,0,0,0.14); }
   .lp-btn-ghost:hover { color: var(--lp-coral); border-color: var(--lp-coral); background: rgba(255,107,107,0.04); }
+  .lp-btn-outline { background: transparent; color: var(--lp-coral); border: 1.5px solid var(--lp-coral); }
+  .lp-btn-outline:hover { background: rgba(255,107,107,0.06); }
   .lp-btn-primary { background: linear-gradient(135deg, var(--lp-coral), var(--lp-peach)); color: #fff; box-shadow: 0 4px 16px rgba(255,107,107,0.3); }
   .lp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(255,107,107,0.4); }
   /* BODY */
@@ -1929,6 +1931,13 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">메시지</div>
+        <div class="nav-item" onclick="showView('messages')">
+          <span class="icon">✉️</span> 쪽지함
+          <span id="msg-badge-teacher" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -1966,6 +1975,13 @@
         </div>
         <div class="nav-item" onclick="openBoard('math')">
           <span class="icon">📐</span> 수학커뮤니티
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">메시지</div>
+        <div class="nav-item" onclick="showView('messages')">
+          <span class="icon">✉️</span> 쪽지함
+          <span id="msg-badge-director" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
         </div>
       </div>
       <div class="nav-section">
@@ -2013,6 +2029,13 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">메시지</div>
+        <div class="nav-item" onclick="showView('messages')">
+          <span class="icon">✉️</span> 쪽지함
+          <span id="msg-badge-admin" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -2056,6 +2079,13 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">메시지</div>
+        <div class="nav-item" onclick="showView('messages')">
+          <span class="icon">✉️</span> 쪽지함
+          <span id="msg-badge-student" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -2090,6 +2120,13 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">메시지</div>
+        <div class="nav-item" onclick="showView('messages')">
+          <span class="icon">✉️</span> 쪽지함
+          <span id="msg-badge-parent" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -2103,6 +2140,13 @@
         <div class="nav-label">커뮤니티</div>
         <div class="nav-item active" onclick="openBoard('math')">
           <span class="icon">📐</span> 수학커뮤니티
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">메시지</div>
+        <div class="nav-item" onclick="showView('messages')">
+          <span class="icon">✉️</span> 쪽지함
+          <span id="msg-badge-member" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
         </div>
       </div>
       <div class="nav-section">
@@ -2122,6 +2166,13 @@
         </div>
         <div class="nav-item" onclick="openBoard('math')">
           <span class="icon">📐</span> 수학커뮤니티
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">메시지</div>
+        <div class="nav-item" onclick="showView('messages')">
+          <span class="icon">✉️</span> 쪽지함
+          <span id="msg-badge-expert" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
         </div>
       </div>
       <div class="nav-section">
@@ -3041,6 +3092,25 @@
       </div>
     </div>
 
+    <!-- ══ VIEW: MESSAGES (쪽지함) ══ -->
+    <div id="view-messages" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">쪽지함</h2>
+          <p class="page-subtitle">받은 쪽지와 보낸 쪽지를 확인합니다</p>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="tab-nav" style="padding:0 20px;border-bottom:1px solid var(--border)">
+          <button class="tab-btn active" id="msgTabInbox"  onclick="switchMsgTab('inbox')">받은 쪽지 <span id="msgInboxBadge" style="display:none;background:var(--accent);color:#fff;border-radius:9px;font-size:11px;font-weight:700;padding:0 6px;margin-left:4px"></span></button>
+          <button class="tab-btn"        id="msgTabSent"   onclick="switchMsgTab('sent')">보낸 쪽지</button>
+        </div>
+        <div id="msgListWrap" style="padding:16px 20px;min-height:200px">
+          <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ VIEW: PROFILE (내 정보) ══ -->
     <div id="view-profile" class="view" style="display:none">
       <div class="page-header">
@@ -3502,6 +3572,36 @@
       <div style="display:flex;gap:10px">
         <button onclick="closeLpEventPopup()" style="flex:1;padding:13px;border-radius:12px;border:1.5px solid #e0e0e8;background:#fff;color:#888;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s" onmouseover="this.style.background='#f8f8fb'" onmouseout="this.style.background='#fff'">닫기</button>
         <button onclick="closeLpEventPopup()" style="flex:2;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6b6b,#ff9472);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.15s;box-shadow:0 4px 16px rgba(255,107,107,0.35)" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(255,107,107,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(255,107,107,0.35)'">🚀 시작하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ MESSAGE COMPOSE MODAL ════════════════════ -->
+<div id="msgComposeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border-radius:var(--radius);padding:0;width:92%;max-width:500px;box-shadow:0 8px 40px rgba(0,0,0,0.18);overflow:hidden">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:800;color:var(--text)">✉️ 쪽지 보내기</div>
+      <button onclick="closeMsgCompose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">받는 사람</div>
+        <div id="msgComposeReceiver" style="font-size:14px;font-weight:700;color:var(--text);padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm)">—</div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">제목</div>
+        <input id="msgComposeTitle" type="text" placeholder="제목을 입력하세요" maxlength="100"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;background:var(--bg);color:var(--text);font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">내용</div>
+        <textarea id="msgComposeBody" placeholder="내용을 입력하세요" rows="5" maxlength="2000"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeMsgCompose()" class="btn btn-ghost">취소</button>
+        <button onclick="sendMessage()" class="btn btn-primary" id="msgSendBtn">보내기</button>
       </div>
     </div>
   </div>
@@ -4309,8 +4409,9 @@ function openLpTutorDetail(id) {
     </div>
     ${t.experience ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--lp-text2);margin-bottom:4px">경력</div><div style="font-size:13px;color:var(--lp-text)">${t.experience}</div></div>` : ''}
     ${t.intro ? `<div style="background:#fff8f6;border-radius:10px;padding:14px;margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--lp-text2);margin-bottom:8px">자기소개</div><div style="font-size:13px;color:var(--lp-text);line-height:1.8;white-space:pre-wrap">${t.intro}</div></div>` : ''}
-    <div style="text-align:center;padding-top:14px;border-top:1px solid rgba(0,0,0,0.08)">
-      <button class="lp-btn lp-btn-primary" style="width:100%" onclick="closeLpTutorDetail();openLpPage('contact')">문의하기</button>
+    <div style="padding-top:14px;border-top:1px solid rgba(0,0,0,0.08);display:flex;gap:10px">
+      <button class="lp-btn lp-btn-outline" style="flex:1" onclick="closeLpTutorDetail();openLpPage('contact')">문의하기</button>
+      <button class="lp-btn lp-btn-primary" style="flex:1" onclick="openMsgComposeLp('${t.user_id}','${(t._name||'').replace(/'/g,"\\'")}')">✉️ 쪽지 보내기</button>
     </div>`;
   panel.style.display = 'flex';
 }
@@ -4830,6 +4931,7 @@ function showApp() {
     if (sbClient) {
       loadDashboard();
       loadStudents();
+      checkUnreadMessages().catch(() => {});
     }
   }, 300);
 }
@@ -5145,6 +5247,7 @@ function showView(viewId) {
         if (viewId === 'tutor-search')   loadTutorSearch().catch(() => {});
         if (viewId === 'tutee-register') loadTuteeRegister().catch(() => {});
         if (viewId === 'sms')            loadSmsView();
+        if (viewId === 'messages')       loadMessagesView().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -9532,6 +9635,176 @@ async function loadStudentView() {
       </div>
     </div>
   `;
+}
+
+// ═══════════════════════════════════════
+//  쪽지 (Messages)
+// ═══════════════════════════════════════
+let _msgCurrentTab = 'inbox';
+let _msgComposeReceiverId = null;
+
+// 받은 쪽지 미읽음 수 확인 → 사이드바 배지 업데이트
+async function checkUnreadMessages() {
+  if (!sbClient || !currentUser) return;
+  const { count } = await sbClient
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('receiver_id', currentUser.id)
+    .eq('is_read', false);
+  const n = count || 0;
+  const role = currentProfile?.role || '';
+  const badgeIds = ['msg-badge-teacher','msg-badge-director','msg-badge-admin','msg-badge-student','msg-badge-parent','msg-badge-member','msg-badge-expert'];
+  badgeIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.style.display = n > 0 ? '' : 'none';
+  });
+  // 쪽지함 탭 받은쪽지 배지도 업데이트
+  const inboxBadge = document.getElementById('msgInboxBadge');
+  if (inboxBadge) {
+    inboxBadge.textContent = n > 99 ? '99+' : String(n);
+    inboxBadge.style.display = n > 0 ? '' : 'none';
+  }
+}
+
+// 탭 전환
+function switchMsgTab(tab) {
+  _msgCurrentTab = tab;
+  document.getElementById('msgTabInbox').classList.toggle('active', tab === 'inbox');
+  document.getElementById('msgTabSent').classList.toggle('active', tab === 'sent');
+  loadMessagesView();
+}
+
+// 쪽지함 뷰 로드
+async function loadMessagesView() {
+  const wrap = document.getElementById('msgListWrap');
+  if (!wrap) return;
+  if (!sbClient || !currentUser) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">로그인이 필요합니다</div></div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>';
+  const isInbox = _msgCurrentTab === 'inbox';
+  const filterCol = isInbox ? 'receiver_id' : 'sender_id';
+  const { data, error } = await sbClient
+    .from('messages')
+    .select('id, title, body, is_read, created_at, sender_id, receiver_id, sender:profiles!messages_sender_id_fkey(name), receiver:profiles!messages_receiver_id_fkey(name)')
+    .eq(filterCol, currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error || !data || data.length === 0) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">' + (isInbox ? '받은 쪽지가 없습니다' : '보낸 쪽지가 없습니다') + '</div></div>';
+    return;
+  }
+  wrap.innerHTML = data.map(m => {
+    const otherName = isInbox ? (m.sender?.name || '—') : (m.receiver?.name || '—');
+    const label = isInbox ? '보낸이' : '받는이';
+    const unread = isInbox && !m.is_read;
+    const date = new Date(m.created_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    return `<div onclick="${isInbox ? `openMsgDetail('${m.id}')` : ''}"
+      style="padding:14px 0;border-bottom:1px solid var(--border);cursor:${isInbox ? 'pointer' : 'default'};transition:background 0.1s"
+      ${isInbox ? `onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''"` : ''}>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        ${unread ? `<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;display:inline-block"></span>` : `<span style="width:8px;flex-shrink:0"></span>`}
+        <span style="font-size:14px;font-weight:${unread ? '800' : '600'};color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.title}</span>
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap">${date}</span>
+      </div>
+      <div style="padding-left:18px;display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--text3)">${label}: ${otherName}</span>
+        <span style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${m.body.length > 60 ? m.body.slice(0,60)+'…' : m.body}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 쪽지 상세 열기 (받은 쪽지)
+async function openMsgDetail(msgId) {
+  if (!sbClient || !currentUser) return;
+  const { data: m } = await sbClient
+    .from('messages')
+    .select('id, title, body, is_read, created_at, sender_id, sender:profiles!messages_sender_id_fkey(name)')
+    .eq('id', msgId)
+    .eq('receiver_id', currentUser.id)
+    .maybeSingle();
+  if (!m) return;
+  // 읽음 처리
+  if (!m.is_read) {
+    await sbClient.from('messages').update({ is_read: true }).eq('id', msgId);
+    checkUnreadMessages();
+    loadMessagesView();
+  }
+  const date = new Date(m.created_at).toLocaleString('ko-KR');
+  // 인라인 상세 오버레이
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--radius);width:92%;max-width:520px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.18)">
+      <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:16px;font-weight:800;color:var(--text)">✉️ 쪽지 상세</div>
+        <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+      </div>
+      <div style="padding:20px 24px">
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:12px">${m.title}</div>
+        <div style="display:flex;gap:16px;margin-bottom:16px;font-size:12px;color:var(--text3)">
+          <span>보낸이: <strong style="color:var(--text2)">${m.sender?.name || '—'}</strong></span>
+          <span>${date}</span>
+        </div>
+        <div style="font-size:14px;color:var(--text);line-height:1.8;white-space:pre-wrap;padding:16px;background:var(--bg2);border-radius:var(--radius-sm)">${m.body}</div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="this.closest('[style*=position]').remove();openMsgCompose('${m.sender_id}','${(m.sender?.name||'').replace(/'/g,"\\'")}','RE: ${m.title.replace(/'/g,"\\'")}')" class="btn btn-primary">답장</button>
+          <button onclick="this.closest('[style*=position]').remove()" class="btn btn-ghost">닫기</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// 쪽지 작성 모달 열기 (앱 내부)
+function openMsgCompose(receiverId, receiverName, prefillTitle) {
+  if (!currentUser) { showToast('로그인이 필요합니다', '🔒'); return; }
+  _msgComposeReceiverId = receiverId;
+  document.getElementById('msgComposeReceiver').textContent = receiverName || '—';
+  document.getElementById('msgComposeTitle').value = prefillTitle || '';
+  document.getElementById('msgComposeBody').value = '';
+  document.getElementById('msgComposeModal').style.display = 'flex';
+}
+
+// 쪽지 작성 모달 열기 (랜딩 페이지에서)
+function openMsgComposeLp(receiverId, receiverName) {
+  if (!currentUser) {
+    // 로그인 필요 → 로그인 모달 열기
+    closeLpTutorDetail();
+    openAuthFromLanding('login');
+    showToast('쪽지를 보내려면 로그인이 필요합니다', '🔒');
+    return;
+  }
+  openMsgCompose(receiverId, receiverName, '');
+}
+
+function closeMsgCompose() {
+  document.getElementById('msgComposeModal').style.display = 'none';
+  _msgComposeReceiverId = null;
+}
+
+// 쪽지 전송
+async function sendMessage() {
+  if (!sbClient || !currentUser || !_msgComposeReceiverId) return;
+  const title = document.getElementById('msgComposeTitle').value.trim();
+  const body  = document.getElementById('msgComposeBody').value.trim();
+  if (!title) { showToast('제목을 입력하세요', '⚠️'); return; }
+  if (!body)  { showToast('내용을 입력하세요', '⚠️'); return; }
+  const btn = document.getElementById('msgSendBtn');
+  btn.disabled = true; btn.textContent = '전송 중...';
+  const { error } = await sbClient.from('messages').insert({
+    sender_id:   currentUser.id,
+    receiver_id: _msgComposeReceiverId,
+    title, body
+  });
+  btn.disabled = false; btn.textContent = '보내기';
+  if (error) { showToast('전송 실패: ' + error.message, '❌'); return; }
+  showToast('쪽지를 보냈습니다', '✅');
+  closeMsgCompose();
 }
 </script>
 </body>
