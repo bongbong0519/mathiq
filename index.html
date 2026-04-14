@@ -8110,6 +8110,7 @@ const QB_DIFF_COLOR = { 1:'var(--green)', 2:'#3ecf8e', 3:'var(--accent)', 4:'var
 let _qbSearchTimer = null;
 let _aqCurrentTab  = 'pending';
 let _extractedQuestions = [];
+let _extractPageImages  = [];   // 추출 시 저장된 페이지 이미지 (base64)
 let _quSelectedDiff = 3;
 
 // ── 오픈 이벤트 플래그 ──
@@ -10411,13 +10412,34 @@ async function _geminiFillFigures(questions, pageImages) {
   const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
   if (!text) throw new Error('Gemini 빈 응답 (finishReason: ' + (json.candidates?.[0]?.finishReason || '?') + ')');
 
-  const filledFigures = _parseJsonArray(text);
+  // JSON 파싱 — 실패 시 1단계 결과 그대로 반환
+  let filledFigures;
+  try {
+    const raw = _parseJsonArray(text);
+    // Gemini가 {questions:[...]} 형태로 감싸서 줄 수 있음 → 내부 배열 추출
+    if (Array.isArray(raw)) {
+      filledFigures = raw;
+    } else if (raw && typeof raw === 'object') {
+      const inner = Object.values(raw).find(v => Array.isArray(v));
+      filledFigures = inner || [raw];
+    } else {
+      filledFigures = [];
+    }
+  } catch (parseErr) {
+    console.warn('[Gemini 그림 보완] JSON 파싱 실패, 1단계 결과 유지:', parseErr.message);
+    return { result: questions, skipped: true, reason: 'JSON 파싱 실패 — 1단계 결과 유지' };
+  }
+
+  if (!filledFigures.length) {
+    console.warn('[Gemini 그림 보완] 빈 배열 반환 — 1단계 결과 유지');
+    return { result: questions, skipped: true, reason: '빈 응답 — 1단계 결과 유지' };
+  }
 
   // 원본 배열을 복사한 뒤, 그림 문제 위치에만 Gemini 결과를 덮어씀
   const merged = questions.map(q => ({ ...q }));
   figureEntries.forEach(({ idx }, fi) => {
-    if (filledFigures[fi]) {
-      merged[idx] = { ...merged[idx], ...filledFigures[fi] };
+    if (filledFigures[fi] && filledFigures[fi].content) {
+      merged[idx] = { ...merged[idx], content: filledFigures[fi].content };
     }
   });
 
@@ -10608,6 +10630,8 @@ async function extractFromFile() {
       usedClaudeFallback = true;
     }
 
+    _extractPageImages = []; // 이전 추출 이미지 초기화
+
     if (usedClaudeFallback) {
       // Gemini 직접 추출 (그림 설명 포함)
       _setStep(1, 'running', isPdf ? 'PDF 이미지 변환 중...' : '분석 중...');
@@ -10621,6 +10645,7 @@ async function extractFromFile() {
         fbImages = [await _fileToBase64(file)];
         fbMimes  = [file.type || 'image/jpeg'];
       }
+      _extractPageImages = fbImages; // 팝업 참조용 저장
       const FBATCH = 6;
       step1Questions = [];
       for (let i = 0; i < fbImages.length; i += FBATCH) {
@@ -10656,6 +10681,7 @@ async function extractFromFile() {
         } else {
           pageImages = [await _fileToBase64(file)];
         }
+        _extractPageImages = pageImages; // 팝업 참조용 저장
         _setStep(2, 'running', `${step1Questions.filter(q=>(q.content||'').includes('[그림 참조]')).length}개 그림 설명 생성 중...`);
         try {
           const { result, skipped, reason } = await _geminiFillFigures(step1Questions, pageImages);
@@ -10747,7 +10773,9 @@ function _renderPreviewContent(el, rawText) {
       const span = document.createElement('span');
       span.className = 'ex-fig-ref';
       span.textContent = part;
-      span.style.cssText = 'display:inline-block;padding:1px 6px;background:var(--accent2,#e8f4ff);color:var(--accent,#2563eb);border-radius:4px;font-size:12px;font-weight:600;margin:0 2px;';
+      span.title = '클릭하면 원본 이미지 확인';
+      span.style.cssText = 'display:inline-block;padding:1px 6px;background:var(--accent2,#e8f4ff);color:var(--accent,#2563eb);border-radius:4px;font-size:12px;font-weight:600;margin:0 2px;cursor:pointer;text-decoration:underline dotted;';
+      span.onclick = () => exShowPageImages();
       el.appendChild(span);
     } else if (part) {
       const textNode = document.createTextNode(part);
@@ -10814,6 +10842,55 @@ function _renderAnswerPreview(el, rawText) {
   }
 }
 
+// ── [그림 참조] 클릭 시 페이지 이미지 팝업 ──
+function exShowPageImages() {
+  if (!_extractPageImages || _extractPageImages.length === 0) {
+    showToast('저장된 페이지 이미지가 없습니다', '⚠️'); return;
+  }
+  // 기존 팝업 제거
+  const old = document.getElementById('exFigModal');
+  if (old) old.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'exFigModal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--bg);border-radius:var(--radius);max-width:860px;width:100%;max-height:90vh;overflow-y:auto;padding:20px;position:relative;';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;';
+  header.innerHTML = `<span style="font-weight:800;font-size:15px;color:var(--text)">원본 페이지 이미지 (${_extractPageImages.length}페이지)</span>`;
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn btn-ghost';
+  closeBtn.style.cssText = 'font-size:18px;padding:2px 10px;';
+  closeBtn.textContent = '✕';
+  closeBtn.onclick = () => overlay.remove();
+  header.appendChild(closeBtn);
+  box.appendChild(header);
+
+  _extractPageImages.forEach((b64, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:16px;';
+    if (_extractPageImages.length > 1) {
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:12px;color:var(--text3);margin-bottom:4px;font-weight:600;';
+      label.textContent = `페이지 ${i + 1}`;
+      wrap.appendChild(label);
+    }
+    const img = document.createElement('img');
+    img.src = `data:image/jpeg;base64,${b64}`;
+    img.style.cssText = 'width:100%;border-radius:6px;border:1px solid var(--border);display:block;';
+    img.alt = `페이지 ${i + 1}`;
+    wrap.appendChild(img);
+    box.appendChild(wrap);
+  });
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
 async function saveExtractedQuestions() {
   if (!sbClient || !currentUser) { showToast('로그인이 필요합니다', '🔒'); return; }
   if (!_extractedQuestions.length) { showToast('추출된 문제가 없습니다', '⚠️'); return; }
@@ -10833,6 +10910,7 @@ async function saveExtractedQuestions() {
   document.getElementById('quFileInfo').style.display = 'none';
   document.getElementById('quExtractBtn').disabled = true;
   _extractedQuestions = [];
+  _extractPageImages  = [];
   checkQbPendingBadge();
 }
 
