@@ -10310,9 +10310,10 @@ const _CLAUDE_EXTRACT_PROMPT = `당신은 수학 문제지에서 문제를 추�
 
 6. question_type: 선택지(①~⑤) 있으면 "객관식" / 빈칸·숫자 답 "단답형" / 풀이 요구 "서술형"
 7. difficulty: 1(매우쉬움)~5(매우어려움)
+8. _page: 그림·도표·그래프가 있는 문제는 해당 그림이 위치한 페이지 번호(1부터 시작 정수). 그림 없으면 null.
 
 반드시 JSON 배열만 출력, 다른 텍스트 없이:
-[{"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5}]`;
+[{"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5,"_page":1또는null}]`;
 
 async function _claudeExtract(file) {
   const apiKey = getApiKey();
@@ -10363,10 +10364,11 @@ content에 [그림 참조]로 표시된 부분을 이미지에서 찾아 [그림
 2. 그림 속 수치·수식은 KaTeX로 표현: $수식$, $$수식$$
 3. [그림 참조]가 없는 문제의 content·answer는 수정하지 않는다.
 4. 이미지에서 그림을 찾을 수 없으면 [그림: (내용 불명확)] 으로 표시.
-5. 출력은 반드시 JSON 배열만. 설명·주석·코드블록 절대 금지.
+5. _page: 해당 그림이 위치한 페이지 번호(1부터 시작 정수). 이미지에 "=== 페이지 N ===" 레이블 기준.
+6. 출력은 반드시 JSON 배열만. 설명·주석·코드블록 절대 금지.
 
 출력 형식 (이 형식 그대로만):
-[{"content":"...","answer":"...","question_type":"...","difficulty":숫자}, ...]
+[{"content":"...","answer":"...","question_type":"...","difficulty":숫자,"_page":페이지번호}, ...]
 
 문제 목록:`;
 
@@ -10439,7 +10441,11 @@ async function _geminiFillFigures(questions, pageImages) {
   const merged = questions.map(q => ({ ...q }));
   figureEntries.forEach(({ idx }, fi) => {
     if (filledFigures[fi] && filledFigures[fi].content) {
-      merged[idx] = { ...merged[idx], content: filledFigures[fi].content };
+      merged[idx] = {
+        ...merged[idx],
+        content: filledFigures[fi].content,
+        ...(filledFigures[fi]._page != null ? { _page: filledFigures[fi]._page } : {})
+      };
     }
   });
 
@@ -10459,9 +10465,10 @@ const _GEM_EXTRACT_PROMPT = `이미지에 있는 수학 문제를 모두 추출�
 5. 정답: 객관식은 선택지 실제 텍스트, 없으면 null
 6. question_type: "객관식"|"단답형"|"서술형"
 7. difficulty: 1~5
+8. _page: 그림이 있는 문제는 해당 페이지 번호(이미지 "=== 페이지 N ===" 레이블 기준, 정수). 그림 없으면 null.
 
 출력 형식 (JSON 배열만):
-[{"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5}]`;
+[{"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5,"_page":페이지번호또는null}]`;
 
 async function _geminiCallBatch(base64Images, mimeTypes) {
   const parts = [];
@@ -10756,33 +10763,56 @@ function renderExtractedQuestions(list) {
 
   // innerHTML 설정 후 각 질문별로 미리보기 렌더링
   list.forEach((q, i) => {
+    const pageImage = q._page ? (_extractPageImages[q._page - 1] || null) : null;
     const previewEl = document.getElementById('exPreview-' + i);
-    if (previewEl) _renderPreviewContent(previewEl, q.content || '');
+    if (previewEl) _renderPreviewContent(previewEl, q.content || '', pageImage);
     const answerEl = document.getElementById('exAnswerPreview-' + i);
     if (answerEl) _renderAnswerPreview(answerEl, q.answer || '');
   });
 }
 
-// 콘텐츠를 preview 요소에 렌더링 — [그림: ...] 보호 + KaTeX 처리
-function _renderPreviewContent(el, rawText) {
-  // [그림 ...] 패턴을 span으로 감싸서 KaTeX가 건드리지 못하게 함
+// 콘텐츠를 preview 요소에 렌더링 — [그림: ...] → 실제 이미지 or 배지, KaTeX 처리
+// pageImage: base64 문자열 (있으면 <img> 삽입, 없으면 클릭 배지)
+function _renderPreviewContent(el, rawText, pageImage) {
   const parts = rawText.split(/(\[그림[^\]]*\])/g);
   el.innerHTML = '';
   parts.forEach(part => {
     if (/^\[그림[^\]]*\]$/.test(part)) {
-      const span = document.createElement('span');
-      span.className = 'ex-fig-ref';
-      span.textContent = part;
-      span.title = '클릭하면 원본 이미지 확인';
-      span.style.cssText = 'display:inline-block;padding:1px 6px;background:var(--accent2,#e8f4ff);color:var(--accent,#2563eb);border-radius:4px;font-size:12px;font-weight:600;margin:0 2px;cursor:pointer;text-decoration:underline dotted;';
-      span.onclick = () => exShowPageImages();
-      el.appendChild(span);
+      if (pageImage) {
+        // 실제 페이지 이미지 인라인 표시
+        const wrapper = document.createElement('span');
+        wrapper.className = 'ex-fig-ref';
+        wrapper.style.cssText = 'display:block;margin:8px 0;';
+
+        const img = document.createElement('img');
+        img.src = `data:image/jpeg;base64,${pageImage}`;
+        img.alt = part;
+        img.title = '클릭하면 전체 크기로 보기';
+        img.style.cssText = 'max-width:100%;border-radius:6px;border:1px solid var(--border);display:block;cursor:zoom-in;';
+        img.onclick = () => exShowPageImages();
+
+        const caption = document.createElement('div');
+        caption.style.cssText = 'font-size:11px;color:var(--text3);margin-top:3px;';
+        caption.textContent = part;
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(caption);
+        el.appendChild(wrapper);
+      } else {
+        // 페이지 이미지 없을 때 — 클릭 가능한 배지
+        const span = document.createElement('span');
+        span.className = 'ex-fig-ref';
+        span.textContent = part;
+        span.title = '클릭하면 원본 이미지 확인';
+        span.style.cssText = 'display:inline-block;padding:1px 6px;background:var(--accent2,#e8f4ff);color:var(--accent,#2563eb);border-radius:4px;font-size:12px;font-weight:600;margin:0 2px;cursor:pointer;text-decoration:underline dotted;';
+        span.onclick = () => exShowPageImages();
+        el.appendChild(span);
+      }
     } else if (part) {
-      const textNode = document.createTextNode(part);
-      el.appendChild(textNode);
+      el.appendChild(document.createTextNode(part));
     }
   });
-  // KaTeX 렌더링 — ex-fig-ref 클래스는 건너뜀
+  // KaTeX 렌더링 — ex-fig-ref 클래스(이미지 래퍼 포함)는 건너뜀
   if (typeof renderMathInElement === 'function') {
     renderMathInElement(el, {
       delimiters: [
@@ -10818,7 +10848,9 @@ function exUpdatePreview(i) {
   const ta      = document.getElementById('exContent-' + i);
   const preview = document.getElementById('exPreview-'  + i);
   if (!ta || !preview) return;
-  _renderPreviewContent(preview, ta.value);
+  const page = _extractedQuestions[i]?._page;
+  const pageImage = page ? (_extractPageImages[page - 1] || null) : null;
+  _renderPreviewContent(preview, ta.value, pageImage);
 }
 
 function exUpdateAnswerPreview(i) {
