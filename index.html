@@ -3743,9 +3743,16 @@
         <div class="card" style="padding:24px;max-width:640px">
           <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">📄 PDF / 이미지에서 문제 추출</div>
           <div style="font-size:13px;color:var(--text3);margin-bottom:20px">PDF 또는 이미지 파일을 업로드하면 Claude AI가 문제를 자동으로 추출하고 태깅합니다</div>
-          <!-- API Key 확인 -->
-          <div style="margin-bottom:16px;padding:12px 16px;background:rgba(246,173,85,0.08);border:1px solid rgba(246,173,85,0.2);border-radius:var(--radius-sm);font-size:12px;color:var(--yellow)">
-            ⚠️ 유사문제 생성기에서 설정한 Anthropic API Key가 사용됩니다. 먼저 API Key를 설정해주세요.
+          <!-- API Key 입력 (유사문제 생성기와 공유) -->
+          <div style="margin-bottom:20px">
+            <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">🔑 Anthropic API Key</div>
+            <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 13px">
+              <input type="password" id="qu-api-key" placeholder="sk-ant-api03-..." oninput="quSyncApiKey()"
+                style="flex:1;background:none;border:none;color:var(--text2);font-size:12px;font-family:'Space Mono',monospace;outline:none">
+              <button onclick="quToggleApiKey()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px">👁</button>
+              <span id="qu-api-status" style="font-size:11px;color:var(--text3);white-space:nowrap">대기중</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:5px">유사문제 생성기와 동일한 키가 자동 적용됩니다</div>
           </div>
           <div style="margin-bottom:16px">
             <label style="display:block;border:2px dashed var(--border2);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;transition:border-color 0.2s"
@@ -5696,17 +5703,37 @@ function sgOnApiKey() {
   sgUpdateBtn();
 }
 
+// ── API Key 헬퍼 ──
+// localStorage → DOM 순으로 읽어 항상 최신 키를 반환
+function getApiKey() {
+  // 1순위: 유사문제 생성기 입력창 (사용자가 직접 입력)
+  const sgVal = document.getElementById('sg-api-key')?.value?.trim();
+  if (sgVal) return sgVal;
+  // 2순위: 문제 등록 탭 입력창
+  const quVal = document.getElementById('qu-api-key')?.value?.trim();
+  if (quVal) return quVal;
+  // 3순위: localStorage 저장값
+  try { return localStorage.getItem('mathiq_api_key') || ''; } catch(e) { return ''; }
+}
+
 // 페이지 로드 시 저장된 키 자동 불러오기
+// DOMContentLoaded 에 의존하지 않고 DOM 준비 후 즉시 실행
 (function sgLoadSavedKey() {
-  try {
-    const saved = localStorage.getItem('mathiq_api_key');
-    if (saved) {
-      document.addEventListener('DOMContentLoaded', () => {
-        const inp = document.getElementById('sg-api-key');
-        if (inp) { inp.value = saved; sgOnApiKey(); }
-      });
-    }
-  } catch(e) {}
+  function _applyKey() {
+    try {
+      const saved = localStorage.getItem('mathiq_api_key');
+      if (!saved) return;
+      const sg = document.getElementById('sg-api-key');
+      const qu = document.getElementById('qu-api-key');
+      if (sg && !sg.value) { sg.value = saved; sgOnApiKey(); }
+      if (qu && !qu.value) { qu.value = saved; quSyncApiKey(); }
+    } catch(e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _applyKey);
+  } else {
+    _applyKey();   // DOM 이미 준비됨 → 즉시 실행
+  }
 })();
 
 function sgToggleKey() {
@@ -10043,6 +10070,31 @@ function loadQuestionUploadView() {
   quUpdateGradeOptions();
   selectQuDiff(3);
   quUpdatePreview();
+  // 저장된 API Key 를 Tab B 입력창에 반영
+  const saved = getApiKey();
+  const quInp = document.getElementById('qu-api-key');
+  if (quInp && saved && !quInp.value) { quInp.value = saved; quSyncApiKey(); }
+}
+
+// Tab B API Key 입력 → localStorage 및 sg-api-key 와 양방향 동기화
+function quSyncApiKey() {
+  const val = document.getElementById('qu-api-key')?.value?.trim() || '';
+  const statusEl = document.getElementById('qu-api-status');
+  const sgInp = document.getElementById('sg-api-key');
+  if (val.startsWith('sk-ant-') && val.length > 30) {
+    try { localStorage.setItem('mathiq_api_key', val); } catch(e) {}
+    if (sgInp && sgInp.value !== val) { sgInp.value = val; sgOnApiKey(); }
+    if (statusEl) { statusEl.textContent = '준비됨 ✅'; statusEl.style.color = 'var(--green)'; }
+  } else if (val.length > 0) {
+    if (statusEl) { statusEl.textContent = '유효하지 않음 ❌'; statusEl.style.color = 'var(--red)'; }
+  } else {
+    if (statusEl) { statusEl.textContent = '대기중'; statusEl.style.color = 'var(--text3)'; }
+  }
+}
+
+function quToggleApiKey() {
+  const inp = document.getElementById('qu-api-key');
+  if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 
 function switchQuTab(tab) {
@@ -10095,9 +10147,9 @@ function quUpdatePreview() {
 
 // ── Claude 자동 태깅 ──
 async function quAutoTag() {
-  const apiKey  = document.getElementById('sg-api-key')?.value?.trim();
+  const apiKey  = getApiKey();
   const content = document.getElementById('quContent')?.value?.trim();
-  if (!apiKey)  { showToast('먼저 유사문제 생성기에서 API Key를 입력해주세요', '🔑'); return; }
+  if (!apiKey)  { showToast('API Key를 먼저 입력하세요 (유사문제 생성기 또는 PDF 탭에서 설정)', '🔑'); return; }
   if (!content) { showToast('문제 본문을 먼저 입력하세요', '⚠️'); return; }
   const btn = document.getElementById('quAutoTagBtn');
   btn.disabled = true; btn.textContent = '분석 중...';
@@ -10183,9 +10235,9 @@ function quOnFileSelect(input) {
 }
 
 async function extractFromFile() {
-  const apiKey = document.getElementById('sg-api-key')?.value?.trim();
+  const apiKey = getApiKey();
   const file   = document.getElementById('quFileInput')?.files[0];
-  if (!apiKey) { showToast('API Key를 먼저 입력하세요', '🔑'); return; }
+  if (!apiKey) { showToast('API Key를 먼저 입력하세요 (탭 내 입력창 또는 유사문제 생성기에서 설정)', '🔑'); return; }
   if (!file)   { showToast('파일을 먼저 선택하세요', '⚠️'); return; }
   if (file.size > 10 * 1024 * 1024) { showToast('파일 크기가 10MB를 초과합니다', '⚠️'); return; }
 
