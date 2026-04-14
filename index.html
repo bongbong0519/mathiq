@@ -7075,6 +7075,15 @@ async function toggleTutorActive() {
   loadTutorProfile();
 }
 
+// ── 공통: user_id 배열로 profiles 조회 후 Map 반환 ──
+async function fetchProfileMap(userIds) {
+  if (!userIds?.length) return {};
+  const { data } = await sbClient.from('profiles').select('id, name, email').in('id', userIds);
+  const map = {};
+  (data || []).forEach(p => { map[p.id] = p; });
+  return map;
+}
+
 // ── 선생님: 학생 찾기 ──
 async function loadStudentSearch() {
   if (!sbClient) return;
@@ -7085,24 +7094,29 @@ async function loadStudentSearch() {
   const subject = document.getElementById('ssFilterSubject')?.value || '';
   const region  = document.getElementById('ssFilterRegion')?.value?.trim() || '';
 
-  let q = sbClient.from('tutee_profiles').select('*, profiles(name, email)').eq('is_active', true);
+  let q = sbClient.from('tutee_profiles').select('*').eq('is_active', true);
   if (subject) q = q.eq('subject', subject);
   if (region)  q = q.ilike('region', `%${region}%`);
   q = q.order('created_at', { ascending: false });
 
   const { data, error } = await q;
-  if (error || !data?.length) {
-    wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-icon">📋</div><div class="empty-state-text">검색 결과가 없습니다</div></div>';
+  if (error) { wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`; return; }
+  if (!data?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-icon">📋</div><div class="empty-state-text">등록된 구인이 없습니다</div></div>';
     return;
   }
 
+  const profileMap = await fetchProfileMap(data.map(t => t.user_id));
+
   wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">` +
-    data.map(t => `
+    data.map(t => {
+      const p = profileMap[t.user_id] || {};
+      return `
       <div class="card" style="cursor:default">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:800;flex-shrink:0">${(t.profiles?.name || '?')[0]}</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:800;flex-shrink:0">${(p.name || '?')[0]}</div>
           <div>
-            <div style="font-size:15px;font-weight:700;color:var(--text)">${t.profiles?.name || '이름 없음'}</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${p.name || '이름 없음'}</div>
             <div style="font-size:12px;color:var(--text3)">${t.grade || '학년 미기재'}</div>
           </div>
         </div>
@@ -7113,8 +7127,9 @@ async function loadStudentSearch() {
         </div>
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">희망 시급 <span style="color:var(--accent)">${t.desired_rate ? t.desired_rate.toLocaleString() + '원' : '협의'}</span></div>
         ${t.intro ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">${t.intro}</div>` : ''}
-        <div style="margin-top:12px;font-size:12px;color:var(--text3)">📧 ${t.profiles?.email || '—'}</div>
-      </div>`).join('') + '</div>';
+        <div style="margin-top:12px;font-size:12px;color:var(--text3)">📧 ${p.email || '—'}</div>
+      </div>`;
+    }).join('') + '</div>';
 }
 
 // ── 학생/학부모: 과외 찾기 ──
@@ -7128,25 +7143,31 @@ async function loadTutorSearch() {
   const region  = document.getElementById('tsFilterRegion')?.value?.trim() || '';
   const maxRate = parseInt(document.getElementById('tsFilterRate')?.value || '0', 10);
 
-  let q = sbClient.from('tutor_profiles').select('*, profiles(name)').eq('is_active', true);
+  let q = sbClient.from('tutor_profiles').select('*').eq('is_active', true);
   if (subject) q = q.eq('subject', subject);
   if (region)  q = q.ilike('region', `%${region}%`);
   if (maxRate) q = q.lte('hourly_rate', maxRate);
   q = q.order('created_at', { ascending: false });
 
   const { data, error } = await q;
-  if (error || !data?.length) {
-    wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-icon">🔍</div><div class="empty-state-text">검색 결과가 없습니다</div></div>';
+  if (error) { wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`; return; }
+  if (!data?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-icon">🔍</div><div class="empty-state-text">등록된 과외 선생님이 없습니다</div></div>';
     return;
   }
 
+  const profileMap = await fetchProfileMap(data.map(t => t.user_id));
+
+  // data에 profile 정보 병합
+  const enriched = data.map(t => ({ ...t, _profile: profileMap[t.user_id] || {} }));
+
   wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">` +
-    data.map(t => `
+    enriched.map(t => `
       <div class="card" style="cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow=''" onclick="openTutorDetail('${t.id}')">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;flex-shrink:0">${(t.profiles?.name || '?')[0]}</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;flex-shrink:0">${(t._profile.name || '?')[0]}</div>
           <div>
-            <div style="font-size:15px;font-weight:700;color:var(--text)">${t.profiles?.name || '선생님'}</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${t._profile.name || '선생님'}</div>
             <div style="font-size:12px;color:var(--text3)">${t.education || '학력 미기재'}</div>
           </div>
         </div>
@@ -7160,7 +7181,7 @@ async function loadTutorSearch() {
         <div style="margin-top:10px;font-size:11px;color:var(--text3)">클릭하여 상세 보기 →</div>
       </div>`).join('') + '</div>';
 
-  window._tutorSearchData = data;
+  window._tutorSearchData = enriched;
 }
 
 function openTutorDetail(id) {
@@ -7170,11 +7191,12 @@ function openTutorDetail(id) {
   const content = document.getElementById('tutor-detail-content');
   if (!panel || !content) return;
 
+  const prof = t._profile || {};
   content.innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;flex-shrink:0">${(t.profiles?.name || '?')[0]}</div>
+      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;flex-shrink:0">${(prof.name || '?')[0]}</div>
       <div>
-        <div style="font-size:20px;font-weight:800;color:var(--text)">${t.profiles?.name || '선생님'}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${prof.name || '선생님'}</div>
         <div style="font-size:13px;color:var(--text3);margin-top:2px">${t.education || ''}</div>
       </div>
     </div>
