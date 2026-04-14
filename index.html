@@ -1907,6 +1907,15 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">문제은행</div>
+        <div class="nav-item" onclick="showView('question-bank')">
+          <span class="icon">🗄️</span> 문제은행
+        </div>
+        <div class="nav-item" onclick="showView('question-upload')">
+          <span class="icon">➕</span> 문제 등록
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">자료</div>
         <div class="nav-item" onclick="showView('teacher-materials')">
           <span class="icon">📁</span> 수업 자료
@@ -1978,6 +1987,15 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">문제은행</div>
+        <div class="nav-item" onclick="showView('question-bank')">
+          <span class="icon">🗄️</span> 문제은행
+        </div>
+        <div class="nav-item" onclick="showView('question-upload')">
+          <span class="icon">➕</span> 문제 등록
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">메시지</div>
         <div class="nav-item" onclick="showView('messages')">
           <span class="icon">✉️</span> 쪽지함
@@ -2005,6 +2023,10 @@
         </div>
         <div class="nav-item" onclick="showView('admin-students')">
           <span class="icon">👥</span> 전체 학생
+        </div>
+        <div class="nav-item" onclick="showView('admin-question-bank')">
+          <span class="icon">🗄️</span> 문제 승인 관리
+          <span id="qb-pending-badge" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--yellow);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
         </div>
       </div>
       <div class="nav-section">
@@ -3521,6 +3543,252 @@
       </div>
     </div>
 
+    <!-- ══ VIEW: QUESTION BANK (문제은행) ══ -->
+    <div id="view-question-bank" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">🗄️ 문제은행</h2>
+          <p class="page-subtitle">승인된 문제를 검색하고 시험에 추가합니다</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="showView('question-upload')">➕ 문제 등록</button>
+        </div>
+      </div>
+      <!-- 필터 -->
+      <div class="card" style="margin-bottom:20px;padding:16px 20px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학교급</div>
+            <select id="qbFltLevel" class="input" style="width:90px;padding:7px 10px;font-size:13px" onchange="qbUpdateGradeOptions();loadQuestionBankView()">
+              <option value="">전체</option>
+              <option value="초등">초등</option>
+              <option value="중등">중등</option>
+              <option value="고등">고등</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학년</div>
+            <select id="qbFltGrade" class="input" style="width:80px;padding:7px 10px;font-size:13px" onchange="loadQuestionBankView()">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학기</div>
+            <select id="qbFltSemester" class="input" style="width:80px;padding:7px 10px;font-size:13px" onchange="loadQuestionBankView()">
+              <option value="">전체</option>
+              <option value="1">1학기</option>
+              <option value="2">2학기</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">영역</div>
+            <select id="qbFltArea" class="input" style="width:130px;padding:7px 10px;font-size:13px" onchange="loadQuestionBankView()">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">유형</div>
+            <select id="qbFltType" class="input" style="width:90px;padding:7px 10px;font-size:13px" onchange="loadQuestionBankView()">
+              <option value="">전체</option>
+              <option value="객관식">객관식</option>
+              <option value="단답형">단답형</option>
+              <option value="서술형">서술형</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">난이도</div>
+            <select id="qbFltDiff" class="input" style="width:100px;padding:7px 10px;font-size:13px" onchange="loadQuestionBankView()">
+              <option value="">전체</option>
+              <option value="1">★ 매우쉬움</option>
+              <option value="2">★★ 쉬움</option>
+              <option value="3">★★★ 보통</option>
+              <option value="4">★★★★ 어려움</option>
+              <option value="5">★★★★★ 매우어려움</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:160px">
+            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">키워드 검색</div>
+            <input id="qbFltKeyword" class="input" type="text" placeholder="단원명, 문제 내용..." style="width:100%;padding:7px 10px;font-size:13px" oninput="qbSearchDebounce()">
+          </div>
+        </div>
+      </div>
+      <!-- 목록 -->
+      <div id="qbListWrap"></div>
+    </div>
+
+    <!-- ══ VIEW: QUESTION UPLOAD (문제 등록) ══ -->
+    <div id="view-question-upload" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">➕ 문제 등록</h2>
+          <p class="page-subtitle">문제를 등록하면 운영자 검토 후 문제은행에 추가됩니다</p>
+        </div>
+      </div>
+      <div class="tab-nav" style="margin-bottom:20px">
+        <button class="tab-btn active" id="quTabA" onclick="switchQuTab('A')">✏️ 직접 입력</button>
+        <button class="tab-btn"        id="quTabB" onclick="switchQuTab('B')">📄 PDF / 이미지 업로드</button>
+      </div>
+
+      <!-- 탭 A: 직접 입력 -->
+      <div id="qu-tab-A">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <!-- 좌: 입력 폼 -->
+          <div>
+            <div class="card" style="padding:20px">
+              <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px">문제 정보</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학교급 *</div>
+                  <select id="quLevel" class="input" style="width:100%;padding:8px 10px;font-size:13px" onchange="quUpdateGradeOptions()">
+                    <option value="">선택</option>
+                    <option value="초등">초등</option>
+                    <option value="중등">중등</option>
+                    <option value="고등">고등</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학년 *</div>
+                  <select id="quGrade" class="input" style="width:100%;padding:8px 10px;font-size:13px">
+                    <option value="">선택</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학기</div>
+                  <select id="quSemester" class="input" style="width:100%;padding:8px 10px;font-size:13px">
+                    <option value="">선택</option>
+                    <option value="1">1학기</option>
+                    <option value="2">2학기</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">영역</div>
+                  <select id="quArea" class="input" style="width:100%;padding:8px 10px;font-size:13px" onchange="quUpdateAreaOptions()">
+                    <option value="">선택</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">유형 *</div>
+                  <select id="quType" class="input" style="width:100%;padding:8px 10px;font-size:13px">
+                    <option value="단답형">단답형</option>
+                    <option value="객관식">객관식</option>
+                    <option value="서술형">서술형</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">단원</div>
+                  <input id="quUnit" class="input" type="text" placeholder="예: 이차방정식" style="width:100%;padding:8px 10px;font-size:13px">
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">소단원</div>
+                  <input id="quSubUnit" class="input" type="text" placeholder="예: 인수분해" style="width:100%;padding:8px 10px;font-size:13px">
+                </div>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">난이도</div>
+                <div style="display:flex;gap:6px">
+                  ${[1,2,3,4,5].map(d => `<label style="flex:1;text-align:center;cursor:pointer">
+                    <input type="radio" name="quDiff" value="${d}" ${d===3?'checked':''} style="display:none">
+                    <div class="qu-diff-btn" data-val="${d}" onclick="selectQuDiff(${d})" style="padding:6px 4px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:700;text-align:center;cursor:pointer;transition:all 0.15s;color:var(--text2)">
+                      ${'★'.repeat(d)}<div style="font-size:9px;margin-top:2px">${['매우쉬움','쉬움','보통','어려움','매우어려움'][d-1]}</div>
+                    </div>
+                  </label>`).join('')}
+                </div>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">문제 제목 (선택)</div>
+                <input id="quTitle" class="input" type="text" placeholder="제목 (생략 가능)" style="width:100%;padding:8px 10px;font-size:13px">
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">문제 본문 * <span style="font-size:10px;font-weight:400;color:var(--text3)">(KaTeX 수식: $...$  또는 $$...$$)</span></div>
+                <textarea id="quContent" rows="6" placeholder="문제를 입력하세요. 수식은 $x^2+2x+1=0$ 형태로 입력합니다."
+                  style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box"
+                  oninput="quUpdatePreview()"></textarea>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">정답</div>
+                <input id="quAnswer" class="input" type="text" placeholder="정답 입력" style="width:100%;padding:8px 10px;font-size:13px">
+              </div>
+              <div style="margin-bottom:20px">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">풀이 과정 (선택)</div>
+                <textarea id="quSolution" rows="3" placeholder="풀이 과정을 입력하세요 (선택사항)"
+                  style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box"
+                  oninput="quUpdatePreview()"></textarea>
+              </div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-ghost" onclick="quAutoTag()" id="quAutoTagBtn">🤖 자동 태깅 (Claude)</button>
+                <button class="btn btn-primary" style="flex:1" onclick="saveQuestionManual()">문제 등록 (검토 요청)</button>
+              </div>
+            </div>
+          </div>
+          <!-- 우: 미리보기 -->
+          <div>
+            <div class="card" style="padding:20px;position:sticky;top:76px">
+              <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px">미리보기</div>
+              <div id="quPreviewContent" style="font-size:14px;line-height:1.9;color:var(--text);min-height:80px;padding:14px;background:var(--bg2);border-radius:var(--radius-sm);margin-bottom:12px;border:1px solid var(--border)">
+                <span style="color:var(--text3)">문제를 입력하면 여기에 미리보기가 표시됩니다</span>
+              </div>
+              <div id="quPreviewAnswer" style="display:none;padding:10px 14px;border-radius:var(--radius-sm);background:rgba(62,207,142,0.07);border:1px solid rgba(62,207,142,0.2);font-size:13px;color:var(--green);margin-bottom:8px"></div>
+              <div id="quPreviewSolution" style="display:none;padding:10px 14px;border-radius:var(--radius-sm);background:rgba(183,148,244,0.07);border:1px solid rgba(183,148,244,0.2);font-size:13px;color:var(--text)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 B: PDF/이미지 업로드 -->
+      <div id="qu-tab-B" style="display:none">
+        <div class="card" style="padding:24px;max-width:640px">
+          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">📄 PDF / 이미지에서 문제 추출</div>
+          <div style="font-size:13px;color:var(--text3);margin-bottom:20px">PDF 또는 이미지 파일을 업로드하면 Claude AI가 문제를 자동으로 추출하고 태깅합니다</div>
+          <!-- API Key 확인 -->
+          <div style="margin-bottom:16px;padding:12px 16px;background:rgba(246,173,85,0.08);border:1px solid rgba(246,173,85,0.2);border-radius:var(--radius-sm);font-size:12px;color:var(--yellow)">
+            ⚠️ 유사문제 생성기에서 설정한 Anthropic API Key가 사용됩니다. 먼저 API Key를 설정해주세요.
+          </div>
+          <div style="margin-bottom:16px">
+            <label style="display:block;border:2px dashed var(--border2);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;transition:border-color 0.2s"
+              id="quFileLabel"
+              onmouseover="this.style.borderColor='var(--accent)'"
+              onmouseout="this.style.borderColor='var(--border2)'">
+              <input type="file" id="quFileInput" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none" onchange="quOnFileSelect(this)">
+              <div style="font-size:32px;margin-bottom:8px">📂</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text)">파일을 클릭하거나 드래그하여 업로드</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:4px">PDF, PNG, JPG, JPEG, WEBP 지원 · 최대 10MB</div>
+            </label>
+          </div>
+          <div id="quFileInfo" style="display:none;margin-bottom:16px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);font-size:13px;color:var(--text)"></div>
+          <button class="btn btn-primary" style="width:100%" onclick="extractFromFile()" id="quExtractBtn" disabled>🤖 Claude로 문제 추출</button>
+          <div id="quExtractStatus" style="display:none;margin-top:16px;text-align:center;color:var(--text3);font-size:13px">추출 중...</div>
+        </div>
+        <!-- 추출 결과 -->
+        <div id="quExtractResults" style="display:none;margin-top:20px">
+          <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:12px">추출된 문제 <span id="quExtractCount" style="color:var(--accent)"></span></div>
+          <div id="quExtractList"></div>
+          <button class="btn btn-primary" onclick="saveExtractedQuestions()" style="margin-top:12px">전체 저장 (검토 요청)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN QUESTION BANK (운영자 문제 승인) ══ -->
+    <div id="view-admin-question-bank" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">🗄️ 문제 승인 관리</h2>
+          <p class="page-subtitle">등록된 문제를 검토하고 승인 또는 거절합니다</p>
+        </div>
+      </div>
+      <div class="tab-nav" style="margin-bottom:20px">
+        <button class="tab-btn active" id="aqTabPending"  onclick="switchAqTab('pending')">승인 대기 <span id="aqPendingBadge" style="display:none;background:var(--yellow);color:#fff;border-radius:9px;font-size:11px;font-weight:700;padding:0 6px;margin-left:4px"></span></button>
+        <button class="tab-btn"        id="aqTabApproved" onclick="switchAqTab('approved')">승인됨</button>
+        <button class="tab-btn"        id="aqTabRejected" onclick="switchAqTab('rejected')">거절됨</button>
+      </div>
+      <div id="aqListWrap">
+        <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
   </main>
 </div><!-- /app-wrapper -->
 
@@ -4932,6 +5200,7 @@ function showApp() {
       loadDashboard();
       loadStudents();
       checkUnreadMessages().catch(() => {});
+      checkQbPendingBadge().catch(() => {});
     }
   }, 300);
 }
@@ -5247,7 +5516,10 @@ function showView(viewId) {
         if (viewId === 'tutor-search')   loadTutorSearch().catch(() => {});
         if (viewId === 'tutee-register') loadTuteeRegister().catch(() => {});
         if (viewId === 'sms')            loadSmsView();
-        if (viewId === 'messages')       loadMessagesView().catch(() => {});
+        if (viewId === 'messages')         loadMessagesView().catch(() => {});
+        if (viewId === 'question-bank')    loadQuestionBankView().catch(() => {});
+        if (viewId === 'question-upload')  loadQuestionUploadView();
+        if (viewId === 'admin-question-bank') loadAdminQuestionBankView().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -5919,7 +6191,10 @@ for (let i = 0; i < problems.length; i++) {
             `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${COMPETENCY_COLORS[k]}22;color:${COMPETENCY_COLORS[k]};border:1px solid ${COMPETENCY_COLORS[k]}33">${COMPETENCY_LABELS[k]} ${v}</span>`
           ).join('')}
         </div>` : '<div></div>'}
-        <button class="btn btn-ghost btn-xs" onclick="sgCopyOne(${i})">📋 복사</button>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-xs" onclick="sgCopyOne(${i})">📋 복사</button>
+          <button class="btn btn-ghost btn-xs" onclick="saveToQuestionBank(${i})" title="문제은행에 저장">🗄️ 저장</button>
+        </div>
       </div>`;
     list.appendChild(card);
 
@@ -7797,6 +8072,20 @@ async function deleteMaterial(id, filePath) {
 const TEACH_MODE_KO = { online: '온라인', offline: '오프라인', both: '온·오프라인' };
 const SUBJECT_LIST  = ['수학', '영어', '국어', '과학', '사회', '물리', '화학', '생물', '지구과학', '한국사', '영어회화', '논술', '코딩', '입시/컨설팅'];
 
+// ── 문제은행 상수 ──
+const QB_AREAS = {
+  '초등': ['수와 연산','변화와 관계','도형과 측정','자료와 가능성'],
+  '중등': ['수와 연산','문자와 식','함수','기하','확률과 통계'],
+  '고등': ['수와 연산','문자와 식','함수','기하','확률과 통계','수열','극한','미적분','벡터']
+};
+const QB_GRADES = { '초등': [1,2,3,4,5,6], '중등': [1,2,3], '고등': [1,2,3] };
+const QB_DIFF_LABEL = { 1:'매우쉬움', 2:'쉬움', 3:'보통', 4:'어려움', 5:'매우어려움' };
+const QB_DIFF_COLOR = { 1:'var(--green)', 2:'#3ecf8e', 3:'var(--accent)', 4:'var(--yellow)', 5:'var(--red)' };
+let _qbSearchTimer = null;
+let _aqCurrentTab  = 'pending';
+let _extractedQuestions = [];
+let _quSelectedDiff = 3;
+
 // ── 구독 티어 ──
 const TIER_ORDER    = ['free', 'basic', 'standard', 'premium', 'pro'];
 const TIER_AI_LIMIT = { free: 0, basic: 10, standard: 30, premium: 100, pro: 300 };
@@ -9635,6 +9924,520 @@ async function loadStudentView() {
       </div>
     </div>
   `;
+}
+
+// ═══════════════════════════════════════
+//  문제은행 (Question Bank)
+// ═══════════════════════════════════════
+
+// ── 필터 유틸 ──
+function qbUpdateGradeOptions() {
+  const level = document.getElementById('qbFltLevel')?.value;
+  const sel = document.getElementById('qbFltGrade');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">전체</option>';
+  (QB_GRADES[level] || []).forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g + '학년'; sel.appendChild(o); });
+  // 영역도 업데이트
+  const areaSel = document.getElementById('qbFltArea');
+  if (areaSel) {
+    areaSel.innerHTML = '<option value="">전체</option>';
+    (QB_AREAS[level] || []).forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSel.appendChild(o); });
+  }
+}
+function qbSearchDebounce() {
+  clearTimeout(_qbSearchTimer);
+  _qbSearchTimer = setTimeout(() => loadQuestionBankView(), 400);
+}
+
+// ── 문제은행 뷰 로드 ──
+async function loadQuestionBankView() {
+  const wrap = document.getElementById('qbListWrap');
+  if (!wrap || !sbClient) return;
+  wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>';
+  const level    = document.getElementById('qbFltLevel')?.value;
+  const grade    = document.getElementById('qbFltGrade')?.value;
+  const semester = document.getElementById('qbFltSemester')?.value;
+  const area     = document.getElementById('qbFltArea')?.value;
+  const type     = document.getElementById('qbFltType')?.value;
+  const diff     = document.getElementById('qbFltDiff')?.value;
+  const keyword  = document.getElementById('qbFltKeyword')?.value?.trim();
+
+  let q = sbClient.from('questions').select('id,title,content,answer,school_level,grade,semester,area,unit,sub_unit,type,difficulty,uploader_id,created_at').eq('status','approved');
+  if (level)    q = q.eq('school_level', level);
+  if (grade)    q = q.eq('grade', parseInt(grade));
+  if (semester) q = q.eq('semester', parseInt(semester));
+  if (area)     q = q.eq('area', area);
+  if (type)     q = q.eq('type', type);
+  if (diff)     q = q.eq('difficulty', parseInt(diff));
+  if (keyword)  q = q.or(`content.ilike.%${keyword}%,title.ilike.%${keyword}%,unit.ilike.%${keyword}%`);
+  q = q.order('created_at', { ascending: false }).limit(60);
+
+  const { data, error } = await q;
+  if (error || !data || data.length === 0) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div style="font-size:32px;margin-bottom:12px">🗄️</div><div class="empty-state-text">조건에 맞는 문제가 없습니다</div></div>';
+    return;
+  }
+  const role = currentProfile?.role;
+  const canAdd = role === 'teacher' || role === 'director' || role === 'admin' || role === 'staff';
+  wrap.innerHTML = data.map(q => qbRenderCard(q, canAdd)).join('');
+  // KaTeX 렌더링
+  if (window.renderMathInElement) renderMathInElement(wrap, { delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false });
+}
+
+function qbRenderCard(q, canAdd) {
+  const stars = '★'.repeat(q.difficulty) + '☆'.repeat(5 - q.difficulty);
+  const diffColor = QB_DIFF_COLOR[q.difficulty] || 'var(--text3)';
+  const excerpt = (q.content || '').replace(/\$\$?[^$]+\$\$?/g, '[수식]').slice(0, 80);
+  return `<div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
+    <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.type}</span>
+      ${q.school_level ? `<span style="font-size:12px;color:var(--text3)">${q.school_level} ${q.grade ? q.grade+'학년' : ''} ${q.semester ? q.semester+'학기' : ''}</span>` : ''}
+      ${q.area ? `<span style="font-size:12px;color:var(--text2);font-weight:600">${q.area}</span>` : ''}
+      ${q.unit ? `<span style="font-size:12px;color:var(--text3)">${q.unit}${q.sub_unit ? ' · '+q.sub_unit : ''}</span>` : ''}
+      <span style="margin-left:auto;font-size:12px;font-weight:700;color:${diffColor}">${stars}</span>
+    </div>
+    <div style="padding:14px 16px">
+      ${q.title ? `<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px">${q.title}</div>` : ''}
+      <div style="font-size:13px;color:var(--text);line-height:1.7;cursor:pointer" onclick="qbToggleDetail('${q.id}')" title="클릭하여 전체 보기">
+        <span id="qb-excerpt-${q.id}">${excerpt}${q.content.length > 80 ? '<span style="color:var(--text3)"> ... (더보기)</span>' : ''}</span>
+        <div id="qb-full-${q.id}" style="display:none;white-space:pre-wrap">${q.content}</div>
+      </div>
+      <div id="qb-answer-${q.id}" style="display:none;margin-top:10px;padding:9px 12px;border-radius:7px;background:rgba(62,207,142,0.07);border:1px solid rgba(62,207,142,0.2);font-size:13px;color:var(--green)">✅ 정답: ${q.answer || '—'}</div>
+    </div>
+    <div style="padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
+      <button class="btn btn-ghost btn-xs" onclick="qbToggleDetail('${q.id}')">📖 전체보기</button>
+      ${canAdd ? `<button class="btn btn-ghost btn-xs" onclick="qbAddToExam('${q.id}','${(q.title||'').replace(/'/g,"\\'")}')">📝 시험에 추가</button>` : ''}
+      <span style="margin-left:auto;font-size:11px;color:var(--text3)">${new Date(q.created_at).toLocaleDateString('ko-KR')}</span>
+    </div>
+  </div>`;
+}
+
+function qbToggleDetail(id) {
+  const excerpt = document.getElementById('qb-excerpt-' + id);
+  const full    = document.getElementById('qb-full-' + id);
+  const ans     = document.getElementById('qb-answer-' + id);
+  if (!full) return;
+  const isOpen = full.style.display !== 'none';
+  if (excerpt) excerpt.style.display = isOpen ? '' : 'none';
+  full.style.display = isOpen ? 'none' : '';
+  if (ans) ans.style.display = isOpen ? 'none' : '';
+  if (!isOpen && window.renderMathInElement) {
+    renderMathInElement(full, { delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false });
+  }
+}
+
+function qbAddToExam(qid, qtitle) {
+  showToast(`"${qtitle || '문제'}"를 시험에 추가하려면 시험 관리 > 문제 추가에서 선택하세요`, '📝');
+}
+
+// ── 문제 등록 뷰 초기화 ──
+function loadQuestionUploadView() {
+  switchQuTab('A');
+  quUpdateGradeOptions();
+  selectQuDiff(3);
+  quUpdatePreview();
+}
+
+function switchQuTab(tab) {
+  document.getElementById('quTabA').classList.toggle('active', tab === 'A');
+  document.getElementById('quTabB').classList.toggle('active', tab === 'B');
+  document.getElementById('qu-tab-A').style.display = tab === 'A' ? '' : 'none';
+  document.getElementById('qu-tab-B').style.display = tab === 'B' ? '' : 'none';
+}
+
+function quUpdateGradeOptions() {
+  const level = document.getElementById('quLevel')?.value;
+  const gradeSel = document.getElementById('quGrade');
+  const areaSel  = document.getElementById('quArea');
+  if (gradeSel) {
+    gradeSel.innerHTML = '<option value="">선택</option>';
+    (QB_GRADES[level] || []).forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g + '학년'; gradeSel.appendChild(o); });
+  }
+  if (areaSel) {
+    areaSel.innerHTML = '<option value="">선택</option>';
+    (QB_AREAS[level] || []).forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSel.appendChild(o); });
+  }
+}
+
+function selectQuDiff(val) {
+  _quSelectedDiff = val;
+  document.querySelectorAll('.qu-diff-btn').forEach(btn => {
+    const isSelected = parseInt(btn.dataset.val) === val;
+    btn.style.background    = isSelected ? (QB_DIFF_COLOR[val] || 'var(--accent)') + '22' : '';
+    btn.style.borderColor   = isSelected ? (QB_DIFF_COLOR[val] || 'var(--accent)') : 'var(--border)';
+    btn.style.color         = isSelected ? (QB_DIFF_COLOR[val] || 'var(--accent)') : 'var(--text2)';
+  });
+}
+
+function quUpdatePreview() {
+  const content  = document.getElementById('quContent')?.value || '';
+  const answer   = document.getElementById('quAnswer')?.value?.trim();
+  const solution = document.getElementById('quSolution')?.value?.trim();
+  const prev = document.getElementById('quPreviewContent');
+  if (prev) {
+    prev.textContent = content || '';
+    if (content && window.renderMathInElement) {
+      try { renderMathInElement(prev, { delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false }); } catch(e){}
+    }
+  }
+  const ansEl = document.getElementById('quPreviewAnswer');
+  if (ansEl) { ansEl.style.display = answer ? '' : 'none'; ansEl.textContent = '✅ 정답: ' + answer; }
+  const solEl = document.getElementById('quPreviewSolution');
+  if (solEl) { solEl.style.display = solution ? '' : 'none'; solEl.innerHTML = '📖 풀이: ' + solution; }
+}
+
+// ── Claude 자동 태깅 ──
+async function quAutoTag() {
+  const apiKey  = document.getElementById('sg-api-key')?.value?.trim();
+  const content = document.getElementById('quContent')?.value?.trim();
+  if (!apiKey)  { showToast('먼저 유사문제 생성기에서 API Key를 입력해주세요', '🔑'); return; }
+  if (!content) { showToast('문제 본문을 먼저 입력하세요', '⚠️'); return; }
+  const btn = document.getElementById('quAutoTagBtn');
+  btn.disabled = true; btn.textContent = '분석 중...';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+        messages: [{ role: 'user', content: `다음 수학 문제를 분석하여 JSON으로 태깅해줘. 반드시 아래 형식만 출력해:
+{"school_level":"초등|중등|고등","grade":숫자,"semester":1|2,"area":"영역명","unit":"단원명","sub_unit":"소단원","type":"객관식|단답형|서술형","difficulty":1~5}
+
+문제: ${content}` }]
+      })
+    });
+    const json = await res.json();
+    const text = json.content?.[0]?.text || '';
+    const match = text.match(/\{[\s\S]*?\}/);
+    if (!match) throw new Error('파싱 실패');
+    const tag = JSON.parse(match[0]);
+    if (tag.school_level) document.getElementById('quLevel').value = tag.school_level, quUpdateGradeOptions();
+    if (tag.grade)    { setTimeout(() => { if(document.getElementById('quGrade')) document.getElementById('quGrade').value = tag.grade; }, 50); }
+    if (tag.semester) document.getElementById('quSemester').value = tag.semester;
+    if (tag.area)     { setTimeout(() => { if(document.getElementById('quArea')) document.getElementById('quArea').value = tag.area; }, 50); }
+    if (tag.unit)     document.getElementById('quUnit').value = tag.unit;
+    if (tag.sub_unit) document.getElementById('quSubUnit').value = tag.sub_unit;
+    if (tag.type)     document.getElementById('quType').value = tag.type;
+    if (tag.difficulty) selectQuDiff(parseInt(tag.difficulty));
+    showToast('자동 태깅이 완료되었습니다. 확인 후 수정하세요', '🤖');
+  } catch(e) {
+    showToast('자동 태깅 실패: ' + e.message, '❌');
+  } finally {
+    btn.disabled = false; btn.textContent = '🤖 자동 태깅 (Claude)';
+  }
+}
+
+// ── 문제 직접 입력 저장 ──
+async function saveQuestionManual() {
+  if (!sbClient || !currentUser) { showToast('로그인이 필요합니다', '🔒'); return; }
+  const content = document.getElementById('quContent')?.value?.trim();
+  const level   = document.getElementById('quLevel')?.value;
+  const grade   = document.getElementById('quGrade')?.value;
+  const type    = document.getElementById('quType')?.value;
+  if (!content) { showToast('문제 본문을 입력하세요', '⚠️'); return; }
+  if (!level)   { showToast('학교급을 선택하세요', '⚠️'); return; }
+
+  const payload = {
+    title:        document.getElementById('quTitle')?.value?.trim() || null,
+    content,
+    answer:       document.getElementById('quAnswer')?.value?.trim() || null,
+    solution:     document.getElementById('quSolution')?.value?.trim() || null,
+    school_level: level,
+    grade:        grade ? parseInt(grade) : null,
+    semester:     document.getElementById('quSemester')?.value ? parseInt(document.getElementById('quSemester').value) : null,
+    area:         document.getElementById('quArea')?.value || null,
+    unit:         document.getElementById('quUnit')?.value?.trim() || null,
+    sub_unit:     document.getElementById('quSubUnit')?.value?.trim() || null,
+    type,
+    difficulty:   _quSelectedDiff,
+    status:       'pending',
+    uploader_id:  currentUser.id
+  };
+
+  const { error } = await sbClient.from('questions').insert(payload);
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast('문제가 등록되었습니다. 운영자 검토 후 문제은행에 추가됩니다', '✅');
+  // 폼 초기화
+  ['quTitle','quContent','quAnswer','quSolution','quUnit','quSubUnit'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('quLevel').value = '';
+  selectQuDiff(3);
+  quUpdatePreview();
+  checkQbPendingBadge();
+}
+
+// ── PDF/이미지 파일 업로드 추출 ──
+function quOnFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const info = document.getElementById('quFileInfo');
+  info.style.display = '';
+  info.textContent = `📎 ${file.name}  (${(file.size/1024).toFixed(0)} KB)`;
+  document.getElementById('quExtractBtn').disabled = false;
+}
+
+async function extractFromFile() {
+  const apiKey = document.getElementById('sg-api-key')?.value?.trim();
+  const file   = document.getElementById('quFileInput')?.files[0];
+  if (!apiKey) { showToast('API Key를 먼저 입력하세요', '🔑'); return; }
+  if (!file)   { showToast('파일을 먼저 선택하세요', '⚠️'); return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('파일 크기가 10MB를 초과합니다', '⚠️'); return; }
+
+  const btn = document.getElementById('quExtractBtn');
+  const status = document.getElementById('quExtractStatus');
+  btn.disabled = true; btn.textContent = '추출 중...';
+  status.style.display = '';
+
+  try {
+    // 파일을 base64로 변환
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const isPdf  = file.type === 'application/pdf';
+    const imgType = file.type || 'image/jpeg';
+
+    const content = isPdf
+      ? [{ type: 'text', text: '이 PDF에서 수학 문제를 모두 추출해줘. 각 문제를 JSON 배열로 반환해. 형식: [{"content":"문제본문(KaTeX수식 포함)","answer":"정답","type":"객관식|단답형|서술형","difficulty":1~5}]' },
+         { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }]
+      : [{ type: 'text', text: '이 이미지에서 수학 문제를 모두 추출해줘. 각 문제를 JSON 배열로 반환해. 형식: [{"content":"문제본문(KaTeX수식은 $...$로 표현)","answer":"정답","type":"객관식|단답형|서술형","difficulty":1~5}]' },
+         { type: 'image', source: { type: 'base64', media_type: imgType, data: base64 } }];
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-opus-4-6', max_tokens: 4096, messages: [{ role: 'user', content }] })
+    });
+    const json = await res.json();
+    const text = json.content?.[0]?.text || '';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('문제 추출 결과를 파싱할 수 없습니다');
+    _extractedQuestions = JSON.parse(match[0]);
+    renderExtractedQuestions(_extractedQuestions);
+    showToast(`${_extractedQuestions.length}개 문제가 추출되었습니다`, '✅');
+  } catch(e) {
+    showToast('추출 실패: ' + e.message, '❌');
+  } finally {
+    btn.disabled = false; btn.textContent = '🤖 Claude로 문제 추출';
+    status.style.display = 'none';
+  }
+}
+
+function renderExtractedQuestions(list) {
+  const wrap = document.getElementById('quExtractResults');
+  const listEl = document.getElementById('quExtractList');
+  const countEl = document.getElementById('quExtractCount');
+  wrap.style.display = '';
+  countEl.textContent = list.length + '개';
+  listEl.innerHTML = list.map((q, i) => `
+    <div class="card" style="margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exType-${i}">
+          <option value="단답형" ${q.type==='단답형'?'selected':''}>단답형</option>
+          <option value="객관식" ${q.type==='객관식'?'selected':''}>객관식</option>
+          <option value="서술형" ${q.type==='서술형'?'selected':''}>서술형</option>
+        </select>
+        <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exDiff-${i}">
+          ${[1,2,3,4,5].map(d => `<option value="${d}" ${q.difficulty==d?'selected':''}>${'★'.repeat(d)} ${QB_DIFF_LABEL[d]}</option>`).join('')}
+        </select>
+      </div>
+      <textarea id="exContent-${i}" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box">${q.content || ''}</textarea>
+      <input type="text" id="exAnswer-${i}" placeholder="정답" value="${q.answer || ''}" style="margin-top:6px;width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);box-sizing:border-box">
+    </div>`).join('');
+}
+
+async function saveExtractedQuestions() {
+  if (!sbClient || !currentUser) { showToast('로그인이 필요합니다', '🔒'); return; }
+  if (!_extractedQuestions.length) { showToast('추출된 문제가 없습니다', '⚠️'); return; }
+  const rows = _extractedQuestions.map((_, i) => ({
+    content:     document.getElementById('exContent-' + i)?.value?.trim() || '',
+    answer:      document.getElementById('exAnswer-' + i)?.value?.trim() || null,
+    type:        document.getElementById('exType-' + i)?.value || '단답형',
+    difficulty:  parseInt(document.getElementById('exDiff-' + i)?.value) || 3,
+    status:      'pending',
+    uploader_id: currentUser.id
+  })).filter(r => r.content);
+  const { error } = await sbClient.from('questions').insert(rows);
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast(`${rows.length}개 문제가 등록되었습니다. 운영자 검토 후 공개됩니다`, '✅');
+  document.getElementById('quExtractResults').style.display = 'none';
+  document.getElementById('quFileInput').value = '';
+  document.getElementById('quFileInfo').style.display = 'none';
+  document.getElementById('quExtractBtn').disabled = true;
+  _extractedQuestions = [];
+  checkQbPendingBadge();
+}
+
+// ── 유사문제 생성기 → 문제은행 저장 ──
+async function saveToQuestionBank(idx) {
+  if (!sbClient || !currentUser) { showToast('로그인이 필요합니다', '🔒'); return; }
+  const p = (sg.lastProblems || [])[idx];
+  if (!p) return;
+  const typeMap = { multiple:'객관식', short:'단답형', essay:'서술형' };
+  const diffMap = { easy:2, normal:3, hard:4 };
+  let content = p.question || '';
+  if (p.choices?.length) content += '\n' + p.choices.map((c, i) => `${i+1}. ${c}`).join('\n');
+  const { error } = await sbClient.from('questions').insert({
+    content,
+    answer:      p.answer != null ? String(p.answer) : null,
+    type:        typeMap[p.type] || '단답형',
+    difficulty:  diffMap[p.difficulty] || 3,
+    status:      'pending',
+    uploader_id: currentUser.id
+  });
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast('문제은행에 저장되었습니다 (검토 대기)', '🗄️');
+  checkQbPendingBadge();
+}
+
+// ── 운영자: 문제 승인 관리 뷰 ──
+async function loadAdminQuestionBankView() {
+  switchAqTab(_aqCurrentTab);
+}
+
+function switchAqTab(tab) {
+  _aqCurrentTab = tab;
+  ['pending','approved','rejected'].forEach(t => {
+    document.getElementById('aqTab' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.toggle('active', t === tab);
+  });
+  renderAdminQuestions(tab);
+}
+
+async function renderAdminQuestions(status) {
+  const wrap = document.getElementById('aqListWrap');
+  if (!wrap || !sbClient) return;
+  wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>';
+  const { data, error } = await sbClient
+    .from('questions')
+    .select('id,title,content,answer,solution,school_level,grade,semester,area,unit,sub_unit,type,difficulty,status,reject_reason,uploader_id,created_at,uploader:profiles!questions_uploader_id_fkey(name)')
+    .eq('status', status)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error || !data || data.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-text">${status==='pending'?'승인 대기 중인':''}문제가 없습니다</div></div>`;
+    return;
+  }
+  wrap.innerHTML = data.map(q => aqRenderCard(q, status)).join('');
+  if (window.renderMathInElement) renderMathInElement(wrap, { delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false });
+}
+
+function aqRenderCard(q, status) {
+  const stars = '★'.repeat(q.difficulty) + '☆'.repeat(5 - q.difficulty);
+  const uploadedBy = q.uploader?.name || '—';
+  const date = new Date(q.created_at).toLocaleDateString('ko-KR');
+  const tagBadges = [q.school_level, q.grade ? q.grade+'학년' : '', q.semester ? q.semester+'학기' : '', q.area, q.unit].filter(Boolean)
+    .map(t => `<span style="padding:2px 7px;border-radius:4px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)">${t}</span>`).join('');
+  return `<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
+    <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.type}</span>
+      ${tagBadges}
+      <span style="font-size:12px;color:var(--text3);margin-left:auto">${stars} · ${uploadedBy} · ${date}</span>
+    </div>
+    <div style="padding:14px 16px">
+      ${q.title ? `<div style="font-size:13px;font-weight:800;margin-bottom:8px">${q.title}</div>` : ''}
+      <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;padding:12px;background:var(--bg2);border-radius:var(--radius-sm)">${q.content}</div>
+      ${q.answer ? `<div style="margin-top:8px;font-size:13px;color:var(--green)">✅ 정답: ${q.answer}</div>` : ''}
+      ${q.solution ? `<div style="margin-top:6px;font-size:12px;color:var(--text3)">📖 풀이: ${q.solution}</div>` : ''}
+      ${q.reject_reason ? `<div style="margin-top:8px;font-size:12px;color:var(--red);padding:8px 12px;background:rgba(252,87,87,0.07);border-radius:6px">거절 사유: ${q.reject_reason}</div>` : ''}
+    </div>
+    <!-- 태깅 수정 영역 -->
+    <div style="padding:12px 16px;border-top:1px solid var(--border);background:var(--bg2)">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">태깅 수정</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="aqLevel-${q.id}" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" onchange="aqUpdateGrade('${q.id}')">
+          <option value="">학교급</option>
+          ${['초등','중등','고등'].map(l => `<option value="${l}" ${q.school_level===l?'selected':''}>${l}</option>`).join('')}
+        </select>
+        <select id="aqGrade-${q.id}" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
+          <option value="">학년</option>
+          ${(QB_GRADES[q.school_level]||[1,2,3]).map(g => `<option value="${g}" ${q.grade===g?'selected':''}>${g}학년</option>`).join('')}
+        </select>
+        <select id="aqSem-${q.id}" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
+          <option value="">학기</option>
+          <option value="1" ${q.semester===1?'selected':''}>1학기</option>
+          <option value="2" ${q.semester===2?'selected':''}>2학기</option>
+        </select>
+        <input id="aqArea-${q.id}" type="text" placeholder="영역" value="${q.area||''}" style="width:110px;font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
+        <input id="aqUnit-${q.id}" type="text" placeholder="단원" value="${q.unit||''}" style="width:110px;font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
+        <select id="aqDiff-${q.id}" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
+          ${[1,2,3,4,5].map(d => `<option value="${d}" ${q.difficulty===d?'selected':''}>${'★'.repeat(d)} ${QB_DIFF_LABEL[d]}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    ${status === 'pending' ? `
+    <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary btn-sm" onclick="approveQuestion('${q.id}')">✅ 승인</button>
+      <button class="btn btn-sm" style="background:rgba(252,87,87,0.1);color:var(--red);border:1px solid rgba(252,87,87,0.3)" onclick="rejectQuestion('${q.id}')">❌ 거절</button>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <input id="aqRejectReason-${q.id}" type="text" placeholder="거절 사유 (선택)" style="font-size:12px;padding:4px 10px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:200px">
+      </div>
+    </div>` : status === 'approved' ? `
+    <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+      <button class="btn btn-ghost btn-xs" onclick="aqSaveTagging('${q.id}')">태깅 저장</button>
+      <button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="rejectQuestion('${q.id}')">승인 취소</button>
+    </div>` : `
+    <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+      <button class="btn btn-ghost btn-xs" onclick="approveQuestion('${q.id}')">재승인</button>
+    </div>`}
+  </div>`;
+}
+
+function aqUpdateGrade(qid) {
+  const level = document.getElementById('aqLevel-' + qid)?.value;
+  const gradeSel = document.getElementById('aqGrade-' + qid);
+  if (!gradeSel) return;
+  gradeSel.innerHTML = '<option value="">학년</option>' +
+    (QB_GRADES[level] || []).map(g => `<option value="${g}">${g}학년</option>`).join('');
+}
+
+async function aqSaveTagging(qid) {
+  if (!sbClient) return;
+  const payload = {
+    school_level: document.getElementById('aqLevel-' + qid)?.value || null,
+    grade:        parseInt(document.getElementById('aqGrade-' + qid)?.value) || null,
+    semester:     parseInt(document.getElementById('aqSem-' + qid)?.value)   || null,
+    area:         document.getElementById('aqArea-' + qid)?.value?.trim()    || null,
+    unit:         document.getElementById('aqUnit-' + qid)?.value?.trim()    || null,
+    difficulty:   parseInt(document.getElementById('aqDiff-' + qid)?.value)  || 3
+  };
+  const { error } = await sbClient.from('questions').update(payload).eq('id', qid);
+  if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast('태깅이 저장되었습니다', '✅');
+}
+
+async function approveQuestion(qid) {
+  if (!sbClient || !currentUser) return;
+  await aqSaveTagging(qid);  // 태깅도 함께 저장
+  const { error } = await sbClient.from('questions').update({ status: 'approved', approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', qid);
+  if (error) { showToast('승인 실패: ' + error.message, '❌'); return; }
+  showToast('문제가 승인되었습니다', '✅');
+  renderAdminQuestions(_aqCurrentTab);
+  checkQbPendingBadge();
+}
+
+async function rejectQuestion(qid) {
+  if (!sbClient || !currentUser) return;
+  const reason = document.getElementById('aqRejectReason-' + qid)?.value?.trim() || null;
+  const { error } = await sbClient.from('questions').update({ status: 'rejected', reject_reason: reason }).eq('id', qid);
+  if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
+  showToast('문제가 거절되었습니다', '↩️');
+  renderAdminQuestions(_aqCurrentTab);
+  checkQbPendingBadge();
+}
+
+// 승인 대기 배지 업데이트
+async function checkQbPendingBadge() {
+  if (!sbClient || !currentProfile) return;
+  if (!['admin','staff'].includes(currentProfile.role)) return;
+  const { count } = await sbClient.from('questions').select('id', { count:'exact', head:true }).eq('status','pending');
+  const n = count || 0;
+  const badge = document.getElementById('qb-pending-badge');
+  if (badge) { badge.textContent = n > 99 ? '99+' : String(n); badge.style.display = n > 0 ? '' : 'none'; }
+  const aqBadge = document.getElementById('aqPendingBadge');
+  if (aqBadge) { aqBadge.textContent = n > 99 ? '99+' : String(n); aqBadge.style.display = n > 0 ? '' : 'none'; }
 }
 
 // ═══════════════════════════════════════
