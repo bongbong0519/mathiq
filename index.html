@@ -3073,7 +3073,8 @@ async function checkSession() {
   const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     currentUser = session.user;
-    showApp();
+    // showApp은 loadProfile 내부에서 approved 확인 후 호출
+    document.getElementById('authOverlay').style.display = 'none';
     await loadProfile();
   } else {
     showLanding();
@@ -3158,6 +3159,9 @@ async function loadProfile() {
   document.querySelectorAll('nav[id^="nav-"]').forEach(n => n.style.display = 'none');
   const activeNav = document.getElementById('nav-' + roleForNav);
   if (activeNav) activeNav.style.display = 'block';
+
+  // 승인 확인 완료 후 앱 화면 표시 (pending/deleted는 이미 return됨)
+  showApp();
 }
 
 function showApp() {
@@ -3221,8 +3225,8 @@ async function handleLogin() {
 
   if (error) { showAuthError('loginError', '이메일 또는 비밀번호가 올바르지 않습니다'); return; }
   currentUser = data.user;
-  showApp();
-  await loadProfile();
+  document.getElementById('authOverlay').style.display = 'none';
+  await loadProfile(); // approved 확인 후 내부에서 showApp 호출
 }
 
 // ── 기관 검색 ──
