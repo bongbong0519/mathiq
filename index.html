@@ -10340,11 +10340,47 @@ async function _geminiCallBatch(base64Images, mimeTypes) {
 
 // ── 공통: 텍스트에서 JSON 배열 파싱 ──
 function _parseJsonArray(text) {
-  const jsonBlock = text.match(/```json\s*([\s\S]*?)```/)?.[1]
-    || text.match(/```\s*([\s\S]*?)```/)?.[1]
-    || text.match(/(\[[\s\S]*\])/)?.[1];
-  if (!jsonBlock) throw new Error('JSON 파싱 실패: ' + text.slice(0, 200));
-  return JSON.parse(jsonBlock.trim());
+  if (!text || !text.trim()) throw new Error('Gemini 응답이 비어 있습니다');
+
+  // 시도 순서: 구체적인 패턴 → 넓은 패턴 → 직접 파싱
+  const candidates = [];
+
+  // 1) ```json ... ``` 코드블록
+  const m1 = text.match(/```json\s*([\s\S]*?)```/);
+  if (m1) candidates.push(m1[1].trim());
+
+  // 2) ``` ... ``` 일반 코드블록
+  const m2 = text.match(/```\s*([\s\S]*?)```/);
+  if (m2) candidates.push(m2[1].trim());
+
+  // 3) [ ... ] 배열 패턴 (가장 바깥쪽 대괄호 쌍 추출)
+  const m3 = text.match(/\[[\s\S]*\]/);
+  if (m3) candidates.push(m3[0].trim());
+
+  // 4) { ... } 객체 패턴 → 배열로 감싸기
+  const m4 = text.match(/\{[\s\S]*\}/);
+  if (m4) candidates.push('[' + m4[0].trim() + ']');
+
+  // 5) 텍스트 전체를 직접 시도
+  candidates.push(text.trim());
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      // 배열이면 반환, 객체면 배열로 감싸기
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object') return [parsed];
+    } catch {
+      // 다음 후보 시도
+    }
+  }
+
+  // 모두 실패 — 디버그 정보 포함한 오류
+  console.error('[_parseJsonArray] 파싱 실패. 원본 응답:\n', text);
+  throw new Error(
+    `JSON 파싱 실패 — Gemini가 예상치 못한 형식으로 응답했습니다.\n` +
+    `응답 앞부분: ${text.slice(0, 300)}`
+  );
 }
 
 // ── 진행 단계 UI ──
