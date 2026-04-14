@@ -10265,16 +10265,38 @@ async function extractFromFile() {
 
     const isPdf   = file.type === 'application/pdf';
     const imgType = file.type || 'image/jpeg';
-    const prompt  = '수학 문제를 모두 추출해줘. 반드시 JSON 배열만 출력해. 다른 텍스트 절대 금지.\n형식: [{"content":"문제본문(KaTeX수식은 $...$로 표현)","answer":"정답","question_type":"객관식|단답형|서술형","difficulty":1~5}]';
+
+    const systemPrompt = `당신은 수학 문제지를 분석하는 전문가입니다. 아래 규칙을 반드시 따르세요.
+
+[추출 규칙]
+1. 문서에 있는 모든 문제를 빠짐없이 추출한다. 문제 번호 순서대로 추출한다.
+2. 문제 본문은 절대 생략하거나 자르지 않는다. 보기(①②③④⑤), 조건, 단서, 지문 포함 전체를 content에 담는다.
+3. 수식은 반드시 KaTeX 형식으로 변환한다.
+   - 인라인 수식: $수식$ (예: $x^2 + 3x - 2 = 0$)
+   - 독립 수식/분수/적분 등: $$수식$$ (예: $$\\frac{a}{b} = \\sqrt{c}$$)
+   - 그리스 문자·특수기호도 LaTeX 명령어로 표현 (예: $\\alpha$, $\\pi$, $\\geq$)
+4. 그림·도표·그래프·좌표계가 포함된 문제는 해당 위치에 [그림 참조] 를 삽입한다.
+5. 정답이 문서에 표시되어 있으면 반드시 answer에 기재한다. 없으면 null로 둔다.
+6. question_type 판별 기준:
+   - 번호형 선택지(①~⑤)가 있으면 "객관식"
+   - 빈칸·숫자 답 요구 시 "단답형"
+   - 서술·풀이 과정 요구 시 "서술형"
+7. difficulty는 문제 복잡도와 계산량을 기준으로 1(매우쉬움)~5(매우어려움)로 판단한다.
+
+[출력 형식]
+반드시 JSON 배열만 출력한다. 설명·머리말·꼬리말 등 다른 텍스트는 절대 출력하지 않는다.
+[{"content":"문제 전체 본문","answer":"정답 또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5}, ...]`;
+
+    const userPrompt = '위 문서에서 수학 문제를 모두 추출하여 JSON 배열로 출력하세요.';
 
     const messages = isPdf
       ? [{ role: 'user', content: [
           { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-          { type: 'text', text: prompt }
+          { type: 'text', text: userPrompt }
         ]}]
       : [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: imgType, data: base64 } },
-          { type: 'text', text: prompt }
+          { type: 'text', text: userPrompt }
         ]}];
 
     // 유사문제 생성기와 동일한 /api/proxy 경유
@@ -10285,7 +10307,7 @@ async function extractFromFile() {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, messages })
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000, system: systemPrompt, messages })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
