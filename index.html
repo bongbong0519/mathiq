@@ -10370,16 +10370,23 @@ content에 [그림 참조]로 표시된 부분을 이미지에서 찾아 [그림
 문제 목록:`;
 
 async function _geminiFillFigures(questions, pageImages) {
-  const hasFigures = questions.some(q => (q.content || '').includes('[그림 참조]'));
-  if (!hasFigures) return { result: questions, skipped: true, reason: '그림 없음 — 건너뜀' };
+  // 그림이 있는 문제만 추려서 원본 인덱스를 기록
+  const figureEntries = questions
+    .map((q, i) => ({ idx: i, q }))
+    .filter(({ q }) => (q.content || '').includes('[그림 참조]'));
+
+  if (figureEntries.length === 0) return { result: questions, skipped: true, reason: '그림 없음 — 건너뜀' };
   if (!pageImages || pageImages.length === 0) return { result: questions, skipped: true, reason: '이미지 없음 — 건너뜀' };
+
+  const figureOnly = figureEntries.map(({ q }) => q);
 
   const parts = [];
   pageImages.forEach((b64, i) => {
     if (pageImages.length > 1) parts.push({ text: `=== 페이지 ${i + 1} ===` });
     parts.push({ inline_data: { mime_type: 'image/jpeg', data: b64 } });
   });
-  parts.push({ text: _GEMINI_FIGURE_PROMPT + '\n\n' + JSON.stringify(questions, null, 2) });
+  // 그림 문제만 전송
+  parts.push({ text: _GEMINI_FIGURE_PROMPT + '\n\n' + JSON.stringify(figureOnly, null, 2) });
 
   const res = await fetch('/api/gemini', {
     method: 'POST',
@@ -10403,7 +10410,18 @@ async function _geminiFillFigures(questions, pageImages) {
   const json = await res.json();
   const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
   if (!text) throw new Error('Gemini 빈 응답 (finishReason: ' + (json.candidates?.[0]?.finishReason || '?') + ')');
-  return { result: _parseJsonArray(text), skipped: false };
+
+  const filledFigures = _parseJsonArray(text);
+
+  // 원본 배열을 복사한 뒤, 그림 문제 위치에만 Gemini 결과를 덮어씀
+  const merged = questions.map(q => ({ ...q }));
+  figureEntries.forEach(({ idx }, fi) => {
+    if (filledFigures[fi]) {
+      merged[idx] = { ...merged[idx], ...filledFigures[fi] };
+    }
+  });
+
+  return { result: merged, skipped: false };
 }
 
 // ════════════════════════════════════════════════════════
