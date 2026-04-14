@@ -3035,6 +3035,22 @@ function initEmailJS() {
 
 const ROLE_LABEL_KO = { teacher: '선생님', director: '원장님', student: '학생', parent: '학부모', admin: '운영자' };
 
+function sendApprovalEmail(userName, userEmail, userRole, approved) {
+  if (typeof emailjs === 'undefined') return;
+  if (!EMAILJS_SERVICE_ID || !EMAILJS_TPL_APPROVAL) return;
+  const roleName = ROLE_LABEL_KO[userRole] || userRole;
+  const statusMsg = approved
+    ? '✅ 가입이 승인되었습니다! 이제 MathIQ에 로그인하여 이용하실 수 있습니다.'
+    : '❌ 가입이 거절되었습니다. 자세한 내용은 운영자에게 문의해 주세요.';
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TPL_APPROVAL, {
+    to_name:    userName || '회원',
+    to_email:   userEmail,
+    role_name:  roleName,
+    org_name:   '—',
+    is_pending: statusMsg,
+  }).catch(e => console.warn('Approval email failed:', e));
+}
+
 async function sendSignupEmails(userName, userEmail, userRole, orgName) {
   if (typeof emailjs === 'undefined') return;
   if (!EMAILJS_SERVICE_ID || !EMAILJS_TPL_USER || !EMAILJS_TPL_ADMIN) return;
@@ -6889,6 +6905,8 @@ async function approveTeacher(id, role) {
   const { error } = await sbClient.from('profiles').update({ status: 'approved' }).eq('id', id);
   if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
   showToast('승인되었습니다', '✅');
+  sbClient.from('profiles').select('name, email').eq('id', id).maybeSingle()
+    .then(({ data }) => { if (data) sendApprovalEmail(data.name, data.email, role, true); });
   _reloadAdminMemberTab(role);
 }
 
@@ -6896,6 +6914,8 @@ async function rejectTeacher(id, role) {
   const { error } = await sbClient.from('profiles').update({ status: 'rejected' }).eq('id', id);
   if (error) { showToast('처리 실패: ' + error.message, '❌'); return; }
   showToast('거절되었습니다', '❌');
+  sbClient.from('profiles').select('name, email').eq('id', id).maybeSingle()
+    .then(({ data }) => { if (data) sendApprovalEmail(data.name, data.email, role, false); });
   _reloadAdminMemberTab(role);
 }
 
