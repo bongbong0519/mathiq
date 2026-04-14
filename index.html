@@ -10498,6 +10498,159 @@ async function _geminiCallBatch(base64Images, mimeTypes) {
   return _parseJsonArray(text);
 }
 
+// ════════════════════════════════════════════════════════
+// 하이브리드 그림 처리: Gemini Vision 크롭 → Canvas 렌더러 폴백
+// ════════════════════════════════════════════════════════
+
+// 1단계: Gemini에게 그림 영역 bbox 좌표 (0~1 정규화) 요청
+async function _geminiCropBbox(pageBase64, questionContent) {
+  const res = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gemini-2.5-flash',
+      systemInstruction: { parts: [{ text: 'You are a JSON-only API. Output only raw JSON. No markdown, no explanation, no code blocks.' }] },
+      contents: [{ role: 'user', parts: [
+        { inline_data: { mime_type: 'image/jpeg', data: pageBase64 } },
+        { text: `이 수학 시험 페이지 이미지에서 다음 문제에 해당하는 그림·도표·그래프 영역을 찾아 bounding box 좌표를 반환하세요.
+
+문제:
+${questionContent.slice(0, 600)}
+
+이미지 전체 크기 대비 비율(0.0~1.0)로 반환:
+{"x":왼쪽상단X비율,"y":왼쪽상단Y비율,"w":너비비율,"h":높이비율}
+그림을 찾을 수 없으면: {"x":0,"y":0,"w":0,"h":0}` }
+      ]}],
+      generationConfig: { maxOutputTokens: 128, temperature: 0, responseMimeType: 'application/json' }
+    })
+  });
+  if (!res.ok) throw new Error(`Gemini bbox HTTP ${res.status}`);
+  const json = await res.json();
+  const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+  let bbox;
+  try { bbox = JSON.parse(text); } catch { throw new Error('bbox 파싱 실패'); }
+  if (!bbox || (bbox.w || 0) <= 0.02 || (bbox.h || 0) <= 0.02) throw new Error('그림 영역 미발견');
+  return {
+    x: Math.max(0, Math.min(0.95, bbox.x || 0)),
+    y: Math.max(0, Math.min(0.95, bbox.y || 0)),
+    w: Math.max(0.05, Math.min(1,   bbox.w || 0)),
+    h: Math.max(0.05, Math.min(1,   bbox.h || 0))
+  };
+}
+
+// 1단계 보조: Canvas로 이미지 크롭 → base64 JPEG 반환
+function _cropBase64Image(base64, bbox) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const W = img.naturalWidth, H = img.naturalHeight;
+      const sx = Math.round(bbox.x * W);
+      const sy = Math.round(bbox.y * H);
+      const sw = Math.max(1, Math.round(bbox.w * W));
+      const sh = Math.max(1, Math.round(bbox.h * H));
+      const cvs = document.createElement('canvas');
+      cvs.width = sw; cvs.height = sh;
+      cvs.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      resolve(cvs.toDataURL('image/jpeg', 0.92).split(',')[1]);
+    };
+    img.onerror = reject;
+    img.src = `data:image/jpeg;base64,${base64}`;
+  });
+}
+
+// 2단계: Claude에게 figure JSON 객체 요청
+const _CLAUDE_FIGURE_OBJ_PROMPT = `다음 수학 문제에 필요한 그림을 아래 figure JSON 형식으로만 반환하세요. 설명·주석 없이 JSON만 출력.
+
+figure 형식:
+{"viewport":{"x":[xMin,xMax],"y":[yMin,yMax]},"elements":[
+  {"type":"axes","step":1},
+  {"type":"point","id":"A","pos":[x,y],"color":"#4f8ef7","label":"A"},
+  {"type":"segment","from":[x1,y1],"to":[x2,y2],"color":"#4f8ef7","label":"길이"},
+  {"type":"function","expr":"Math.pow(x,2)","color":"#e53e3e","label":"y=x²"},
+  {"type":"polygon","points":[[x1,y1],[x2,y2],[x3,y3]],"color":"#4f8ef7","fill":"rgba(79,142,247,0.1)"},
+  {"type":"label","pos":[x,y],"text":"텍스트","color":"#4a5568","size":12}
+]}
+그림이 불필요하면: {"viewport":{"x":[0,1],"y":[0,1]},"elements":[]}
+
+문제:`;
+
+async function _claudeFigureObj(questionContent) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Claude API 키 없음');
+  const res = await fetch('/api/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: _CLAUDE_FIGURE_OBJ_PROMPT + '\n' + questionContent.slice(0, 800) }]
+    })
+  });
+  if (!res.ok) throw new Error(`Claude figure HTTP ${res.status}`);
+  const json = await res.json();
+  const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+  const candidates = [];
+  const m1 = text.match(/```json\s*([\s\S]*?)```/); if (m1) candidates.push(m1[1].trim());
+  const m2 = text.match(/```\s*([\s\S]*?)```/);     if (m2) candidates.push(m2[1].trim());
+  const m3 = text.match(/\{[\s\S]*\}/);             if (m3) candidates.push(m3[0].trim());
+  candidates.push(text.trim());
+  for (const c of candidates) {
+    try { const obj = JSON.parse(c); if (obj && Array.isArray(obj.elements)) return obj; } catch {}
+  }
+  throw new Error('figure 파싱 실패');
+}
+
+// 2단계 보조: figure 객체를 Canvas에 렌더링 → base64 JPEG 반환
+function _figureCanvasBase64(figure) {
+  const cvs = document.createElement('canvas');
+  cvs.width = 500; cvs.height = 280;
+  drawMathFigure(cvs, figure);
+  return cvs.toDataURL('image/jpeg', 0.92).split(',')[1];
+}
+
+// 그림 문제 전체를 하이브리드 처리 — Gemini 크롭 → Canvas 폴백 → 페이지 이미지 유지
+async function _resolveQuestionFigures(questions, pageImages, onProgress) {
+  const targets = questions
+    .map((q, i) => ({ i, q }))
+    .filter(({ q }) => /\[그림[^\]]*\]/.test(q.content || '') && q._page && pageImages[q._page - 1]);
+
+  if (!targets.length) return questions;
+
+  const result = questions.map(q => ({ ...q }));
+
+  for (let k = 0; k < targets.length; k++) {
+    const { i, q } = targets[k];
+    const pageImg = pageImages[q._page - 1];
+    if (onProgress) onProgress(k + 1, targets.length);
+
+    // ── 1단계: Gemini Vision 크롭 ──
+    try {
+      const bbox    = await _geminiCropBbox(pageImg, q.content);
+      const cropped = await _cropBase64Image(pageImg, bbox);
+      result[i]._figureImg = cropped;
+      console.debug(`[하이브리드] Q${i + 1}: Gemini 크롭 성공`);
+      continue;
+    } catch (e1) {
+      console.debug(`[하이브리드] Q${i + 1}: Gemini 크롭 실패 (${e1.message})`);
+    }
+
+    // ── 2단계: Claude figure → Canvas 렌더링 ──
+    try {
+      const figure = await _claudeFigureObj(q.content);
+      if (figure.elements && figure.elements.length > 0) {
+        result[i]._figureImg = _figureCanvasBase64(figure);
+        console.debug(`[하이브리드] Q${i + 1}: Canvas 렌더링 성공`);
+      } else {
+        console.debug(`[하이브리드] Q${i + 1}: figure 요소 없음 — 페이지 이미지 유지`);
+      }
+    } catch (e2) {
+      console.debug(`[하이브리드] Q${i + 1}: Canvas 폴백 실패 (${e2.message}) — 페이지 이미지 유지`);
+    }
+  }
+
+  return result;
+}
+
 // ── 공통: 텍스트에서 JSON 배열 파싱 ──
 function _parseJsonArray(text) {
   if (!text || !text.trim()) throw new Error('Gemini 응답이 비어 있습니다');
@@ -10570,7 +10723,7 @@ function _initStepUI(statusEl) {
       <div id="exStep3" style="display:flex;align-items:center;gap:10px;font-size:13px;opacity:0.55">
         <span id="exStep3Icon" style="font-size:15px;width:18px;text-align:center;color:var(--text3)">○</span>
         <span style="font-weight:700;color:var(--text)">확인</span>
-        <span style="color:var(--text2)">최종 결합 · 렌더링</span>
+        <span style="color:var(--text2)">그림 크롭 · Canvas 폴백 · 렌더링</span>
         <span id="exStep3Detail" style="margin-left:auto;font-size:11.5px;color:var(--text3)">대기 중</span>
       </div>
     </div>`;
@@ -10702,13 +10855,32 @@ async function extractFromFile() {
     }
 
     // ════════════════════════════════════════════════════════
-    // STEP 3: 최종 결합 · 렌더링
+    // STEP 3: 그림 크롭 (Gemini → Canvas 폴백) + 렌더링
     // ════════════════════════════════════════════════════════
-    _setStep(3, 'running', '결합 및 렌더링 중...');
-    await new Promise(r => setTimeout(r, 400));
-    _extractedQuestions = step2Questions;
+    _setStep(3, 'running', '그림 처리 준비 중...');
+
+    let step3Questions = step2Questions;
+    const figCount = step2Questions.filter(
+      q => /\[그림[^\]]*\]/.test(q.content || '') && q._page && _extractPageImages[q._page - 1]
+    ).length;
+
+    if (figCount > 0) {
+      try {
+        step3Questions = await _resolveQuestionFigures(
+          step2Questions,
+          _extractPageImages,
+          (cur, total) => _setStep(3, 'running', `그림 ${cur}/${total} 처리 중...`)
+        );
+      } catch (e3) {
+        console.warn('[하이브리드 그림]', e3);
+        _setStep(3, 'error', '그림 처리 실패 — 페이지 이미지 유지');
+      }
+    }
+
+    await new Promise(r => setTimeout(r, 200));
+    _extractedQuestions = step3Questions;
     _setStep(3, 'done', `${_extractedQuestions.length}개 완료`);
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 400));
 
     renderExtractedQuestions(_extractedQuestions);
     showToast(`${_extractedQuestions.length}개 문제 추출 완료`, '✅');
@@ -10763,7 +10935,8 @@ function renderExtractedQuestions(list) {
 
   // innerHTML 설정 후 각 질문별로 미리보기 렌더링
   list.forEach((q, i) => {
-    const pageImage = q._page ? (_extractPageImages[q._page - 1] || null) : null;
+    // _figureImg 우선(크롭/Canvas 결과), 없으면 전체 페이지 이미지 폴백
+    const pageImage = q._figureImg || (q._page ? (_extractPageImages[q._page - 1] || null) : null);
     const previewEl = document.getElementById('exPreview-' + i);
     if (previewEl) _renderPreviewContent(previewEl, q.content || '', pageImage);
     const answerEl = document.getElementById('exAnswerPreview-' + i);
@@ -10848,8 +11021,8 @@ function exUpdatePreview(i) {
   const ta      = document.getElementById('exContent-' + i);
   const preview = document.getElementById('exPreview-'  + i);
   if (!ta || !preview) return;
-  const page = _extractedQuestions[i]?._page;
-  const pageImage = page ? (_extractPageImages[page - 1] || null) : null;
+  const q = _extractedQuestions[i];
+  const pageImage = q?._figureImg || (q?._page ? (_extractPageImages[q._page - 1] || null) : null);
   _renderPreviewContent(preview, ta.value, pageImage);
 }
 
