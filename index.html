@@ -1385,6 +1385,12 @@
           익명으로 작성 (작성자가 "익명"으로 표시됩니다)
         </label>
       </div>
+      <div class="lp-form-field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--lp-text2)">
+          <input type="checkbox" id="cSecret" style="width:15px;height:15px;accent-color:var(--lp-coral)">
+          🔒 비밀글 (작성자 본인과 운영자만 내용을 볼 수 있습니다)
+        </label>
+      </div>
       <div class="lp-form-btn-row">
         <button class="lp-form-btn-cancel" onclick="showContactList()">취소</button>
         <button class="lp-form-btn-submit" id="contactSubmitBtn" onclick="submitContactPost()">문의 등록</button>
@@ -3584,6 +3590,7 @@ function showContactForm() {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   const cb = document.getElementById('cAnonymous'); if (cb) cb.checked = false;
+  const cs = document.getElementById('cSecret'); if (cs) cs.checked = false;
 }
 
 async function loadContactPosts() {
@@ -3594,21 +3601,28 @@ async function loadContactPosts() {
   if (!sbClient) { wrap.innerHTML = '<div class="lp-notice-empty">등록된 문의가 없습니다.</div>'; return; }
   const { data, error } = await sbClient
     .from('posts')
-    .select('id, title, author_name, guest_name, is_anonymous, is_replied, created_at')
+    .select('id, title, author_name, guest_name, author_id, is_anonymous, is_secret, is_replied, created_at')
     .eq('board', 'contact')
     .order('created_at', { ascending: false });
   if (error || !data || data.length === 0) {
     wrap.innerHTML = '<div class="lp-notice-empty">등록된 문의가 없습니다.</div>'; return;
   }
+  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'director';
   wrap.innerHTML = data.map((p, i) => {
     const authorDisplay = p.is_anonymous ? '익명' : (p.author_name || p.guest_name || '익명');
     const badge = p.is_replied
       ? '<span class="contact-badge-replied">답변완료</span>'
       : '<span class="contact-badge-pending">답변대기</span>';
-    const title = (p.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // 비밀글: 본인(author_id 일치)이나 admin/director만 제목 표시
+    const isOwner = currentUser && p.author_id === currentUser.id;
+    const canSeeTitle = !p.is_secret || isAdmin || isOwner;
+    const titleText = canSeeTitle
+      ? (p.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      : '🔒 비밀글입니다';
+    const titleStyle = canSeeTitle ? '' : 'color:var(--lp-text3);font-style:italic';
     return `<div class="lp-notice-row" onclick="openContactPost('${p.id}')">
       <span class="lp-notice-num">${data.length - i}</span>
-      <span class="lp-notice-title-cell">${title}</span>
+      <span class="lp-notice-title-cell" style="${titleStyle}">${titleText}</span>
       <span class="lp-notice-meta" style="display:flex;align-items:center;gap:8px">
         ${badge}<span>${authorDisplay} · ${p.created_at.slice(0,10)}</span>
       </span>
@@ -3621,9 +3635,19 @@ async function openContactPost(id) {
   _currentContactPostId = id;
   const { data: post, error } = await sbClient
     .from('posts')
-    .select('id, title, content, author_name, guest_name, is_anonymous, is_replied, created_at')
+    .select('id, title, content, author_name, guest_name, author_id, is_anonymous, is_secret, is_replied, created_at')
     .eq('id', id).maybeSingle();
   if (error || !post) return;
+
+  // 비밀글 접근 제어
+  if (post.is_secret) {
+    const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'director';
+    const isOwner = currentUser && post.author_id === currentUser.id;
+    if (!isAdmin && !isOwner) {
+      showToast('비밀글은 작성자 본인과 운영자만 볼 수 있습니다.', '🔒');
+      return;
+    }
+  }
   const { data: replies } = await sbClient
     .from('post_comments')
     .select('id, content, author_name, created_at')
@@ -3666,11 +3690,12 @@ async function submitContactPost() {
   if (!sbClient) { showToast('서버 연결 오류', '❌'); return; }
   const title   = (document.getElementById('cTitle')?.value   || '').trim();
   const content = (document.getElementById('cContent')?.value || '').trim();
-  const isAnon  = document.getElementById('cAnonymous')?.checked || false;
+  const isAnon   = document.getElementById('cAnonymous')?.checked || false;
+  const isSecret = document.getElementById('cSecret')?.checked || false;
   if (!title)   { showToast('제목을 입력해주세요', '⚠️'); return; }
   if (!content) { showToast('내용을 입력해주세요', '⚠️'); return; }
 
-  const insertData = { board: 'contact', title, content, is_anonymous: isAnon };
+  const insertData = { board: 'contact', title, content, is_anonymous: isAnon, is_secret: isSecret };
   if (currentUser && currentProfile) {
     insertData.author_id   = currentUser.id;
     insertData.author_name = isAnon ? '익명' : (currentProfile.name || currentUser.email);
