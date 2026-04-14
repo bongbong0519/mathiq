@@ -3487,6 +3487,12 @@
       <p style="font-size:15px;font-weight:700;color:#2d2d3a;line-height:1.7;margin:0 0 8px">이벤트 기간 동안<br>모든 서비스를 무료로 이용하실 수 있습니다!</p>
       <p style="font-size:13px;color:#888;line-height:1.6;margin:0 0 28px">지금 바로 시작해보세요.<br>AI 유사문제 생성, 과외매칭, 성적 관리까지 모두 무료.</p>
 
+      <!-- 하루동안 안보기 -->
+      <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#aaa;cursor:pointer;margin-bottom:16px;user-select:none">
+        <input type="checkbox" id="popupHideToday" style="accent-color:#ff6b6b;width:14px;height:14px;cursor:pointer">
+        하루동안 안보기
+      </label>
+
       <!-- 버튼 -->
       <div style="display:flex;gap:10px">
         <button onclick="closeLpEventPopup()" style="flex:1;padding:13px;border-radius:12px;border:1.5px solid #e0e0e8;background:#fff;color:#888;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s" onmouseover="this.style.background='#f8f8fb'" onmouseout="this.style.background='#fff'">닫기</button>
@@ -5224,6 +5230,10 @@ function closeLpEventPopup() {
   const el = document.getElementById('lpEventPopup');
   if (el) el.style.display = 'none';
   sessionStorage.setItem('lpEventPopupSeen', '1');
+  // 하루동안 안보기 체크 시 localStorage에 만료 시각 저장
+  if (document.getElementById('popupHideToday')?.checked) {
+    localStorage.setItem('lpEventPopupHideUntil', Date.now() + 24 * 60 * 60 * 1000);
+  }
 }
 
 // ── EVENT BANNER ──
@@ -5249,7 +5259,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 오픈 이벤트 팝업 — 세션 첫 방문 시 자동 표시 (약간 딜레이)
-  if (!sessionStorage.getItem('lpEventPopupSeen')) {
+  // "하루동안 안보기" 체크 시 24시간 동안 표시 안 함
+  const hideUntil = parseInt(localStorage.getItem('lpEventPopupHideUntil') || '0', 10);
+  const popupBlocked = Date.now() < hideUntil;
+  if (!sessionStorage.getItem('lpEventPopupSeen') && !popupBlocked) {
     setTimeout(openLpEventPopup, 600);
   }
 
