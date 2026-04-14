@@ -3743,11 +3743,11 @@
       <div id="qu-tab-B" style="display:none">
         <div class="card" style="padding:24px;max-width:640px">
           <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">📄 PDF / 이미지에서 문제 추출</div>
-          <div style="font-size:13px;color:var(--text3);margin-bottom:16px">PDF 또는 이미지를 업로드하면 <strong>Gemini 2.5 Flash</strong>가 수학 문제를 자동으로 추출합니다. PDF는 페이지별로 이미지 변환 후 분석합니다.</div>
-          <!-- Gemini 연결 상태 -->
+          <div style="font-size:13px;color:var(--text3);margin-bottom:16px">PDF 또는 이미지를 업로드하면 AI가 수학 문제를 자동으로 추출합니다. PDF는 페이지별로 이미지 변환 후 분석합니다.</div>
+          <!-- AI 연결 상태 -->
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:10px 14px;background:rgba(52,168,83,0.07);border:1px solid rgba(52,168,83,0.22);border-radius:var(--radius-sm)">
             <span id="geminiStatusDot" style="width:8px;height:8px;border-radius:50%;background:#34a853;flex-shrink:0"></span>
-            <span style="font-size:12.5px;color:var(--text2);font-weight:600">Gemini 2.5 Flash</span>
+            <span style="font-size:12.5px;color:var(--text2);font-weight:600">AI 분석</span>
             <span id="geminiStatusText" style="font-size:11.5px;color:var(--text3)">연결됨</span>
           </div>
           <!-- Claude key (숨김 — 자동 태깅용) -->
@@ -3765,7 +3765,7 @@
             </label>
           </div>
           <div id="quFileInfo" style="display:none;margin-bottom:16px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);font-size:13px;color:var(--text)"></div>
-          <button class="btn btn-primary" style="width:100%" onclick="extractFromFile()" id="quExtractBtn" disabled>🔮 Gemini로 문제 추출</button>
+          <button class="btn btn-primary" style="width:100%" onclick="extractFromFile()" id="quExtractBtn" disabled>🔮 문제 추출</button>
           <div id="quExtractStatus" style="display:none;margin-top:16px;text-align:center;color:var(--text3);font-size:13px">분석 중...</div>
         </div>
         <!-- 추출 결과 -->
@@ -10569,7 +10569,7 @@ async function extractFromFile() {
     // ════════════════════════════════════════════════════════
     // STEP 1: Claude — 텍스트 추출 + KaTeX + [그림 참조] 마킹
     // ════════════════════════════════════════════════════════
-    _setStep(1, 'running', 'Claude 분석 중...');
+    _setStep(1, 'running', '분석 중...');
     let step1Questions;
     let usedClaudeFallback = false;
 
@@ -10578,7 +10578,7 @@ async function extractFromFile() {
 
       if (skipped) {
         // Claude 키 없음 → Gemini로 폴백
-        _setStep(1, 'skip', 'Claude 키 없음 — Gemini 직접 추출로 대체');
+        _setStep(1, 'skip', '텍스트 추출 건너뜀 — 이미지 직접 분석으로 대체');
         usedClaudeFallback = true;
       } else {
         step1Questions = result;
@@ -10586,13 +10586,13 @@ async function extractFromFile() {
       }
     } catch(e1) {
       console.warn('[Claude 추출] 실패, Gemini 폴백:', e1);
-      _setStep(1, 'error', 'Claude 실패 — Gemini 직접 추출로 대체');
+      _setStep(1, 'error', '텍스트 추출 실패 — 이미지 직접 분석으로 대체');
       usedClaudeFallback = true;
     }
 
     if (usedClaudeFallback) {
       // Gemini 직접 추출 (그림 설명 포함)
-      _setStep(1, 'running', isPdf ? 'PDF 이미지 변환 중...' : 'Gemini 분석 중...');
+      _setStep(1, 'running', isPdf ? 'PDF 이미지 변환 중...' : '분석 중...');
       let fbImages, fbMimes;
       if (isPdf) {
         fbImages = await pdfToPageImages(file, (cur, total) => {
@@ -10610,7 +10610,7 @@ async function extractFromFile() {
         const qs = await _geminiCallBatch(fbImages.slice(i, i+FBATCH), fbMimes.slice(i, i+FBATCH));
         step1Questions = step1Questions.concat(qs);
       }
-      _setStep(1, 'done', `${step1Questions.length}개 추출 완료 (Gemini)`);
+      _setStep(1, 'done', `${step1Questions.length}개 추출 완료`);
     }
 
     // ════════════════════════════════════════════════════════
@@ -10622,7 +10622,7 @@ async function extractFromFile() {
 
     if (usedClaudeFallback) {
       // Gemini 폴백은 이미 그림 설명 포함 → 2단계 불필요
-      _setStep(2, 'skip', 'Gemini 직접 추출 — 그림 설명 포함됨');
+      _setStep(2, 'skip', '이미지 직접 분석 — 그림 설명 포함됨');
     } else {
       const hasFigures = step1Questions.some(q => (q.content || '').includes('[그림 참조]'));
       if (!hasFigures) {
@@ -10665,7 +10665,7 @@ async function extractFromFile() {
     showToast('추출 실패: ' + e.message, '❌');
     console.error('[extractFromFile]', e);
   } finally {
-    btn.disabled = false; btn.textContent = '🔮 Gemini로 문제 추출';
+    btn.disabled = false; btn.textContent = '🔮 문제 추출';
     status.style.display = 'none';
   }
 }
@@ -10695,20 +10695,58 @@ function renderExtractedQuestions(list) {
         <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px" onclick="exToggleEdit(${i})">✏️ 편집</button>
       </div>
       <!-- KaTeX 렌더링 미리보기 -->
-      <div id="exPreview-${i}" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;background:var(--bg2);color:var(--text);white-space:pre-wrap;line-height:1.9;min-height:40px">${_exEsc(q.content || '')}</div>
+      <div id="exPreview-${i}" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;background:var(--bg2);color:var(--text);white-space:pre-wrap;line-height:1.9;min-height:40px"></div>
       <!-- 편집용 영역 (기본 숨김) -->
       <div id="exEdit-${i}" style="display:none;margin-top:8px">
         <textarea id="exContent-${i}" rows="5" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box" oninput="exUpdatePreview(${i})">${_exEsc(q.content || '')}</textarea>
       </div>
       <!-- 정답 -->
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
-        <span style="font-size:12px;color:var(--text2);white-space:nowrap">정답</span>
-        <input type="text" id="exAnswer-${i}" placeholder="정답 (없으면 빈칸)" value="${_exEsc(q.answer || '')}" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text)">
+      <div style="margin-top:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--text2);white-space:nowrap">정답</span>
+          <input type="text" id="exAnswer-${i}" placeholder="정답 (없으면 빈칸)" value="${_exEsc(q.answer || '')}" oninput="exUpdateAnswerPreview(${i})" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text)">
+        </div>
+        <div id="exAnswerPreview-${i}" style="margin-top:4px;padding:4px 10px;min-height:20px;font-size:13px;color:var(--text);line-height:1.8"></div>
       </div>
     </div>`).join('');
 
-  // innerHTML 설정 후 KaTeX 렌더링
-  _exRenderMath(listEl);
+  // innerHTML 설정 후 각 질문별로 미리보기 렌더링
+  list.forEach((q, i) => {
+    const previewEl = document.getElementById('exPreview-' + i);
+    if (previewEl) _renderPreviewContent(previewEl, q.content || '');
+    const answerEl = document.getElementById('exAnswerPreview-' + i);
+    if (answerEl) _renderAnswerPreview(answerEl, q.answer || '');
+  });
+}
+
+// 콘텐츠를 preview 요소에 렌더링 — [그림: ...] 보호 + KaTeX 처리
+function _renderPreviewContent(el, rawText) {
+  // [그림 ...] 패턴을 span으로 감싸서 KaTeX가 건드리지 못하게 함
+  const parts = rawText.split(/(\[그림[^\]]*\])/g);
+  el.innerHTML = '';
+  parts.forEach(part => {
+    if (/^\[그림[^\]]*\]$/.test(part)) {
+      const span = document.createElement('span');
+      span.className = 'ex-fig-ref';
+      span.textContent = part;
+      span.style.cssText = 'display:inline-block;padding:1px 6px;background:var(--accent2,#e8f4ff);color:var(--accent,#2563eb);border-radius:4px;font-size:12px;font-weight:600;margin:0 2px;';
+      el.appendChild(span);
+    } else if (part) {
+      const textNode = document.createTextNode(part);
+      el.appendChild(textNode);
+    }
+  });
+  // KaTeX 렌더링 — ex-fig-ref 클래스는 건너뜀
+  if (typeof renderMathInElement === 'function') {
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true  },
+        { left: '$',  right: '$',  display: false }
+      ],
+      throwOnError: false,
+      ignoredClasses: ['ex-fig-ref']
+    });
+  }
 }
 
 function _exRenderMath(el) {
@@ -10718,7 +10756,8 @@ function _exRenderMath(el) {
         { left: '$$', right: '$$', display: true  },
         { left: '$',  right: '$',  display: false }
       ],
-      throwOnError: false
+      throwOnError: false,
+      ignoredClasses: ['ex-fig-ref']
     });
   }
 }
@@ -10733,9 +10772,28 @@ function exUpdatePreview(i) {
   const ta      = document.getElementById('exContent-' + i);
   const preview = document.getElementById('exPreview-'  + i);
   if (!ta || !preview) return;
-  // textContent로 설정하면 자동 HTML 이스케이프 + KaTeX 재처리 가능
-  preview.textContent = ta.value;
-  _exRenderMath(preview);
+  _renderPreviewContent(preview, ta.value);
+}
+
+function exUpdateAnswerPreview(i) {
+  const input   = document.getElementById('exAnswer-' + i);
+  const preview = document.getElementById('exAnswerPreview-' + i);
+  if (!input || !preview) return;
+  _renderAnswerPreview(preview, input.value);
+}
+
+function _renderAnswerPreview(el, rawText) {
+  if (!rawText.trim()) { el.innerHTML = ''; return; }
+  el.textContent = rawText;
+  if (typeof renderMathInElement === 'function') {
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true  },
+        { left: '$',  right: '$',  display: false }
+      ],
+      throwOnError: false
+    });
+  }
 }
 
 async function saveExtractedQuestions() {
