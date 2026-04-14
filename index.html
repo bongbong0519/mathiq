@@ -5233,6 +5233,7 @@ function _maybeShowEventPopup() {
 function openLpEventPopup() {
   const el = document.getElementById('lpEventPopup');
   if (el) el.style.display = 'flex';
+  sessionStorage.setItem('lpEventPopupSeen', '1');
 }
 function closeLpEventPopup() {
   const el = document.getElementById('lpEventPopup');
