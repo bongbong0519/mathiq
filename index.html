@@ -829,9 +829,9 @@
   .lp-nav-drop { position: relative; }
   .lp-nav-drop:hover > .lp-nav-link svg { transform: rotate(180deg); }
   .lp-dropdown {
-    position: absolute; top: calc(100% + 6px); left: 0;
+    position: absolute; top: 100%; left: 0;
     background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px;
-    padding: 6px; min-width: 136px; z-index: 20;
+    padding: 6px; padding-top: 12px; min-width: 136px; z-index: 20;
     box-shadow: 0 12px 40px rgba(0,0,0,0.12);
     opacity: 0; transform: translateY(-6px); pointer-events: none; transition: all 0.18s;
   }
