@@ -7143,8 +7143,7 @@ async function loadStudentExams() {
   const { data: assignments, error: aErr } = await sbClient
     .from('exam_assignments')
     .select('*, exams(id, title, time_limit, exam_date, unit)')
-    .eq('student_id', effectiveStudentId)
-    .order('created_at', { ascending: false });
+    .eq('student_id', effectiveStudentId);
 
   console.log('[loadStudentExams] Step2 exam_assignments 조회 →', { count: assignments?.length, error: aErr, assignments });
 
