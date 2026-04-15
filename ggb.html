@@ -54,6 +54,9 @@
           }
         });
 
+        // 모든 객체가 화면에 꽉 차도록 줌
+        try { ggb.evalCommand('ZoomIn(All)'); } catch(e) {}
+
         // 실제 점 좌표로 bbox 계산 후 뷰 맞춤
         setTimeout(function() {
           try {

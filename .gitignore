@@ -1,1 +1,4 @@
 config.local.js
+*.py
+*.png
+.claude/
