@@ -7141,7 +7141,7 @@ async function loadStudentExams() {
   }
 
   if (!assignments?.length) {
-    console.warn('[loadStudentExams] 배정된 시험 없음 — student_id:', effectiveStudentId);
+    console.warn('[loadStudentExams] 배정된 시험 없음 — student_id:', student.id);
     wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:12px">📝</div><div class="empty-state-text">배정된 시험이 없습니다</div></div>';
     return;
   }
