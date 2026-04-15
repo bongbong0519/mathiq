@@ -6003,7 +6003,7 @@ async function sgDetectFigureLabels() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: [{
           parts: [
             { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
@@ -6083,7 +6083,7 @@ async function sgExtractTikZ() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: [{
           parts: [
             { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
@@ -6154,7 +6154,7 @@ ${modifiedTikZ}`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: [{ parts: [{ text: prompt }] }]
       })
     });
@@ -11321,7 +11321,7 @@ async function _geminiFillFigures(questions, pageImages) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       systemInstruction: { parts: [{ text: _GEMINI_FIGURE_SYSTEM }] },
       contents: [{ role: 'user', parts }],
       generationConfig: {
@@ -11408,7 +11408,7 @@ async function _geminiCallBatch(base64Images, mimeTypes) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts }],
       generationConfig: { maxOutputTokens: 8192, temperature: 0 }
     })
@@ -11437,7 +11437,7 @@ async function _geminiCropBbox(pageBase64, questionContent) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       systemInstruction: { parts: [{ text: 'You are a JSON-only API. Output only raw JSON. No markdown, no explanation, no code blocks.' }] },
       contents: [{ role: 'user', parts: [
         { inline_data: { mime_type: 'image/jpeg', data: pageBase64 } },
