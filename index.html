@@ -6118,9 +6118,9 @@ async function sgExtractTikZ() {
 async function sgGenerateSVG(imageData, imageType, changedValues, apiKey) {
   if (!imageData || !apiKey) return null;
 
-  const changesList = (changedValues || []).map(cv => `"${cv.original}" → "${cv.new}"`).join(', ');
+  const changesList = (changedValues || []).map(cv => `${cv.original} → ${cv.new}`).join(', ');
   const changesInstruction = changedValues?.length
-    ? `\n\n[중요] 다음 치수 라벨들을 반드시 교체하세요:\n${changesList}\n원본 그림의 구조와 레이아웃은 그대로 유지하되, 위 값들만 새 값으로 바꿔서 그려주세요.`
+    ? `\n\n원본 이미지와 동일한 구조로 SVG를 그리되, 다음 치수 라벨을 교체해줘: ${changesList}`
     : '';
 
   const systemPrompt = `당신은 수학 그림 전문 SVG 생성기입니다.
