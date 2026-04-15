@@ -6446,38 +6446,23 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (!match) throw new Error('응답 형식 오류');
     const parsed = JSON.parse(match[0]);
     console.log('[sgGenerate] 파싱 완료, 문제 수:', parsed.problems?.length);
-    // 이미지 입력 시: TikZ 파이프라인 또는 라벨 교체로 문제별 그림 생성
+    // 이미지 입력 시: TikZ → SVG 파이프라인으로 문제별 그림 생성
     let figureDataUrls = null;
     let figureSvgs = null;
     if (input.type === 'image') {
       if (sg.tikzCode) {
-        // TikZ 파이프라인: Gemini가 TikZ를 SVG로 변환 (changed_values 적용)
+        // TikZ 파이프라인: TikZ 코드에 changed_values 적용 후 SVG로 변환
         document.getElementById('sg-loading-text').textContent = 'TikZ → SVG 변환 중...';
         figureSvgs = await Promise.all((parsed.problems || []).map(async (p) => {
           const svg = await sgTikZToSVG(sg.tikzCode, p.changed_values);
           return svg || null;
         }));
-        // SVG 변환 실패한 문제는 라벨 교체 이미지로 fallback
-        const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
-        figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, i) => {
-          if (figureSvgs[i]) return null; // SVG 있으면 이미지 불필요
-          if (sg.figureLabels?.length && p.changed_values?.length) {
-            const modified = await sgApplyValueReplacements(p.changed_values);
-            if (modified) return `data:${sg.imageType || 'image/png'};base64,${modified}`;
-          }
-          return baseDataUrl;
-        }));
+        // SVG만 사용, 원본 이미지 fallback 없음
+        figureDataUrls = (parsed.problems || []).map(() => null);
       } else {
-        // TikZ 없음: 라벨 교체 이미지 사용
-        document.getElementById('sg-loading-text').textContent = '그림 라벨 교체 중...';
+        // TikZ 없음: 원본 이미지 사용 (라벨 교체 없음)
         const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
-        figureDataUrls = await Promise.all((parsed.problems || []).map(async (p) => {
-          if (sg.figureLabels?.length && p.changed_values?.length) {
-            const modified = await sgApplyValueReplacements(p.changed_values);
-            if (modified) return `data:${sg.imageType || 'image/png'};base64,${modified}`;
-          }
-          return baseDataUrl;
-        }));
+        figureDataUrls = (parsed.problems || []).map(() => baseDataUrl);
       }
     }
     sgRenderResults(parsed, hint, figureDataUrls, figureSvgs);
