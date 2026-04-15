@@ -6370,84 +6370,21 @@ pos는 수학 좌표계 기준. viewport를 문제에 맞게 설정하세요.`;
 //  GeoGebra 연동
 // ═══════════════════════════════════════
 
-let _ggbLoadPromise = null;
-function sgLoadGeoGebra() {
-  if (_ggbLoadPromise) return _ggbLoadPromise;
-  if (window.GGBApplet) { _ggbLoadPromise = Promise.resolve(); return _ggbLoadPromise; }
-  _ggbLoadPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://www.geogebra.org/apps/deployggb.js';
-    s.onload = () => { console.log('[GeoGebra] deployggb.js 로드 완료'); resolve(); };
-    s.onerror = () => { _ggbLoadPromise = null; reject(new Error('deployggb.js 로드 실패')); };
-    document.head.appendChild(s);
-  });
-  return _ggbLoadPromise;
-}
+// GeoGebra는 /ggb.html (same-origin) iframe으로 임베드 — deployggb.js 메인 페이지 불필요
+function sgLoadGeoGebra() { return Promise.resolve(); } // 호환성 유지용 stub
 
-function sgInitGeoGebra(containerEl, appId, commands) {
-  // ── inject()는 string ID 필수 ──
-  if (!containerEl.id) containerEl.id = 'ggb-auto-' + appId;
-  const containerId = containerEl.id;
-  console.log('[GeoGebra] sgInitGeoGebra() 시작 ▶', { containerId, appId, commands });
-  console.log('[GeoGebra] 컨테이너 크기:', containerEl.offsetWidth, '×', containerEl.offsetHeight);
-  console.log('[GeoGebra] window.GGBApplet 존재:', typeof window.GGBApplet);
-
-  // Global callback — GGBApplet calls window[cbName]()
-  const cbName = '_ggbCb_' + appId;
-  let cbFired = false;
-  window[cbName] = function() {
-    cbFired = true;
-    console.log('[GeoGebra] ✅ appletOnLoad 콜백 실행 —', appId);
-    const api = window[appId];
-    if (!api) {
-      console.error('[GeoGebra] window.' + appId + ' 없음 — API 획득 실패');
-      return;
-    }
-    console.log('[GeoGebra] API 획득 완료, 명령어', commands.length, '개 실행');
-    commands.forEach(cmd => {
-      try {
-        const ok = api.evalCommand(cmd);
-        console.log(`[GeoGebra]   evalCommand("${cmd}") →`, ok);
-      } catch(e) {
-        console.warn('[GeoGebra]   명령어 실패:', cmd, e.message);
-      }
-    });
-    try { api.setCoordSystem(-1, 8, -1, 8); } catch(e) {}
-    delete window[cbName];
-  };
-
-  // 15초 후에도 콜백 안 불리면 경고
-  setTimeout(() => {
-    if (!cbFired) {
-      console.error('[GeoGebra] ⚠️ 15초 후에도 appletOnLoad 미실행 —', appId,
-        '(iframe 존재:', !!containerEl.querySelector('iframe'), ')');
-    }
-  }, 15000);
-
-  const params = {
-    appName: 'geometry',
-    width: 480,
-    height: 260,
-    showToolBar: false,
-    showAlgebraInput: false,
-    showMenuBar: false,
-    enableRightClick: false,
-    enableShiftDragZoom: true,
-    showResetIcon: true,
-    language: 'ko',
-    id: appId,
-    appletOnLoad: cbName,
-  };
-  console.log('[GeoGebra] GGBApplet params:', params);
-
+function sgInitGeoGebra(containerEl, commands) {
   try {
-    const applet = new GGBApplet(params, true);
-    console.log('[GeoGebra] GGBApplet 인스턴스 생성 완료, inject("' + containerId + '") 호출');
-    applet.inject(containerId);   // ← string ID 전달
-    console.log('[GeoGebra] inject() 반환 — DOM 확인:', containerEl.innerHTML.slice(0, 80));
+    const cmds = encodeURIComponent(JSON.stringify(commands));
+    containerEl.innerHTML =
+      `<iframe src="/ggb.html?cmds=${cmds}"
+        style="width:100%;height:100%;border:none;display:block"
+        loading="lazy" allow="fullscreen" title="GeoGebra 수학 그래프"></iframe>`;
+    console.log('[GeoGebra] iframe 생성 → /ggb.html, 명령어:', commands);
   } catch(e) {
-    console.error('[GeoGebra] inject 예외:', e);
-    containerEl.innerHTML = '<span style="font-size:11px;color:var(--red)">GeoGebra 초기화 실패: ' + e.message + '</span>';
+    console.error('[GeoGebra] iframe 생성 실패:', e);
+    containerEl.innerHTML =
+      '<div style="padding:12px;font-size:11px;color:var(--red)">GeoGebra 초기화 실패: ' + e.message + '</div>';
   }
 }
 
@@ -6548,19 +6485,10 @@ for (let i = 0; i < problems.length; i++) {
       </div>`;
     list.appendChild(card);
 
-    // GeoGebra 렌더링
+    // GeoGebra 렌더링 (same-origin /ggb.html iframe)
     if (hasGgb) {
       const ggbEl = document.getElementById(`ggb-${i}`);
-      if (ggbEl) {
-        const appId = `ggbApp_${i}_${Date.now()}`;
-        ggbEl.dataset.appId = appId;
-        sgLoadGeoGebra().then(() => {
-          ggbEl.innerHTML = '';
-          sgInitGeoGebra(ggbEl, appId, p.figure_commands);
-        }).catch(() => {
-          ggbEl.innerHTML = '<span style="font-size:11px;color:var(--red)">GeoGebra 로드 실패</span>';
-        });
-      }
+      if (ggbEl) sgInitGeoGebra(ggbEl, p.figure_commands);
     }
 
     // Canvas 도형 렌더링 (fallback)

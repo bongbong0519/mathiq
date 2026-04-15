@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GeoGebra</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; }
+    #ggb-root { width: 100%; height: 100%; }
+    #ggb-error { display: none; padding: 12px; font-size: 12px; color: #e53e3e; font-family: sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="ggb-root"></div>
+  <div id="ggb-error"></div>
+  <script src="https://www.geogebra.org/apps/deployggb.js"></script>
+  <script>
+    function showError(msg) {
+      document.getElementById('ggb-error').style.display = 'block';
+      document.getElementById('ggb-error').textContent = 'GeoGebra 오류: ' + msg;
+    }
+
+    var cmds = [];
+    try {
+      var raw = new URLSearchParams(location.search).get('cmds');
+      cmds = raw ? JSON.parse(decodeURIComponent(raw)) : [];
+    } catch(e) {
+      showError('명령어 파싱 실패: ' + e.message);
+    }
+
+    if (typeof GGBApplet === 'undefined') {
+      showError('deployggb.js 로드 실패');
+    } else {
+      window.ggbOnReady = function() {
+        if (typeof ggbApplet === 'undefined') {
+          showError('ggbApplet 초기화 실패');
+          return;
+        }
+        cmds.forEach(function(cmd) {
+          try { ggbApplet.evalCommand(cmd); } catch(e) {}
+        });
+        try { ggbApplet.setCoordSystem(-1, 9, -1, 7); } catch(e) {}
+      };
+
+      try {
+        new GGBApplet({
+          appName: 'geometry',
+          width: window.innerWidth || 480,
+          height: window.innerHeight || 260,
+          showToolBar: false,
+          showAlgebraInput: false,
+          showMenuBar: false,
+          enableRightClick: false,
+          enableShiftDragZoom: true,
+          showResetIcon: false,
+          language: 'ko',
+          appletOnLoad: 'ggbOnReady'
+        }, true).inject('ggb-root');
+      } catch(e) {
+        showError('초기화 예외: ' + e.message);
+      }
+    }
+  </script>
+</body>
+</html>
