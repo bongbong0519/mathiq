@@ -7076,7 +7076,7 @@ async function submitAddQuestion(examId) {
     question,
     choices,
     answer_index: parseInt(answerEl.value),
-    question_type: 'multiple_choice',
+    type: 'multiple_choice',
     question_number: nextNum
   });
   if(error) { showToast('저장 실패: ' + error.message, '❌'); return; }
