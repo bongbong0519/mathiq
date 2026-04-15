@@ -5597,7 +5597,62 @@ function confirmShare() {
 
 // ── CREATE EXAM ──
 function openCreateExamModal() {
-  document.getElementById('createExamModal').classList.add('open');
+  const modal = document.getElementById('createExamModal');
+  modal.querySelector('.modal-title').textContent = '📝 새 시험 등록';
+  modal.querySelector('.modal-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">시험명</label>
+      <input type="text" id="exam-title-input" class="form-input" placeholder="예) 5월 방정식 단원평가">
+    </div>
+    <div class="form-group">
+      <label class="form-label">관련 단원</label>
+      <select id="exam-unit-select" class="form-input">
+        <option>수와 연산</option><option>문자와 식</option><option>함수</option><option>기하</option><option>확률과 통계</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">난이도 설정</label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <label style="cursor:pointer">
+          <input type="radio" name="difficulty" value="easy" style="display:none">
+          <div class="share-method" id="diff-easy" onclick="selectDiff('easy')">
+            <div class="diff-badge easy" style="justify-content:center;width:100%">● 기본</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">쉬움</div>
+          </div>
+        </label>
+        <label style="cursor:pointer">
+          <input type="radio" name="difficulty" value="normal" style="display:none">
+          <div class="share-method" id="diff-normal" onclick="selectDiff('normal')">
+            <div class="diff-badge normal" style="justify-content:center;width:100%">●● 표준</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">보통</div>
+          </div>
+        </label>
+        <label style="cursor:pointer">
+          <input type="radio" name="difficulty" value="hard" style="display:none">
+          <div class="share-method selected" id="diff-hard" onclick="selectDiff('hard')">
+            <div class="diff-badge hard" style="justify-content:center;width:100%">●●● 도전</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">어려움</div>
+          </div>
+        </label>
+        <label style="cursor:pointer">
+          <input type="radio" name="difficulty" value="expert" style="display:none">
+          <div class="share-method" id="diff-expert" onclick="selectDiff('expert')">
+            <div class="diff-badge expert" style="justify-content:center;width:100%">●●●● 심화</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">최상위</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">시험 날짜</label>
+      <input type="date" id="exam-date-input" class="form-input" value="${new Date().toISOString().slice(0,10)}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">제한 시간 (분)</label>
+      <input type="number" id="exam-time-limit" class="form-input" value="60" min="5" max="300" placeholder="예) 60">
+    </div>
+    <button class="btn btn-primary w-full" onclick="submitCreateExam()">등록하기</button>`;
+  modal.classList.add('open');
 }
 
 function selectDiff(level) {
@@ -6830,9 +6885,9 @@ async function deleteStudent(id) {
 // ── 시험 등록 ──
 async function submitCreateExam() {
   if (!sbClient || !currentUser) return;
-  const title = document.querySelector('#createExamModal input[type=text]').value.trim();
-  const unit = document.querySelector('#createExamModal select').value;
-  const date = document.querySelector('#createExamModal input[type=date]').value;
+  const title = document.getElementById('exam-title-input')?.value.trim() ?? '';
+  const unit = document.getElementById('exam-unit-select')?.value ?? '수와 연산';
+  const date = document.getElementById('exam-date-input')?.value ?? '';
   const diffEl = document.querySelector('#createExamModal .share-method.selected[id^=diff-]');
   const difficulty = diffEl ? diffEl.id.replace('diff-', '') : 'normal';
 
