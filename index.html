@@ -6530,6 +6530,7 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
         await sgExtractTikZ();
       }
       console.log('[sgGenerate] TikZ 코드:', sg.tikzCode ? `있음 (${sg.tikzCode.length}자)` : '없음');
+      if (sg.tikzCode) console.log('[sgGenerate] TikZ 코드 내용:', sg.tikzCode);
 
       if (sg.tikzCode) {
         document.getElementById('sg-loading-text').textContent = 'SVG 그림 생성 중...';
