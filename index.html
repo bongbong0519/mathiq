@@ -6451,6 +6451,12 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     let figureDataUrls = null;
     let figureSvgs = null;
     if (input.type === 'image') {
+      // TikZ 코드가 없으면 먼저 추출 시도
+      if (!sg.tikzCode) {
+        console.log('[sgGenerate] TikZ 코드 없음 → 추출 시도');
+        document.getElementById('sg-loading-text').textContent = 'TikZ 코드 추출 중...';
+        await sgExtractTikZ();
+      }
       console.log('[sgGenerate] TikZ 코드 존재 여부:', !!sg.tikzCode, sg.tikzCode ? `(${sg.tikzCode.length}자)` : '');
       if (sg.tikzCode) {
         // TikZ 파이프라인: TikZ 코드에 changed_values 적용 후 SVG로 변환
