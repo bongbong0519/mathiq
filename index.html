@@ -6385,28 +6385,48 @@ function sgLoadGeoGebra() {
 }
 
 function sgInitGeoGebra(containerEl, appId, commands) {
-  // Store commands and register global callback (GGBApplet calls window[callbackName])
+  // ── inject()는 string ID 필수 ──
+  if (!containerEl.id) containerEl.id = 'ggb-auto-' + appId;
+  const containerId = containerEl.id;
+  console.log('[GeoGebra] sgInitGeoGebra() 시작 ▶', { containerId, appId, commands });
+  console.log('[GeoGebra] 컨테이너 크기:', containerEl.offsetWidth, '×', containerEl.offsetHeight);
+  console.log('[GeoGebra] window.GGBApplet 존재:', typeof window.GGBApplet);
+
+  // Global callback — GGBApplet calls window[cbName]()
   const cbName = '_ggbCb_' + appId;
+  let cbFired = false;
   window[cbName] = function() {
+    cbFired = true;
+    console.log('[GeoGebra] ✅ appletOnLoad 콜백 실행 —', appId);
     const api = window[appId];
-    if (!api) { console.warn('[GeoGebra] API not found:', appId); return; }
-    console.log('[GeoGebra] appletOnLoad — 명령어 실행 시작', commands);
+    if (!api) {
+      console.error('[GeoGebra] window.' + appId + ' 없음 — API 획득 실패');
+      return;
+    }
+    console.log('[GeoGebra] API 획득 완료, 명령어', commands.length, '개 실행');
     commands.forEach(cmd => {
       try {
-        const result = api.evalCommand(cmd);
-        console.log(`[GeoGebra] evalCommand("${cmd}") =`, result);
+        const ok = api.evalCommand(cmd);
+        console.log(`[GeoGebra]   evalCommand("${cmd}") →`, ok);
       } catch(e) {
-        console.warn('[GeoGebra] 명령어 실패:', cmd, e);
+        console.warn('[GeoGebra]   명령어 실패:', cmd, e.message);
       }
     });
-    // Zoom to fit after commands
-    try { api.setCoordSystem(-1, Math.max(6, commands.length * 2), -1, Math.max(6, commands.length * 2)); } catch(e) {}
+    try { api.setCoordSystem(-1, 8, -1, 8); } catch(e) {}
     delete window[cbName];
   };
 
+  // 15초 후에도 콜백 안 불리면 경고
+  setTimeout(() => {
+    if (!cbFired) {
+      console.error('[GeoGebra] ⚠️ 15초 후에도 appletOnLoad 미실행 —', appId,
+        '(iframe 존재:', !!containerEl.querySelector('iframe'), ')');
+    }
+  }, 15000);
+
   const params = {
     appName: 'geometry',
-    width: containerEl.offsetWidth || 480,
+    width: 480,
     height: 260,
     showToolBar: false,
     showAlgebraInput: false,
@@ -6417,14 +6437,16 @@ function sgInitGeoGebra(containerEl, appId, commands) {
     language: 'ko',
     id: appId,
     appletOnLoad: cbName,
-    scaleContainerClass: '',
   };
+  console.log('[GeoGebra] GGBApplet params:', params);
+
   try {
     const applet = new GGBApplet(params, true);
-    applet.inject(containerEl);
-    console.log('[GeoGebra] GGBApplet.inject() 호출:', appId);
+    console.log('[GeoGebra] GGBApplet 인스턴스 생성 완료, inject("' + containerId + '") 호출');
+    applet.inject(containerId);   // ← string ID 전달
+    console.log('[GeoGebra] inject() 반환 — DOM 확인:', containerEl.innerHTML.slice(0, 80));
   } catch(e) {
-    console.error('[GeoGebra] inject 실패:', e);
+    console.error('[GeoGebra] inject 예외:', e);
     containerEl.innerHTML = '<span style="font-size:11px;color:var(--red)">GeoGebra 초기화 실패: ' + e.message + '</span>';
   }
 }
