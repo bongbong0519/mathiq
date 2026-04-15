@@ -5578,7 +5578,8 @@ let sg = {
   imageType: null,
   fileAttached: false,
   generating: false,
-  lastProblems: []
+  lastProblems: [],
+  tikzCode: null
 };
 
 function sgOnApiKey() {
@@ -5688,8 +5689,9 @@ function sgProcessUpload(file, type) {
       document.getElementById('sg-img-dropzone').style.display = 'none';
       document.getElementById('sg-figure-edit').style.display = 'none';
       sgUpdateBtn();
-      // Auto-detect figure labels in background
+      // Auto-detect figure labels + extract TikZ in background
       sgDetectFigureLabels();
+      sgExtractTikZ();
     };
     reader.readAsDataURL(file);
   } else {
@@ -5734,7 +5736,7 @@ function sgProcessUpload(file, type) {
 
 function sgRemoveFile(type) {
   if (type === 'image') {
-    sg.imageData = null; sg.imageType = null; sg.figureLabels = null;
+    sg.imageData = null; sg.imageType = null; sg.figureLabels = null; sg.tikzCode = null;
     document.getElementById('sg-img-preview-wrap').style.display = 'none';
     document.getElementById('sg-img-dropzone').style.display = 'block';
     document.getElementById('sg-img-input').value = '';
@@ -5948,6 +5950,69 @@ function sgSyncFigureCheck(i) {
 }
 
 // Apply checked replacements onto canvas, return modified base64 or null
+// TikZ 파이프라인: 이미지 → TikZ 코드 추출 (Gemini Vision)
+async function sgExtractTikZ() {
+  if (!sg.imageData) return;
+  sg.tikzCode = null;
+  try {
+    const res = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-2.5-flash',
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
+            { text: '이 수학 그림을 분석해서 TikZ 코드로 정확히 재현해줘.\n좌표, 치수 라벨, 각도 마크, 기호 모두 포함.\n반드시 ```tikz\\n...\\n``` 블록으로만 출력하고 다른 텍스트는 절대 포함하지 마세요.' }
+          ]
+        }]
+      })
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = text.match(/```tikz\s*([\s\S]*?)```/i)
+                  || text.match(/(\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/);
+    sg.tikzCode = match ? match[1].trim() : null;
+    console.log('[sgExtractTikZ] 추출 완료:', sg.tikzCode ? sg.tikzCode.slice(0, 80) + '…' : '없음');
+  } catch(e) {
+    console.warn('[sgExtractTikZ] 실패:', e.message);
+    sg.tikzCode = null;
+  }
+}
+
+// TikZ 코드 → SVG 변환 (Gemini), changed_values 적용
+async function sgTikZToSVG(tikzCode, changedValues) {
+  if (!tikzCode) return null;
+  let changeDesc = '';
+  if (changedValues?.length) {
+    changeDesc = '\n변경 사항: ' + changedValues.map(c => `"${c.original}" → "${c.new}"`).join(', ');
+  }
+  const prompt = `다음 TikZ 코드를 SVG(viewBox="0 0 400 320", xmlns="http://www.w3.org/2000/svg")로 변환해줘.${changeDesc}
+수학 그림 특성 유지: 눈금, 치수 라벨, 각도 마크, 기호 포함.
+반드시 <svg ...>...</svg> 태그만 출력하고 다른 텍스트는 절대 포함하지 마세요.
+
+${tikzCode}`;
+  try {
+    const res = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-2.5-flash',
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = text.match(/<svg[\s\S]*?<\/svg>/i);
+    return match ? match[0] : null;
+  } catch(e) {
+    console.warn('[sgTikZToSVG] 실패:', e.message);
+    return null;
+  }
+}
+
 function sgApplyFigureEdits() {
   return new Promise((resolve) => {
     if (!sg.figureLabels?.length) {
@@ -6208,20 +6273,41 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (!match) throw new Error('응답 형식 오류');
     const parsed = JSON.parse(match[0]);
     console.log('[sgGenerate] 파싱 완료, 문제 수:', parsed.problems?.length);
-    // 이미지 입력 시: changed_values로 문제별 개별 이미지 생성
+    // 이미지 입력 시: TikZ 파이프라인 또는 라벨 교체로 문제별 그림 생성
     let figureDataUrls = null;
+    let figureSvgs = null;
     if (input.type === 'image') {
-      document.getElementById('sg-loading-text').textContent = '그림 라벨 교체 중...';
-      const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
-      figureDataUrls = await Promise.all((parsed.problems || []).map(async (p) => {
-        if (sg.figureLabels?.length && p.changed_values?.length) {
-          const modified = await sgApplyValueReplacements(p.changed_values);
-          if (modified) return `data:${sg.imageType || 'image/png'};base64,${modified}`;
-        }
-        return baseDataUrl;
-      }));
+      if (sg.tikzCode) {
+        // TikZ 파이프라인: Gemini가 TikZ를 SVG로 변환 (changed_values 적용)
+        document.getElementById('sg-loading-text').textContent = 'TikZ → SVG 변환 중...';
+        figureSvgs = await Promise.all((parsed.problems || []).map(async (p) => {
+          const svg = await sgTikZToSVG(sg.tikzCode, p.changed_values);
+          return svg || null;
+        }));
+        // SVG 변환 실패한 문제는 라벨 교체 이미지로 fallback
+        const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
+        figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, i) => {
+          if (figureSvgs[i]) return null; // SVG 있으면 이미지 불필요
+          if (sg.figureLabels?.length && p.changed_values?.length) {
+            const modified = await sgApplyValueReplacements(p.changed_values);
+            if (modified) return `data:${sg.imageType || 'image/png'};base64,${modified}`;
+          }
+          return baseDataUrl;
+        }));
+      } else {
+        // TikZ 없음: 라벨 교체 이미지 사용
+        document.getElementById('sg-loading-text').textContent = '그림 라벨 교체 중...';
+        const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
+        figureDataUrls = await Promise.all((parsed.problems || []).map(async (p) => {
+          if (sg.figureLabels?.length && p.changed_values?.length) {
+            const modified = await sgApplyValueReplacements(p.changed_values);
+            if (modified) return `data:${sg.imageType || 'image/png'};base64,${modified}`;
+          }
+          return baseDataUrl;
+        }));
+      }
     }
-    sgRenderResults(parsed, hint, figureDataUrls);
+    sgRenderResults(parsed, hint, figureDataUrls, figureSvgs);
 
     // ── 월 사용 횟수 증가 ──
     if (sbClient && currentUser) {
@@ -6285,7 +6371,7 @@ function sgInitGeoGebra(containerEl, commands) {
   }
 }
 
-function sgRenderResults(data, hintMode, figureDataUrls) {
+function sgRenderResults(data, hintMode, figureDataUrls, figureSvgs) {
   const problems = data.problems || [];
   sg.lastProblems = problems;
 
@@ -6344,15 +6430,17 @@ for (let i = 0; i < problems.length; i++) {
     const hintHtml = (showHint && p.hint) ? `<div style="margin-top:8px;padding:9px 12px;border-radius:7px;background:rgba(183,148,244,0.07);border:1px solid rgba(183,148,244,0.2);font-size:12.5px;color:var(--purple);display:flex;gap:7px;line-height:1.6"><span>💡</span><span>${sgEsc(p.hint)}</span></div>` : '';
 
     const graphId = `desmos-${i}-${Date.now()}`;
-    // 문제별 이미지 URL (배열이면 인덱스로, 단일값이면 그대로)
+    // 문제별 그림 소스: SVG > 이미지 > 없음
+    const figureSvg    = Array.isArray(figureSvgs) ? figureSvgs[i] : null;
     const figureDataUrl = Array.isArray(figureDataUrls) ? figureDataUrls[i] : figureDataUrls;
     // GeoGebra는 함수·그래프 문제(y=, f(x), 함수, 그래프 키워드)에만 사용
     const GRAPH_RE = /y\s*=|f\s*\(x\)|함수|그래프/;
     const hasGgb   = Array.isArray(p.figure_commands) && p.figure_commands.length > 0
                      && GRAPH_RE.test(p.question);
     const hasGraph = !hasGgb && !!(p.figure);
-    // 이미지 입력일 때: 함수/그래프 GeoGebra가 없는 경우 원본(수정) 이미지 표시
-    const showFigureImg = !!figureDataUrl && !hasGgb;
+    // TikZ SVG 우선, 없으면 이미지 (함수/그래프 GeoGebra가 없을 때)
+    const showFigureSvg = !!figureSvg && !hasGgb;
+    const showFigureImg = !showFigureSvg && !!figureDataUrl && !hasGgb;
 
     const card = document.createElement('div');
     card.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;animation:slideUp 0.3s ease both';
@@ -6371,6 +6459,7 @@ for (let i = 0; i < problems.length; i++) {
       </div>
       <div style="padding:14px">
         <div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:keep-all">${sgEsc(p.question)}</div>
+        ${showFigureSvg ? `<div style="width:100%;max-height:260px;overflow:hidden;border-radius:8px;margin:12px 0;border:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box">${figureSvg}</div>` : ''}
         ${showFigureImg ? `<img src="${figureDataUrl}" style="width:100%;max-height:260px;object-fit:contain;border-radius:8px;margin:12px 0;border:1px solid var(--border);display:block;background:var(--bg2)">` : ''}
         ${hasGgb   ? `<div id="ggb-${i}" style="width:100%;height:300px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border);position:relative"></div>` : ''}
         ${hasGraph ? `<div id="${graphId}" style="width:100%;height:240px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border)"></div>` : ''}
