@@ -2752,6 +2752,24 @@
                 <img id="sg-img-preview" style="width:100%;object-fit:contain;background:var(--bg3)">
                 <button onclick="sgRemoveFile('image')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:1px solid var(--border2);color:var(--text);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px">✕</button>
               </div>
+
+              <!-- Figure Label Edit Panel (shown after Gemini detection) -->
+              <div id="sg-figure-edit" style="display:none;margin-top:12px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">🔍 그림 내 치수 라벨</div>
+                  <button onclick="sgRedetectLabels()" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;padding:0">↺ 재감지</button>
+                </div>
+                <div id="sg-figure-detecting" style="display:none;padding:10px;text-align:center;font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm)">
+                  <span style="animation:pulse 1s infinite">🔍</span> Gemini Vision으로 라벨 감지 중...
+                </div>
+                <div id="sg-figure-none" style="display:none;padding:10px;text-align:center;font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm)">
+                  그림 내 치수 라벨을 찾지 못했습니다
+                </div>
+                <div id="sg-figure-labels" style="display:flex;flex-direction:column;gap:5px"></div>
+                <div id="sg-figure-warn" style="display:none;margin-top:6px;font-size:11px;color:var(--yellow);background:rgba(246,173,85,0.06);border:1px solid rgba(246,173,85,0.2);border-radius:var(--radius-sm);padding:7px 9px">
+                  ⚠️ 일부 라벨은 문제 본문과 위치가 겹쳐 교체 시 텍스트가 손상될 수 있습니다
+                </div>
+              </div>
             </div>
 
             <!-- Text Tab -->
@@ -5779,10 +5797,14 @@ function sgProcessUpload(file, type) {
     reader.onload = ev => {
       sg.imageData = ev.target.result.split(',')[1];
       sg.imageType = file.type;
+      sg.figureLabels = null;
       document.getElementById('sg-img-preview').src = ev.target.result;
       document.getElementById('sg-img-preview-wrap').style.display = 'block';
       document.getElementById('sg-img-dropzone').style.display = 'none';
+      document.getElementById('sg-figure-edit').style.display = 'none';
       sgUpdateBtn();
+      // Auto-detect figure labels in background
+      sgDetectFigureLabels();
     };
     reader.readAsDataURL(file);
   } else {
@@ -5827,10 +5849,11 @@ function sgProcessUpload(file, type) {
 
 function sgRemoveFile(type) {
   if (type === 'image') {
-    sg.imageData = null; sg.imageType = null;
+    sg.imageData = null; sg.imageType = null; sg.figureLabels = null;
     document.getElementById('sg-img-preview-wrap').style.display = 'none';
     document.getElementById('sg-img-dropzone').style.display = 'block';
     document.getElementById('sg-img-input').value = '';
+    document.getElementById('sg-figure-edit').style.display = 'none';
   } else {
     sg.fileAttached = false;
     sg.pendingFile = null;
@@ -5929,6 +5952,164 @@ function sgAnimateSteps() {
       el.style.color = 'var(--accent)';
       el.firstElementChild.style.background = 'var(--accent)';
     }, delays[i]);
+  });
+}
+
+// ═══════════════════════════════════════
+//  그림 치수 라벨 감지 + 교체 (Figure Label Editor)
+// ═══════════════════════════════════════
+
+// Convert simple LaTeX strings to displayable unicode
+function sgLatexToDisplay(str) {
+  return str
+    .replace(/\\sqrt\{\s*([^}]+)\s*\}/g, '√($1)')
+    .replace(/\\sqrt\s+(\S+)/g, '√$1')
+    .replace(/\\frac\{\s*([^}]+)\s*\}\{\s*([^}]+)\s*\}/g, '($1)/($2)')
+    .replace(/\^2/g, '²').replace(/\^3/g, '³')
+    .replace(/\\times/g, '×').replace(/\\div/g, '÷')
+    .replace(/\\pi/g, 'π').replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β')
+    .replace(/\\/g, '');
+}
+
+// Detect figure labels via Gemini Vision
+async function sgDetectFigureLabels() {
+  if (!sg.imageData) return;
+  const panel = document.getElementById('sg-figure-edit');
+  const detecting = document.getElementById('sg-figure-detecting');
+  const noneEl = document.getElementById('sg-figure-none');
+  const labelsEl = document.getElementById('sg-figure-labels');
+  const warnEl = document.getElementById('sg-figure-warn');
+
+  panel.style.display = 'block';
+  detecting.style.display = 'block';
+  noneEl.style.display = 'none';
+  labelsEl.innerHTML = '';
+  warnEl.style.display = 'none';
+  sg.figureLabels = null;
+
+  try {
+    const res = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-2.5-flash',
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
+            { text: '이 이미지에서 수학 그림/도형 영역 안에 있는 치수 라벨(숫자, 수식)만 찾아줘.\n문제 텍스트나 선택지는 제외.\n반환 형식(JSON만, 마크다운 없이):\n{"numbers":[{"text":"라벨","x":0.0,"y":0.0,"w":0.05,"h":0.03}]}\nx,y는 라벨 중심의 비율 좌표(0~1), w,h는 너비/높이 비율.' }
+          ]
+        }]
+      })
+    });
+    if (!res.ok) throw new Error('Gemini API error');
+    const data = await res.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      const nums = (parsed.numbers || []).map(n => ({
+        text: n.text,
+        x: parseFloat(n.x) || 0,
+        y: parseFloat(n.y) || 0,
+        w: parseFloat(n.w || n.width) || 0.05,
+        h: parseFloat(n.h || n.height) || 0.03
+      }));
+      sg.figureLabels = nums;
+      sgRenderFigurePanel(nums);
+    } else {
+      sg.figureLabels = [];
+      noneEl.style.display = 'block';
+    }
+  } catch(e) {
+    sg.figureLabels = [];
+    noneEl.style.display = 'block';
+  } finally {
+    detecting.style.display = 'none';
+  }
+}
+
+function sgRedetectLabels() {
+  sgDetectFigureLabels();
+}
+
+function sgRenderFigurePanel(labels) {
+  const labelsEl = document.getElementById('sg-figure-labels');
+  const noneEl = document.getElementById('sg-figure-none');
+  const warnEl = document.getElementById('sg-figure-warn');
+  if (!labels.length) {
+    noneEl.style.display = 'block';
+    return;
+  }
+  let hasRisky = false;
+  labelsEl.innerHTML = labels.map((lb, i) => {
+    const risky = lb.y < 0.22; // top 22% likely overlaps problem text
+    if (risky) hasRisky = true;
+    return `<div style="display:flex;align-items:center;gap:7px;padding:7px 9px;background:var(--bg3);border:1px solid ${risky ? 'rgba(246,173,85,0.3)' : 'var(--border)'};border-radius:var(--radius-sm)">
+      <input type="checkbox" id="sg-fl-check-${i}" ${risky ? '' : ''} style="width:14px;height:14px;cursor:pointer;flex-shrink:0" onchange="sgSyncFigureCheck(${i})">
+      <span style="font-size:12px;font-family:'Space Mono',monospace;color:${risky ? 'var(--yellow)' : 'var(--text)'};min-width:54px;flex-shrink:0" title="${risky ? '문제 텍스트와 겹칠 수 있음' : ''}">${escapeHtml(lb.text)}${risky ? ' ⚠' : ''}</span>
+      <span style="font-size:10px;color:var(--text3)">→</span>
+      <input type="text" id="sg-fl-new-${i}" placeholder="새 값 (예: 3+√5)"
+        style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;font-family:'Space Mono',monospace;padding:4px 7px;outline:none;min-width:0"
+        oninput="sgSyncFigureCheck(${i})">
+    </div>`;
+  }).join('');
+  if (hasRisky) warnEl.style.display = 'block';
+}
+
+function sgSyncFigureCheck(i) {
+  const val = document.getElementById(`sg-fl-new-${i}`)?.value?.trim();
+  const check = document.getElementById(`sg-fl-check-${i}`);
+  if (check && val) check.checked = true;
+}
+
+// Apply checked replacements onto canvas, return modified base64 or null
+function sgApplyFigureEdits() {
+  return new Promise((resolve) => {
+    if (!sg.figureLabels?.length) { resolve(null); return; }
+    const replacements = [];
+    sg.figureLabels.forEach((lb, i) => {
+      const check = document.getElementById(`sg-fl-check-${i}`);
+      const newVal = document.getElementById(`sg-fl-new-${i}`)?.value?.trim();
+      if (check?.checked && newVal) replacements.push({ ...lb, newText: newVal });
+    });
+    if (!replacements.length) { resolve(null); return; }
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      replacements.forEach(r => {
+        const cx = r.x * img.naturalWidth;
+        const cy = r.y * img.naturalHeight;
+        const bw = r.w * img.naturalWidth;
+        const bh = r.h * img.naturalHeight;
+        const pad = Math.max(4, bh * 0.3);
+        // Sample background color near bbox top-left
+        const sample = ctx.getImageData(Math.max(0, cx - bw/2 - 10), Math.max(0, cy - bh/2 - 5), 4, 4);
+        let rSum=0,gSum=0,bSum=0;
+        for(let k=0;k<sample.data.length;k+=4){rSum+=sample.data[k];gSum+=sample.data[k+1];bSum+=sample.data[k+2];}
+        const n=sample.data.length/4;
+        const bg = `rgb(${Math.round(rSum/n)},${Math.round(gSum/n)},${Math.round(bSum/n)})`;
+        // Erase
+        ctx.fillStyle = bg;
+        ctx.fillRect(cx - bw/2 - pad, cy - bh/2 - pad, bw + pad*2, bh + pad*2);
+        // Render new text
+        const fontSize = Math.max(Math.round(bh * 0.85), 11);
+        ctx.fillStyle = '#000000';
+        ctx.font = `${fontSize}px "Times New Roman", serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(sgLatexToDisplay(r.newText), cx, cy);
+      });
+
+      resolve(canvas.toDataURL(sg.imageType || 'image/png').split(',')[1]);
+    };
+    img.onerror = () => resolve(null);
+    img.src = `data:${sg.imageType || 'image/png'};base64,${sg.imageData}`;
   });
 }
 
@@ -6055,11 +6236,36 @@ elements 종류:
 - 텍스트: {"type":"label","pos":[3,2],"text":"x","color":"#f6ad55"}
 - 점선: {"type":"segment","from":"A","to":"B","dash":[4,4],"color":"#718096"}
 pos는 수학 좌표계 기준. viewport를 문제에 맞게 설정하세요.`;
+  // ── 그림 라벨 교체가 있으면 먼저 이미지 수정 ──
+  let editedImageData = null;
+  if (input.type === 'image' && sg.figureLabels?.length) {
+    try {
+      document.getElementById('sg-loading-text').textContent = '그림 라벨 교체 중...';
+      editedImageData = await sgApplyFigureEdits();
+      document.getElementById('sg-loading-text').textContent = '문제 분석 중...';
+    } catch(e) { editedImageData = null; }
+  }
+
+  // Build description of changes for Claude context
+  let figureEditDesc = '';
+  if (sg.figureLabels?.length) {
+    const changes = [];
+    sg.figureLabels.forEach((lb, i) => {
+      const check = document.getElementById(`sg-fl-check-${i}`);
+      const newVal = document.getElementById(`sg-fl-new-${i}`)?.value?.trim();
+      if (check?.checked && newVal) changes.push(`"${lb.text}" → "${newVal}"`);
+    });
+    if (changes.length) {
+      figureEditDesc = `\n\n[그림 내 치수 변경 사항]\n${changes.join(', ')}\n이 변경된 치수를 기반으로 문제를 재해석하고 유사문제를 생성하세요.`;
+    }
+  }
+
   let messages;
+  const imageDataToSend = editedImageData || input.data;
   if (input.type === 'image') {
     messages = [{ role:'user', content:[
-      { type:'image', source:{ type:'base64', media_type:input.mediaType, data:input.data }},
-      { type:'text', text:`이 시험지를 분석하세요. ${countInstruction} 난이도는 ${diffMap[diff]}, 유형은 ${typeMap[type]}. ${hintMap[hint]}.` }
+      { type:'image', source:{ type:'base64', media_type:input.mediaType, data:imageDataToSend }},
+      { type:'text', text:`이 시험지를 분석하세요. ${countInstruction} 난이도는 ${diffMap[diff]}, 유형은 ${typeMap[type]}. ${hintMap[hint]}.${figureEditDesc}` }
     ]}];
   } else if (input.type === 'pdf') {
     messages = [{ role:'user', content:[
