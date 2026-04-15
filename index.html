@@ -2976,8 +2976,48 @@
 
     <!-- ══ 학생: 시험 응시 ══ -->
     <div id="view-student-exams" class="view" style="display:none">
-      <div class="page-header"><div><h2 class="page-title">시험 응시</h2><p class="page-subtitle">배정된 시험을 확인하고 응시합니다</p></div></div>
-      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📝</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">온라인 시험 응시, 자동 채점, 오답 분석 기능이<br>곧 추가될 예정입니다.</div></div></div>
+
+      <!-- ── 상태 1: 시험 목록 ── -->
+      <div id="se-list-state">
+        <div class="page-header"><div><h2 class="page-title">시험 응시</h2><p class="page-subtitle">배정된 시험을 확인하고 응시합니다</p></div></div>
+        <div id="se-exam-list" class="card" style="padding:20px">
+          <div class="empty-state" style="padding:40px"><div style="font-size:36px;margin-bottom:12px">📝</div><div class="empty-state-text">로딩 중...</div></div>
+        </div>
+      </div>
+
+      <!-- ── 상태 2: 시험 응시 화면 ── -->
+      <div id="se-taking-state" style="display:none;flex-direction:column;min-height:calc(100vh - 120px)">
+        <!-- 헤더 -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0">
+          <div style="font-size:14px;font-weight:700;color:var(--text);max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="se-exam-title-text"></div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="font-size:13px;color:var(--text2)">문제 <span id="se-q-counter" style="font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)">1 / 1</span></div>
+            <div id="se-timer" style="font-size:15px;font-weight:800;font-family:'Space Mono',monospace;color:var(--text2);background:var(--bg3);padding:6px 12px;border-radius:8px;border:1px solid var(--border)">60:00</div>
+          </div>
+        </div>
+
+        <!-- 문제 영역 -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;flex:1;margin-bottom:14px">
+          <div id="se-question-text" style="margin-bottom:20px"></div>
+          <div id="se-choices"></div>
+        </div>
+
+        <!-- 하단: 답안 점 + 내비 버튼 -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div id="se-dots" style="display:flex;flex-wrap:wrap;gap:6px;flex:1;margin-right:16px"></div>
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            <button id="se-prev-btn" class="btn btn-ghost btn-sm" onclick="goExamPrev()">← 이전</button>
+            <button id="se-next-btn" class="btn btn-primary btn-sm" onclick="goExamNext()">다음 →</button>
+            <button id="se-submit-btn" class="btn btn-sm" style="display:none;background:var(--green);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer" onclick="confirmSubmitExam()">제출하기 ✓</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 상태 3: 제출 완료 ── -->
+      <div id="se-done-state" style="display:none">
+        <div class="page-header"><div><h2 class="page-title">시험 응시</h2></div></div>
+        <div class="card" id="se-done-content" style="padding:20px"></div>
+      </div>
     </div>
 
     <!-- ══ 학생: 수업 자료 ══ -->
@@ -4217,7 +4257,35 @@
         <label class="form-label">시험 날짜</label>
         <input type="date" class="form-input" value="2025-05-01">
       </div>
+      <div class="form-group">
+        <label class="form-label">제한 시간 (분)</label>
+        <input type="number" id="exam-time-limit" class="form-input" value="60" min="5" max="300" placeholder="예) 60">
+      </div>
       <button class="btn btn-primary w-full" onclick="submitCreateExam()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 시험 시작 확인 모달 -->
+<div class="modal-overlay" id="seStartModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">📝 시험 시작</div>
+      <button class="modal-close" onclick="closeModal('seStartModal')">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:28px 24px">
+      <div style="font-size:36px;margin-bottom:14px">⏱</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px" id="se-start-title"></div>
+      <div style="font-size:14px;color:var(--text3);margin-bottom:20px">제한 시간: <strong style="color:var(--accent)" id="se-start-time"></strong></div>
+      <div style="font-size:13px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:24px;line-height:1.7;text-align:left">
+        • 시험 시작 후 제한 시간이 카운트됩니다.<br>
+        • 시간 초과 시 자동으로 제출됩니다.<br>
+        • 이미 제출한 시험은 재응시할 수 없습니다.
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost w-full" onclick="closeModal('seStartModal')">취소</button>
+        <button class="btn btn-primary w-full" id="se-start-btn">시작하기 →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -5466,6 +5534,7 @@ function showView(viewId) {
         if (viewId === 'admin-students') loadAdminStudents().catch(() => {});
         if (viewId === 'tutor-profile')  loadTutorProfile().catch(() => {});
         if (viewId === 'student-search') loadStudentSearch().catch(() => {});
+        if (viewId === 'student-exams')  loadStudentExams().catch(() => {});
         if (viewId === 'tutor-search')   loadTutorSearch().catch(() => {});
         if (viewId === 'tutee-register') loadTuteeRegister().catch(() => {});
         if (viewId === 'sms')            loadSmsView();
@@ -6769,9 +6838,12 @@ async function submitCreateExam() {
 
   if (!title) { showToast('시험명을 입력해주세요', '⚠️'); return; }
 
+  const timeLimitEl = document.getElementById('exam-time-limit');
+  const timeLimit = Math.max(5, parseInt(timeLimitEl?.value || '60', 10) || 60);
+
   const { error } = await sbClient.from('exams').insert({
     teacher_id: currentUser.id,
-    title, unit, difficulty, exam_date: date || null
+    title, unit, difficulty, exam_date: date || null, time_limit: timeLimit
   });
 
   if (error) { showToast('오류: ' + error.message, '❌'); return; }
@@ -6821,19 +6893,20 @@ async function deleteExam(id) {
   loadDashboard();
 }
 async function loadExamQuestions(examId, title) {
-  const [{ data: questions }, { data: assignments }, { data: allStudents }] = await Promise.all([
+  const [{ data: questions }, { data: assignments }, { data: allStudents }, { data: sessions }] = await Promise.all([
     sbClient.from('exam_questions').select('*').eq('exam_id', examId).order('question_number'),
     sbClient.from('exam_assignments').select('*, students(name, grade, school)').eq('exam_id', examId),
-    sbClient.from('students').select('*').eq('teacher_id', currentUser.id)
+    sbClient.from('students').select('*').eq('teacher_id', currentUser.id),
+    sbClient.from('exam_sessions').select('*, students(name, grade)').eq('exam_id', examId)
   ]);
 
   const assignedIds = (assignments || []).map(a => a.student_id);
   const unassigned = (allStudents || []).filter(s => !assignedIds.includes(s.id));
+  const sessionMap = {};
+  (sessions || []).forEach(s => { sessionMap[s.student_id] = s; });
 
-  const modal = document.getElementById('createExamModal');
-  modal.querySelector('.modal-title').textContent = '📝 ' + title;
-  modal.querySelector('.modal-body').innerHTML = `
-    <!-- 배정된 학생 -->
+  // ── 배정 탭 HTML ──
+  const tabAssign = `
     <div style="margin-bottom:20px">
       <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">👥 배정된 학생</div>
       ${!assignments?.length
@@ -6846,15 +6919,13 @@ async function loadExamQuestions(examId, title) {
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <span class="chip ${a.status === 'completed' ? 'green' : a.status === 'in_progress' ? 'yellow' : ''}">${a.status === 'completed' ? '✅ 완료' : a.status === 'in_progress' ? '⏳ 진행중' : '⏸ 대기'}</span>
-              <button onclick="removeAssignment('${a.id}', '${examId}', '${title}')" class="btn btn-ghost btn-xs" style="color:var(--red)">✕</button>
+              <button onclick="removeAssignment('${a.id}','${examId}','${title.replace(/'/g,"\\'")}'); event.stopPropagation()" class="btn btn-ghost btn-xs" style="color:var(--red)">✕</button>
             </div>
           </div>`).join('')
       }
     </div>
-
-    <!-- 학생 추가 -->
     ${unassigned.length > 0 ? `
-    <div style="margin-bottom:20px">
+    <div>
       <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">➕ 학생 추가</div>
       <div style="display:flex;flex-direction:column;gap:6px">
         ${unassigned.map(s => `
@@ -6863,25 +6934,66 @@ async function loadExamQuestions(examId, title) {
               <span style="font-size:13px;font-weight:700;color:var(--text)">${s.name}</span>
               <span style="font-size:11px;color:var(--text3);margin-left:8px">${s.grade || ''} · ${s.school || ''}</span>
             </div>
-            <button onclick="assignStudent('${examId}', '${s.id}', '${title}')" class="btn btn-green btn-xs">+ 배정</button>
+            <button onclick="assignStudent('${examId}','${s.id}','${title.replace(/'/g,"\\'")}'); event.stopPropagation()" class="btn btn-green btn-xs">+ 배정</button>
           </div>`).join('')}
       </div>
-    </div>` : ''}
+    </div>` : ''}`;
 
-    <div class="divider"></div>
+  // ── 문제 탭 HTML ──
+  const tabQuestions = !questions?.length
+    ? '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">저장된 문제가 없습니다</div></div>'
+    : questions.map((q, i) => `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${i+1}번 문제</div>
+        <div style="font-size:14px;line-height:1.8;color:var(--text)">${sgEsc(q.question)}</div>
+        ${q.choices ? q.choices.map((c,ci) => `<div style="font-size:13px;padding:4px 0;color:${ci===q.answer_index?'var(--green)':'var(--text2)'}">${ci+1}. ${sgEsc(c)}</div>`).join('') : ''}
+        ${q.answer ? `<div style="font-size:12px;color:var(--green);margin-top:6px">✅ 정답: ${sgEsc(q.answer)}</div>` : ''}
+      </div>`).join('');
 
-    <!-- 문제 목록 -->
-    <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">📋 문제 목록 (${questions?.length || 0}문제)</div>
-    ${!questions?.length
-      ? '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">저장된 문제가 없습니다</div></div>'
-      : questions.map((q, i) => `
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
-          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${i+1}번 문제</div>
-          <div style="font-size:14px;line-height:1.8;color:var(--text)">${sgEsc(q.question)}</div>
-          ${q.choices ? q.choices.map((c,ci) => `<div style="font-size:13px;padding:4px 0;color:${ci===q.answer_index?'var(--green)':'var(--text2)'}">${ci+1}. ${sgEsc(c)}</div>`).join('') : ''}
-          ${q.answer ? `<div style="font-size:12px;color:var(--green);margin-top:6px">✅ 정답: ${sgEsc(q.answer)}</div>` : ''}
-        </div>`).join('')
+  // ── 응시 현황 탭 HTML ──
+  const allAssignedStudents = assignments || [];
+  const sessionTab = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button onclick="publishAllScores('${examId}')" class="btn btn-primary btn-xs">전체 점수 공개</button>
+    </div>
+    ${!allAssignedStudents.length
+      ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">배정된 학생이 없습니다</div></div>'
+      : `<div class="table-wrap"><table><thead><tr><th>학생</th><th>상태</th><th>응시 시작</th><th>제출</th><th>점수</th><th>공개</th></tr></thead><tbody>
+          ${allAssignedStudents.map(a => {
+            const sn = a.students?.name || '—';
+            const session = sessionMap[a.student_id];
+            if (!session) {
+              return `<tr><td class="font-bold">${sn}</td><td><span class="chip">미응시</span></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+            }
+            const inProg = !session.submitted_at;
+            const submittedAt = session.submitted_at ? new Date(session.submitted_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+            const startedAt = new Date(session.started_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+            const scoreCell = session.score != null ? `${session.score}점` : (inProg ? '—' : '채점중');
+            const publishCell = (!inProg && session.score != null && !session.is_score_published)
+              ? `<button onclick="publishScore('${session.id}','${examId}','${title.replace(/'/g,"\\'")}'); event.stopPropagation()" class="btn btn-xs" style="background:var(--green);color:#fff;border:none;cursor:pointer;padding:4px 10px;border-radius:6px;font-size:11px">공개</button>`
+              : (session.is_score_published ? '<span style="color:var(--green);font-size:12px">공개됨</span>' : '—');
+            return `<tr>
+              <td class="font-bold">${sn}</td>
+              <td><span class="chip ${inProg?'yellow':'green'}">${inProg?'⏳ 응시중':'✅ 제출'}</span></td>
+              <td class="text-sm text-muted">${startedAt}</td>
+              <td class="text-sm text-muted">${submittedAt}</td>
+              <td style="font-weight:700;font-family:'Space Mono',monospace">${scoreCell}</td>
+              <td>${publishCell}</td>
+            </tr>`;
+          }).join('')}
+        </tbody></table></div>`
     }`;
+
+  const modal = document.getElementById('createExamModal');
+  modal.querySelector('.modal-title').textContent = '📝 ' + title;
+  modal.querySelector('.modal-body').innerHTML = `
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px">
+      ${['학생 배정','문제 목록','응시 현황'].map((label, i) => `
+        <button id="eq-tab-${i}" onclick="switchExamTab(${i})" style="flex:1;padding:10px 0;font-size:13px;font-weight:600;border:none;border-bottom:2px solid ${i===0?'var(--accent)':'transparent'};background:transparent;color:${i===0?'var(--accent)':'var(--text3)'};cursor:pointer">${label}</button>`).join('')}
+    </div>
+    <div id="eq-panel-0">${tabAssign}</div>
+    <div id="eq-panel-1" style="display:none">${tabQuestions}</div>
+    <div id="eq-panel-2" style="display:none">${sessionTab}</div>`;
 
   modal.classList.add('open');
 }
@@ -6935,6 +7047,379 @@ async function assignStudentToExam(examId, studentId, studentName) {
   showToast('시험이 배정되었습니다', '✅');
   openAssignExamModal(studentId, studentName);
 }
+// ─────────────────────────────────────────────────────────────────────────────
+//  선생님 시험 탭 전환
+// ─────────────────────────────────────────────────────────────────────────────
+function switchExamTab(idx) {
+  for (let i = 0; i < 3; i++) {
+    const btn = document.getElementById('eq-tab-' + i);
+    const panel = document.getElementById('eq-panel-' + i);
+    const active = i === idx;
+    if (btn) { btn.style.borderBottomColor = active ? 'var(--accent)' : 'transparent'; btn.style.color = active ? 'var(--accent)' : 'var(--text3)'; }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  선생님: 점수 공개
+// ─────────────────────────────────────────────────────────────────────────────
+async function publishScore(sessionId, examId, title) {
+  const { error } = await sbClient.from('exam_sessions')
+    .update({ is_score_published: true }).eq('id', sessionId);
+  if (error) { showToast('공개 실패: ' + error.message, '❌'); return; }
+  showToast('점수가 공개되었습니다', '✅');
+  loadExamQuestions(examId, title);
+}
+
+async function publishAllScores(examId) {
+  const { data: exam } = await sbClient.from('exams').select('title').eq('id', examId).maybeSingle();
+  const title = exam?.title || '';
+  const { error } = await sbClient.from('exam_sessions')
+    .update({ is_score_published: true })
+    .eq('exam_id', examId)
+    .not('submitted_at', 'is', null);
+  if (error) { showToast('공개 실패: ' + error.message, '❌'); return; }
+  showToast('전체 점수가 공개되었습니다', '✅');
+  loadExamQuestions(examId, title);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  학생: 시험 응시 기능
+// ─────────────────────────────────────────────────────────────────────────────
+let examTaking = {
+  examId: null, title: null, questions: [], answers: {},
+  currentIdx: 0, timeLimit: 60, endTime: null,
+  timerInterval: null, sessionId: null, studentId: null
+};
+
+async function loadStudentExams() {
+  const wrap = document.getElementById('se-exam-list');
+  if (!wrap || !sbClient || !currentUser) return;
+
+  // 로그인된 학생 → students 테이블에서 이메일로 조회
+  const { data: student } = await sbClient.from('students')
+    .select('*').eq('email', currentUser.email).maybeSingle();
+
+  if (!student) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:12px">👤</div><div class="empty-state-text">학생 정보가 없습니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px">담당 선생님께 계정 연동을 요청하세요.</div></div>';
+    return;
+  }
+  examTaking.studentId = student.id;
+
+  const { data: assignments } = await sbClient
+    .from('exam_assignments')
+    .select('*, exams(id, title, time_limit, exam_date, unit)')
+    .eq('student_id', student.id)
+    .order('created_at', { ascending: false });
+
+  if (!assignments?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:12px">📝</div><div class="empty-state-text">배정된 시험이 없습니다</div></div>';
+    return;
+  }
+
+  const examIds = assignments.map(a => a.exam_id).filter(Boolean);
+  const { data: sessions } = await sbClient.from('exam_sessions')
+    .select('*').eq('student_id', student.id).in('exam_id', examIds);
+  const sessionMap = {};
+  (sessions || []).forEach(s => { sessionMap[s.exam_id] = s; });
+
+  wrap.innerHTML = assignments.map(a => {
+    const exam = a.exams;
+    if (!exam) return '';
+    const timeLimit = exam.time_limit || 60;
+    const sess = sessionMap[exam.id];
+    const eid = exam.id;
+    const etitle = exam.title.replace(/'/g, "\\'");
+
+    let statusHtml, actionHtml;
+    if (!sess) {
+      statusHtml = '<span class="chip">대기 중</span>';
+      actionHtml = `<button class="btn btn-primary btn-sm" onclick="startExamConfirm('${eid}','${etitle}',${timeLimit})">응시하기 →</button>`;
+    } else if (!sess.submitted_at) {
+      statusHtml = '<span class="chip yellow">응시 중</span>';
+      actionHtml = `<button class="btn btn-primary btn-sm" onclick="resumeExam('${eid}','${etitle}',${timeLimit},'${sess.id}')">이어서 응시 →</button>`;
+    } else if (sess.is_score_published && sess.score != null) {
+      statusHtml = `<span class="chip green">점수 공개</span>`;
+      actionHtml = `<button class="btn btn-ghost btn-sm" onclick="viewExamResult('${sess.id}')">결과 보기</button>`;
+    } else {
+      statusHtml = '<span class="chip green">제출 완료</span>';
+      actionHtml = '<span style="font-size:12px;color:var(--text3)">채점 대기 중</span>';
+    }
+
+    return `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">${sgEsc(exam.title)}</div>
+          <div style="font-size:12px;color:var(--text3)">${exam.unit || '—'} · ${exam.exam_date || '—'} · ⏱ ${timeLimit}분</div>
+          <div style="margin-top:8px">${statusHtml}</div>
+        </div>
+        <div style="flex-shrink:0">${actionHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function startExamConfirm(examId, title, timeLimit) {
+  document.getElementById('se-start-title').textContent = title;
+  document.getElementById('se-start-time').textContent = timeLimit + '분';
+  document.getElementById('se-start-btn').onclick = () => {
+    closeModal('seStartModal');
+    startExam(examId, title, timeLimit, null);
+  };
+  document.getElementById('seStartModal').classList.add('open');
+}
+
+function resumeExam(examId, title, timeLimit, sessionId) {
+  startExam(examId, title, timeLimit, sessionId);
+}
+
+async function startExam(examId, title, timeLimit, sessionId) {
+  if (!sbClient || !currentUser || !examTaking.studentId) return;
+
+  const { data: questions, error: qErr } = await sbClient
+    .from('exam_questions').select('*').eq('exam_id', examId).order('question_number');
+  if (qErr || !questions?.length) { showToast('문제를 불러올 수 없습니다', '❌'); return; }
+
+  // 무작위 셔플 (Fisher-Yates)
+  const shuffled = [...questions];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  let session = null;
+  if (sessionId) {
+    const { data } = await sbClient.from('exam_sessions').select('*').eq('id', sessionId).maybeSingle();
+    session = data;
+  }
+  if (!session) {
+    const { data, error: sErr } = await sbClient.from('exam_sessions').insert({
+      exam_id: examId, student_id: examTaking.studentId, answers: {}
+    }).select().maybeSingle();
+    if (sErr) { showToast('시험 시작 실패: ' + sErr.message, '❌'); return; }
+    session = data;
+  } else if (session.submitted_at) {
+    showToast('이미 제출한 시험입니다', '⚠️'); return;
+  }
+
+  // 상태 설정
+  examTaking.examId = examId;
+  examTaking.title = title;
+  examTaking.questions = shuffled;
+  examTaking.answers = session.answers || {};
+  examTaking.currentIdx = 0;
+  examTaking.timeLimit = timeLimit;
+  examTaking.sessionId = session.id;
+  examTaking.endTime = new Date(session.started_at).getTime() + timeLimit * 60 * 1000;
+
+  // 이미 시간 초과된 경우 즉시 제출
+  if (Date.now() >= examTaking.endTime) {
+    showToast('제한 시간이 초과되어 자동 제출됩니다', '⏰');
+    doSubmitExam(); return;
+  }
+
+  // UI 전환
+  document.getElementById('se-list-state').style.display = 'none';
+  document.getElementById('se-done-state').style.display = 'none';
+  document.getElementById('se-taking-state').style.display = 'flex';
+  document.getElementById('se-exam-title-text').textContent = title;
+
+  renderExamQuestion(0);
+  startExamTimer();
+}
+
+function renderExamQuestion(idx) {
+  const q = examTaking.questions[idx];
+  if (!q) return;
+  examTaking.currentIdx = idx;
+  const total = examTaking.questions.length;
+
+  document.getElementById('se-q-counter').textContent = (idx + 1) + ' / ' + total;
+
+  const qEl = document.getElementById('se-question-text');
+  qEl.innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">${idx + 1}번 문제</div><div style="font-size:15px;line-height:1.9;color:var(--text)">${sgEsc(q.question)}</div>`;
+
+  const selectedIdx = examTaking.answers[q.id];
+  const choices = Array.isArray(q.choices) ? q.choices : [];
+  document.getElementById('se-choices').innerHTML = choices.map((c, ci) => {
+    const sel = selectedIdx === ci;
+    return `<div onclick="selectExamAnswer(${ci})"
+      style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:10px;
+             border:2px solid ${sel ? 'var(--accent)' : 'var(--border)'};
+             background:${sel ? 'rgba(79,142,247,0.08)' : 'var(--bg3)'};
+             cursor:pointer;margin-bottom:8px;transition:all 0.15s">
+      <div style="width:24px;height:24px;border-radius:50%;flex-shrink:0;
+                  background:${sel ? 'var(--accent)' : 'var(--bg2)'};
+                  border:2px solid ${sel ? 'var(--accent)' : 'var(--border2)'};
+                  color:${sel ? '#fff' : 'var(--text3)'};font-size:11px;font-weight:800;
+                  display:flex;align-items:center;justify-content:center;
+                  font-family:'Space Mono',monospace">${ci + 1}</div>
+      <div style="font-size:14px;line-height:1.65;color:var(--text);padding-top:2px">${sgEsc(String(c).replace(/^[①②③④⑤]\s*/, ''))}</div>
+    </div>`;
+  }).join('');
+
+  // KaTeX 렌더링
+  try {
+    const opts = { delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false };
+    renderMathInElement(qEl, opts);
+    renderMathInElement(document.getElementById('se-choices'), opts);
+  } catch(e) {}
+
+  // 답안 점 표시
+  document.getElementById('se-dots').innerHTML = examTaking.questions.map((qd, i) => {
+    const ans = examTaking.answers[qd.id] != null;
+    const cur = i === idx;
+    return `<div onclick="renderExamQuestion(${i})"
+      style="width:${cur?'28px':'22px'};height:${cur?'28px':'22px'};border-radius:50%;
+             background:${cur?'var(--accent)':ans?'var(--green)':'var(--bg2)'};
+             border:2px solid ${cur?'var(--accent)':ans?'var(--green)':'var(--border2)'};
+             color:${cur||ans?'#fff':'var(--text3)'};font-size:10px;font-weight:800;
+             display:flex;align-items:center;justify-content:center;cursor:pointer;
+             font-family:'Space Mono',monospace;transition:all 0.12s">${i + 1}</div>`;
+  }).join('');
+
+  // 버튼 표시
+  document.getElementById('se-prev-btn').disabled = idx === 0;
+  const isLast = idx === total - 1;
+  document.getElementById('se-next-btn').style.display = isLast ? 'none' : 'inline-flex';
+  document.getElementById('se-submit-btn').style.display = isLast ? 'inline-flex' : 'none';
+}
+
+function selectExamAnswer(choiceIdx) {
+  const q = examTaking.questions[examTaking.currentIdx];
+  if (!q) return;
+  examTaking.answers[q.id] = choiceIdx;
+  renderExamQuestion(examTaking.currentIdx);
+  // 1초 디바운스 자동 저장
+  clearTimeout(examTaking._saveTimer);
+  examTaking._saveTimer = setTimeout(async () => {
+    if (!examTaking.sessionId) return;
+    await sbClient.from('exam_sessions').update({ answers: examTaking.answers }).eq('id', examTaking.sessionId);
+  }, 1000);
+}
+
+function goExamPrev() {
+  if (examTaking.currentIdx > 0) renderExamQuestion(examTaking.currentIdx - 1);
+}
+function goExamNext() {
+  if (examTaking.currentIdx < examTaking.questions.length - 1) renderExamQuestion(examTaking.currentIdx + 1);
+}
+
+function startExamTimer() {
+  clearInterval(examTaking.timerInterval);
+  function tick() {
+    const rem = Math.max(0, examTaking.endTime - Date.now());
+    const m = Math.floor(rem / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    const el = document.getElementById('se-timer');
+    if (el) {
+      el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      el.style.color = rem < 300000 ? 'var(--red)' : 'var(--text2)';
+      el.style.borderColor = rem < 300000 ? 'rgba(255,80,80,0.3)' : 'var(--border)';
+    }
+    if (rem <= 0) {
+      clearInterval(examTaking.timerInterval);
+      showToast('시간이 초과되었습니다. 자동 제출합니다.', '⏰');
+      doSubmitExam();
+    }
+  }
+  tick();
+  examTaking.timerInterval = setInterval(tick, 1000);
+}
+
+function confirmSubmitExam() {
+  const unanswered = examTaking.questions.filter(q => examTaking.answers[q.id] == null).length;
+  const msg = unanswered > 0
+    ? `미답변 문제가 ${unanswered}개 있습니다. 그래도 제출하시겠습니까?`
+    : '시험을 최종 제출하시겠습니까?';
+  if (confirm(msg)) doSubmitExam();
+}
+
+async function doSubmitExam() {
+  clearInterval(examTaking.timerInterval);
+  clearTimeout(examTaking._saveTimer);
+  if (!examTaking.sessionId) return;
+
+  // 자동 채점
+  let correct = 0;
+  examTaking.questions.forEach(q => {
+    if (examTaking.answers[q.id] != null && examTaking.answers[q.id] === q.answer_index) correct++;
+  });
+  const total = examTaking.questions.length;
+  const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+  const { error } = await sbClient.from('exam_sessions').update({
+    submitted_at: new Date().toISOString(),
+    answers: examTaking.answers,
+    score
+  }).eq('id', examTaking.sessionId);
+
+  if (error) { showToast('제출 실패: ' + error.message, '❌'); return; }
+
+  // assignment status 업데이트
+  await sbClient.from('exam_assignments')
+    .update({ status: 'completed' })
+    .eq('exam_id', examTaking.examId)
+    .eq('student_id', examTaking.studentId);
+
+  // 완료 화면 표시
+  document.getElementById('se-taking-state').style.display = 'none';
+  document.getElementById('se-done-state').style.display = 'block';
+  document.getElementById('se-done-content').innerHTML = `
+    <div style="text-align:center;padding:60px 20px">
+      <div style="font-size:52px;margin-bottom:16px">✅</div>
+      <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px">제출 완료!</div>
+      <div style="font-size:14px;color:var(--text3);margin-bottom:24px">${sgEsc(examTaking.title)}</div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px;display:inline-block;margin-bottom:28px">
+        <div style="font-size:13px;color:var(--text3);margin-bottom:6px">총 ${total}문제 중</div>
+        <div style="font-size:32px;font-weight:800;font-family:'Space Mono',monospace;color:var(--accent)">${correct}문제 정답</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:6px">점수는 선생님이 공개한 후 확인할 수 있습니다</div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="backToExamList()">← 목록으로 돌아가기</button>
+    </div>`;
+}
+
+async function viewExamResult(sessionId) {
+  const { data: sess } = await sbClient.from('exam_sessions').select('*').eq('id', sessionId).maybeSingle();
+  if (!sess) return;
+  const { data: qs } = await sbClient.from('exam_questions').select('*').eq('exam_id', sess.exam_id).order('question_number');
+
+  document.getElementById('se-list-state').style.display = 'none';
+  document.getElementById('se-done-state').style.display = 'block';
+  const answers = sess.answers || {};
+  let correct = 0;
+  const details = (qs || []).map((q, i) => {
+    const mine = answers[q.id];
+    const ok = mine != null && mine === q.answer_index;
+    if (ok) correct++;
+    const choices = Array.isArray(q.choices) ? q.choices : [];
+    return `
+      <div style="background:${ok?'rgba(62,207,142,0.05)':'rgba(255,80,80,0.05)'};border:1px solid ${ok?'rgba(62,207,142,0.2)':'rgba(255,80,80,0.2)'};border-radius:10px;padding:14px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:${ok?'var(--green)':'var(--red)'};margin-bottom:6px">${i+1}번 ${ok?'✅ 정답':'❌ 오답'}</div>
+        <div style="font-size:13px;line-height:1.7;color:var(--text);margin-bottom:8px">${sgEsc(q.question)}</div>
+        ${choices.map((c,ci) => `<div style="font-size:12px;padding:3px 0;color:${ci===q.answer_index?'var(--green)':ci===mine&&!ok?'var(--red)':'var(--text3)'}">${ci+1}. ${sgEsc(c)}${ci===q.answer_index?' ← 정답':''}${ci===mine&&!ok?' ← 내 답':''}</div>`).join('')}
+      </div>`;
+  }).join('');
+
+  document.getElementById('se-done-content').innerHTML = `
+    <div style="padding:20px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+        <button onclick="backToExamList()" class="btn btn-ghost btn-sm">← 목록</button>
+        <div style="font-size:16px;font-weight:800;color:var(--text)">시험 결과 — ${sess.score}점</div>
+        <span class="chip green">${correct}/${(qs||[]).length} 정답</span>
+      </div>
+      ${details}
+    </div>`;
+}
+
+function backToExamList() {
+  clearInterval(examTaking.timerInterval);
+  document.getElementById('se-done-state').style.display = 'none';
+  document.getElementById('se-taking-state').style.display = 'none';
+  document.getElementById('se-list-state').style.display = 'block';
+  loadStudentExams();
+}
+
 // ── 파일 업로드 → Supabase Storage (admin only) ──
 async function uploadExamFileWithMeta(file, meta = {}) {
   if (!sbClient || !currentUser) return null;
