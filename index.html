@@ -6232,9 +6232,20 @@ async function sgGenerate() {
    - xRange, yRange는 문제에 맞게 설정. 예: "xRange":[-5,8],"yRange":[-5,8]
    - 문제에 등장하는 모든 점, 선분, 도형을 graph 필드에 빠짐없이 표현하세요.
    - 좌표평면 문제에서 점의 좌표는 반드시 문제 텍스트에도 명시하세요.
+13. 도형·기하 문제에는 figure_commands 배열에 GeoGebra Classic 명령어를 포함하세요. figure_commands가 있으면 figure 필드는 생략해도 됩니다.
+   GeoGebra 명령어 예시:
+   - 점: A = (0, 0)
+   - 선분: Segment(A, B)
+   - 다각형: Polygon(A, B, C)
+   - 원: Circle(A, 3)
+   - 각도 표시: Angle(B, A, C)
+   - 치수 라벨: SetLabelMode(a, 1) (a는 객체 이름)
+   - 색상: SetColor(poly1, "#4f8ef7")
+   - 직각삼각형 예시: ["A=(0,0)","B=(3,0)","C=(3,4)","Polygon(A,B,C)","SetColor(poly1,\"lightblue\")"]
+   - 그림이 필요없는 문제는 figure_commands를 빈 배열 [] 로 설정하세요.
 
 반드시 아래 JSON만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.
-{"original_topic":"파악된 단원","problems":[{"number":1,"question":"문제 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트","figure":{"viewport":{"x":[-1,8],"y":[-1,6]},"elements":[{"type":"point","id":"A","pos":[0,0],"label":"A","labelPos":"bottom-left"},{"type":"point","id":"B","pos":[6,0],"label":"B","labelPos":"bottom-right"},{"type":"point","id":"C","pos":[0,4],"label":"C","labelPos":"top-left"},{"type":"polygon","points":["A","B","C"],"fill":"rgba(79,142,247,0.08)"}]},"competencies":{"problem_solving":80,"reasoning":60,"communication":40,"connection":50,"info_processing":70,"attitude":30}}]}
+{"original_topic":"파악된 단원","problems":[{"number":1,"question":"문제 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트","figure_commands":["A=(0,0)","B=(3,0)","C=(3,4)","Polygon(A,B,C)"],"competencies":{"problem_solving":80,"reasoning":60,"communication":40,"connection":50,"info_processing":70,"attitude":30}}]}
 competencies는 각 문제가 요구하는 2022 개정 교육과정 수학적 역량 점수(0-100)입니다:
 - problem_solving(문제해결): 문제 해결 전략 수립 및 실행
 - reasoning(추론): 논리적 사고, 귀납/연역적 추론
@@ -6355,6 +6366,69 @@ pos는 수학 좌표계 기준. viewport를 문제에 맞게 설정하세요.`;
   }
 }
 
+// ═══════════════════════════════════════
+//  GeoGebra 연동
+// ═══════════════════════════════════════
+
+let _ggbLoadPromise = null;
+function sgLoadGeoGebra() {
+  if (_ggbLoadPromise) return _ggbLoadPromise;
+  if (window.GGBApplet) { _ggbLoadPromise = Promise.resolve(); return _ggbLoadPromise; }
+  _ggbLoadPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://www.geogebra.org/apps/deployggb.js';
+    s.onload = () => { console.log('[GeoGebra] deployggb.js 로드 완료'); resolve(); };
+    s.onerror = () => { _ggbLoadPromise = null; reject(new Error('deployggb.js 로드 실패')); };
+    document.head.appendChild(s);
+  });
+  return _ggbLoadPromise;
+}
+
+function sgInitGeoGebra(containerEl, appId, commands) {
+  // Store commands and register global callback (GGBApplet calls window[callbackName])
+  const cbName = '_ggbCb_' + appId;
+  window[cbName] = function() {
+    const api = window[appId];
+    if (!api) { console.warn('[GeoGebra] API not found:', appId); return; }
+    console.log('[GeoGebra] appletOnLoad — 명령어 실행 시작', commands);
+    commands.forEach(cmd => {
+      try {
+        const result = api.evalCommand(cmd);
+        console.log(`[GeoGebra] evalCommand("${cmd}") =`, result);
+      } catch(e) {
+        console.warn('[GeoGebra] 명령어 실패:', cmd, e);
+      }
+    });
+    // Zoom to fit after commands
+    try { api.setCoordSystem(-1, Math.max(6, commands.length * 2), -1, Math.max(6, commands.length * 2)); } catch(e) {}
+    delete window[cbName];
+  };
+
+  const params = {
+    appName: 'geometry',
+    width: containerEl.offsetWidth || 480,
+    height: 260,
+    showToolBar: false,
+    showAlgebraInput: false,
+    showMenuBar: false,
+    enableRightClick: false,
+    enableShiftDragZoom: true,
+    showResetIcon: true,
+    language: 'ko',
+    id: appId,
+    appletOnLoad: cbName,
+    scaleContainerClass: '',
+  };
+  try {
+    const applet = new GGBApplet(params, true);
+    applet.inject(containerEl);
+    console.log('[GeoGebra] GGBApplet.inject() 호출:', appId);
+  } catch(e) {
+    console.error('[GeoGebra] inject 실패:', e);
+    containerEl.innerHTML = '<span style="font-size:11px;color:var(--red)">GeoGebra 초기화 실패: ' + e.message + '</span>';
+  }
+}
+
 function sgRenderResults(data, hintMode) {
   const problems = data.problems || [];
   sg.lastProblems = problems;
@@ -6414,7 +6488,8 @@ for (let i = 0; i < problems.length; i++) {
     const hintHtml = (showHint && p.hint) ? `<div style="margin-top:8px;padding:9px 12px;border-radius:7px;background:rgba(183,148,244,0.07);border:1px solid rgba(183,148,244,0.2);font-size:12.5px;color:var(--purple);display:flex;gap:7px;line-height:1.6"><span>💡</span><span>${sgEsc(p.hint)}</span></div>` : '';
 
     const graphId = `desmos-${i}-${Date.now()}`;
-    const hasGraph = !!(p.figure);
+    const hasGgb   = Array.isArray(p.figure_commands) && p.figure_commands.length > 0;
+    const hasGraph = !hasGgb && !!(p.figure);
 
     const card = document.createElement('div');
     card.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;animation:slideUp 0.3s ease both';
@@ -6433,6 +6508,7 @@ for (let i = 0; i < problems.length; i++) {
       </div>
       <div style="padding:14px">
         <div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:keep-all">${sgEsc(p.question)}</div>
+        ${hasGgb   ? `<div id="ggb-${i}" style="width:100%;height:260px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center"><span style="font-size:11px;color:var(--text3)">GeoGebra 로딩 중...</span></div>` : ''}
         ${hasGraph ? `<div id="${graphId}" style="width:100%;height:240px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border)"></div>` : ''}
         ${choicesHtml}
         ${hintHtml}
@@ -6450,8 +6526,23 @@ for (let i = 0; i < problems.length; i++) {
       </div>`;
     list.appendChild(card);
 
-    // Canvas 도형 렌더링
-    if (p.figure) {
+    // GeoGebra 렌더링
+    if (hasGgb) {
+      const ggbEl = document.getElementById(`ggb-${i}`);
+      if (ggbEl) {
+        const appId = `ggbApp_${i}_${Date.now()}`;
+        ggbEl.dataset.appId = appId;
+        sgLoadGeoGebra().then(() => {
+          ggbEl.innerHTML = '';
+          sgInitGeoGebra(ggbEl, appId, p.figure_commands);
+        }).catch(() => {
+          ggbEl.innerHTML = '<span style="font-size:11px;color:var(--red)">GeoGebra 로드 실패</span>';
+        });
+      }
+    }
+
+    // Canvas 도형 렌더링 (fallback)
+    if (p.figure && !hasGgb) {
       const el = document.getElementById(graphId);
       if (el) {
         el.innerHTML = '<canvas width="500" height="280" style="width:100%;height:100%"></canvas>';
