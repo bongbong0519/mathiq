@@ -6103,6 +6103,7 @@ async function sgExtractTikZ() {
       return;
     }
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('[sgExtractTikZ] Gemini 응답 rawText:', text);
     const match = text.match(/```tikz\s*([\s\S]*?)```/i)
                   || text.match(/(\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/);
     sg.tikzCode = match ? match[1].trim() : null;
