@@ -6450,17 +6450,27 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     let figureDataUrls = null;
     let figureSvgs = null;
     if (input.type === 'image') {
+      console.log('[sgGenerate] TikZ 코드 존재 여부:', !!sg.tikzCode, sg.tikzCode ? `(${sg.tikzCode.length}자)` : '');
       if (sg.tikzCode) {
         // TikZ 파이프라인: TikZ 코드에 changed_values 적용 후 SVG로 변환
         document.getElementById('sg-loading-text').textContent = 'TikZ → SVG 변환 중...';
-        figureSvgs = await Promise.all((parsed.problems || []).map(async (p) => {
+        figureSvgs = await Promise.all((parsed.problems || []).map(async (p, idx) => {
           const svg = await sgTikZToSVG(sg.tikzCode, p.changed_values);
+          if (!svg) {
+            console.warn(`[sgGenerate] 문제 ${idx + 1}: SVG 변환 실패 (TikZ 코드는 있음)`);
+          } else {
+            console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 변환 성공 (${svg.length}자)`);
+          }
           return svg || null;
         }));
+        // SVG 변환 결과 요약
+        const successCount = figureSvgs.filter(s => s).length;
+        console.log(`[sgGenerate] SVG 변환 완료: ${successCount}/${figureSvgs.length}개 성공`);
         // SVG만 사용, 원본 이미지 fallback 없음
         figureDataUrls = (parsed.problems || []).map(() => null);
       } else {
         // TikZ 없음: 원본 이미지 사용 (라벨 교체 없음)
+        console.log('[sgGenerate] TikZ 코드 없음 → 원본 이미지 사용');
         const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
         figureDataUrls = (parsed.problems || []).map(() => baseDataUrl);
       }
