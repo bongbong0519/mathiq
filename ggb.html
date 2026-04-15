@@ -64,10 +64,13 @@
       window.ggbOnReady = function() { onReady(window.ggbApplet); };
 
       try {
+        // document.documentElement.clientWidth/Height = iframe 실제 렌더 크기
+        var w = document.documentElement.clientWidth || 480;
+        var h = document.documentElement.clientHeight || 300;
         var applet = new GGBApplet({
           appName: 'geometry',
-          width: 480,
-          height: 260,
+          width: w,
+          height: h,
           showToolBar: false,
           showAlgebraInput: false,
           showMenuBar: false,

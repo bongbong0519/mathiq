@@ -6376,10 +6376,16 @@ function sgLoadGeoGebra() { return Promise.resolve(); } // 호환성 유지용 s
 function sgInitGeoGebra(containerEl, commands) {
   try {
     const cmds = encodeURIComponent(JSON.stringify(commands));
+    const loaderId = 'ggb-loader-' + Date.now();
     containerEl.innerHTML =
-      `<iframe src="/ggb.html?cmds=${cmds}"
-        style="width:100%;height:100%;border:none;display:block"
-        loading="lazy" allow="fullscreen" title="GeoGebra 수학 그래프"></iframe>`;
+      `<div id="${loaderId}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg2);z-index:2;border-radius:8px;pointer-events:none">
+         <span style="font-size:11px;color:var(--text3)">GeoGebra 로딩 중...</span>
+       </div>
+       <iframe src="/ggb.html?cmds=${cmds}"
+         style="width:100%;height:300px;border:none;display:block;position:relative;z-index:1"
+         allow="fullscreen"
+         title="GeoGebra 수학 그래프"
+         onload="setTimeout(()=>document.getElementById('${loaderId}')?.remove(),500)"></iframe>`;
     console.log('[GeoGebra] iframe 생성 → /ggb.html, 명령어:', commands);
   } catch(e) {
     console.error('[GeoGebra] iframe 생성 실패:', e);
@@ -6467,7 +6473,7 @@ for (let i = 0; i < problems.length; i++) {
       </div>
       <div style="padding:14px">
         <div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:keep-all">${sgEsc(p.question)}</div>
-        ${hasGgb   ? `<div id="ggb-${i}" style="width:100%;height:260px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center"><span style="font-size:11px;color:var(--text3)">GeoGebra 로딩 중...</span></div>` : ''}
+        ${hasGgb   ? `<div id="ggb-${i}" style="width:100%;height:300px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border);position:relative"></div>` : ''}
         ${hasGraph ? `<div id="${graphId}" style="width:100%;height:240px;border-radius:8px;overflow:hidden;margin:12px 0;border:1px solid var(--border)"></div>` : ''}
         ${choicesHtml}
         ${hintHtml}
