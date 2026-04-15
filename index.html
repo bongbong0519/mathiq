@@ -5879,7 +5879,7 @@ async function sgDetectFigureLabels() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: [{
           parts: [
             { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
@@ -5959,7 +5959,7 @@ async function sgExtractTikZ() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: [{
           parts: [
             { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
@@ -5968,15 +5968,23 @@ async function sgExtractTikZ() {
         }]
       })
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      console.error('[sgExtractTikZ] HTTP', res.status, errBody?.error?.message || errBody?.error || JSON.stringify(errBody).slice(0, 200));
+      return;
+    }
     const data = await res.json();
+    if (data.error) {
+      console.error('[sgExtractTikZ] Gemini 오류:', data.error.code, data.error.message);
+      return;
+    }
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const match = text.match(/```tikz\s*([\s\S]*?)```/i)
                   || text.match(/(\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/);
     sg.tikzCode = match ? match[1].trim() : null;
     console.log('[sgExtractTikZ] 추출 완료:', sg.tikzCode ? sg.tikzCode.slice(0, 80) + '…' : '없음');
   } catch(e) {
-    console.warn('[sgExtractTikZ] 실패:', e.message);
+    console.warn('[sgExtractTikZ] 네트워크 오류:', e.message);
     sg.tikzCode = null;
   }
 }
@@ -6022,17 +6030,34 @@ ${modifiedTikZ}`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: [{ parts: [{ text: prompt }] }]
       })
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      console.error('[sgTikZToSVG] HTTP', res.status, errBody?.error?.message || errBody?.error || JSON.stringify(errBody).slice(0, 200));
+      return null;
+    }
     const data = await res.json();
+    if (data.error) {
+      console.error('[sgTikZToSVG] Gemini 오류:', data.error.code, data.error.message);
+      return null;
+    }
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) {
+      console.warn('[sgTikZToSVG] 응답 텍스트 없음. finishReason:', data.candidates?.[0]?.finishReason);
+      return null;
+    }
     const match = text.match(/<svg[\s\S]*?<\/svg>/i);
-    return match ? match[0] : null;
+    if (!match) {
+      console.warn('[sgTikZToSVG] SVG 태그 미검출. 응답 앞 300자:', text.slice(0, 300));
+      return null;
+    }
+    console.log('[sgTikZToSVG] SVG 생성 완료, 길이:', match[0].length);
+    return match[0];
   } catch(e) {
-    console.warn('[sgTikZToSVG] 실패:', e.message);
+    console.error('[sgTikZToSVG] 네트워크 오류:', e.message);
     return null;
   }
 }
@@ -10680,7 +10705,7 @@ async function _geminiFillFigures(questions, pageImages) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       systemInstruction: { parts: [{ text: _GEMINI_FIGURE_SYSTEM }] },
       contents: [{ role: 'user', parts }],
       generationConfig: {
@@ -10767,7 +10792,7 @@ async function _geminiCallBatch(base64Images, mimeTypes) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: [{ role: 'user', parts }],
       generationConfig: { maxOutputTokens: 8192, temperature: 0 }
     })
@@ -10796,7 +10821,7 @@ async function _geminiCropBbox(pageBase64, questionContent) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       systemInstruction: { parts: [{ text: 'You are a JSON-only API. Output only raw JSON. No markdown, no explanation, no code blocks.' }] },
       contents: [{ role: 'user', parts: [
         { inline_data: { mime_type: 'image/jpeg', data: pageBase64 } },

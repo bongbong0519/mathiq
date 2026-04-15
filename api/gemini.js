@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   // body에서 model 추출 후 제거 (URL에만 사용, body에 포함 시 Gemini API 오류)
   const { model: modelFromBody, ...geminiBody } = req.body || {};
-  const model = modelFromBody || 'gemini-2.5-flash';
+  const model = modelFromBody || 'gemini-2.0-flash';
 
   let googleRes;
   try {
