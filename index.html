@@ -10499,7 +10499,10 @@ async function _geminiCallBatch(base64Images, mimeTypes) {
 }
 
 // ════════════════════════════════════════════════════════
-// 하이브리드 그림 처리: Gemini Vision 크롭 → Canvas 렌더러 폴백
+// 하이브리드 그림 처리
+//   1단계: Gemini Vision → bbox 크롭 (모든 그림)
+//   2단계: Claude → figure JSON → Canvas  (함수/그래프 키워드 있을 때만)
+//   3단계: 원본 페이지 이미지 + 페이지 캡션  (자동 폴백)
 // ════════════════════════════════════════════════════════
 
 // 1단계: Gemini에게 그림 영역 bbox 좌표 (0~1 정규화) 요청
@@ -10512,14 +10515,14 @@ async function _geminiCropBbox(pageBase64, questionContent) {
       systemInstruction: { parts: [{ text: 'You are a JSON-only API. Output only raw JSON. No markdown, no explanation, no code blocks.' }] },
       contents: [{ role: 'user', parts: [
         { inline_data: { mime_type: 'image/jpeg', data: pageBase64 } },
-        { text: `이 수학 시험 페이지 이미지에서 다음 문제에 해당하는 그림·도표·그래프 영역을 찾아 bounding box 좌표를 반환하세요.
+        { text: `이 수학 시험 페이지에서 다음 문제의 그림·도표·그래프 영역의 bounding box를 찾으세요.
 
 문제:
 ${questionContent.slice(0, 600)}
 
-이미지 전체 크기 대비 비율(0.0~1.0)로 반환:
-{"x":왼쪽상단X비율,"y":왼쪽상단Y비율,"w":너비비율,"h":높이비율}
-그림을 찾을 수 없으면: {"x":0,"y":0,"w":0,"h":0}` }
+이미지 전체 크기 대비 비율(0.0~1.0)로만 반환:
+{"x":왼쪽상단X,"y":왼쪽상단Y,"w":너비,"h":높이}
+그림 없으면: {"x":0,"y":0,"w":0,"h":0}` }
       ]}],
       generationConfig: { maxOutputTokens: 128, temperature: 0, responseMimeType: 'application/json' }
     })
@@ -10531,8 +10534,8 @@ ${questionContent.slice(0, 600)}
   try { bbox = JSON.parse(text); } catch { throw new Error('bbox 파싱 실패'); }
   if (!bbox || (bbox.w || 0) <= 0.02 || (bbox.h || 0) <= 0.02) throw new Error('그림 영역 미발견');
   return {
-    x: Math.max(0, Math.min(0.95, bbox.x || 0)),
-    y: Math.max(0, Math.min(0.95, bbox.y || 0)),
+    x: Math.max(0,    Math.min(0.95, bbox.x || 0)),
+    y: Math.max(0,    Math.min(0.95, bbox.y || 0)),
     w: Math.max(0.05, Math.min(1,   bbox.w || 0)),
     h: Math.max(0.05, Math.min(1,   bbox.h || 0))
   };
@@ -10558,19 +10561,18 @@ function _cropBase64Image(base64, bbox) {
   });
 }
 
-// 2단계: Claude에게 figure JSON 객체 요청
-const _CLAUDE_FIGURE_OBJ_PROMPT = `다음 수학 문제에 필요한 그림을 아래 figure JSON 형식으로만 반환하세요. 설명·주석 없이 JSON만 출력.
+// 2단계: Claude에게 figure JSON 객체 요청 (함수/그래프 전용)
+const _CLAUDE_FIGURE_OBJ_PROMPT = `다음 수학 문제에 필요한 함수·그래프를 아래 figure JSON 형식으로만 반환하세요. 설명·주석 없이 JSON만 출력.
 
 figure 형식:
 {"viewport":{"x":[xMin,xMax],"y":[yMin,yMax]},"elements":[
   {"type":"axes","step":1},
+  {"type":"function","expr":"Math.pow(x,2)","color":"#e53e3e","label":"y=x²"},
   {"type":"point","id":"A","pos":[x,y],"color":"#4f8ef7","label":"A"},
   {"type":"segment","from":[x1,y1],"to":[x2,y2],"color":"#4f8ef7","label":"길이"},
-  {"type":"function","expr":"Math.pow(x,2)","color":"#e53e3e","label":"y=x²"},
-  {"type":"polygon","points":[[x1,y1],[x2,y2],[x3,y3]],"color":"#4f8ef7","fill":"rgba(79,142,247,0.1)"},
   {"type":"label","pos":[x,y],"text":"텍스트","color":"#4a5568","size":12}
 ]}
-그림이 불필요하면: {"viewport":{"x":[0,1],"y":[0,1]},"elements":[]}
+그래프가 불필요하면: {"viewport":{"x":[0,1],"y":[0,1]},"elements":[]}
 
 문제:`;
 
@@ -10608,7 +10610,12 @@ function _figureCanvasBase64(figure) {
   return cvs.toDataURL('image/jpeg', 0.92).split(',')[1];
 }
 
-// 그림 문제 전체를 하이브리드 처리 — Gemini 크롭 → Canvas 폴백 → 페이지 이미지 유지
+// 문제 텍스트가 함수/그래프 문제인지 판별 (Canvas 렌더링 적합 여부)
+function _isGraphQuestion(content) {
+  return /y\s*=|f\s*\(x\)|함수|그래프|이차함수|일차함수|sin|cos|tan|log|ln\(|e\^/.test(content || '');
+}
+
+// 그림 문제 전체를 3단계 하이브리드 처리
 async function _resolveQuestionFigures(questions, pageImages, onProgress) {
   const targets = questions
     .map((q, i) => ({ i, q }))
@@ -10623,7 +10630,7 @@ async function _resolveQuestionFigures(questions, pageImages, onProgress) {
     const pageImg = pageImages[q._page - 1];
     if (onProgress) onProgress(k + 1, targets.length);
 
-    // ── 1단계: Gemini Vision 크롭 ──
+    // ── 1단계: Gemini Vision bbox 크롭 ──
     try {
       const bbox    = await _geminiCropBbox(pageImg, q.content);
       const cropped = await _cropBase64Image(pageImg, bbox);
@@ -10634,18 +10641,24 @@ async function _resolveQuestionFigures(questions, pageImages, onProgress) {
       console.debug(`[하이브리드] Q${i + 1}: Gemini 크롭 실패 (${e1.message})`);
     }
 
-    // ── 2단계: Claude figure → Canvas 렌더링 ──
-    try {
-      const figure = await _claudeFigureObj(q.content);
-      if (figure.elements && figure.elements.length > 0) {
-        result[i]._figureImg = _figureCanvasBase64(figure);
-        console.debug(`[하이브리드] Q${i + 1}: Canvas 렌더링 성공`);
-      } else {
-        console.debug(`[하이브리드] Q${i + 1}: figure 요소 없음 — 페이지 이미지 유지`);
+    // ── 2단계: 함수/그래프 문제만 Claude figure → Canvas ──
+    if (_isGraphQuestion(q.content)) {
+      try {
+        const figure = await _claudeFigureObj(q.content);
+        if (figure.elements && figure.elements.length > 0) {
+          result[i]._figureImg = _figureCanvasBase64(figure);
+          console.debug(`[하이브리드] Q${i + 1}: Canvas 렌더링 성공`);
+          continue;
+        }
+      } catch (e2) {
+        console.debug(`[하이브리드] Q${i + 1}: Canvas 폴백 실패 (${e2.message})`);
       }
-    } catch (e2) {
-      console.debug(`[하이브리드] Q${i + 1}: Canvas 폴백 실패 (${e2.message}) — 페이지 이미지 유지`);
+    } else {
+      console.debug(`[하이브리드] Q${i + 1}: 기하 문제 — Canvas 건너뜀`);
     }
+
+    // ── 3단계: 전체 페이지 이미지 폴백 (_figureImg 미설정 → 렌더러에서 처리) ──
+    console.debug(`[하이브리드] Q${i + 1}: 페이지 이미지 폴백`);
   }
 
   return result;
@@ -10935,44 +10948,53 @@ function renderExtractedQuestions(list) {
 
   // innerHTML 설정 후 각 질문별로 미리보기 렌더링
   list.forEach((q, i) => {
-    // _figureImg 우선(크롭/Canvas 결과), 없으면 전체 페이지 이미지 폴백
-    const pageImage = q._figureImg || (q._page ? (_extractPageImages[q._page - 1] || null) : null);
     const previewEl = document.getElementById('exPreview-' + i);
-    if (previewEl) _renderPreviewContent(previewEl, q.content || '', pageImage);
+    if (previewEl) _renderPreviewContent(previewEl, q.content || '', q._figureImg || null, q._page || null);
     const answerEl = document.getElementById('exAnswerPreview-' + i);
     if (answerEl) _renderAnswerPreview(answerEl, q.answer || '');
   });
 }
 
-// 콘텐츠를 preview 요소에 렌더링 — [그림: ...] → 실제 이미지 or 배지, KaTeX 처리
-// pageImage: base64 문자열 (있으면 <img> 삽입, 없으면 클릭 배지)
-function _renderPreviewContent(el, rawText, pageImage) {
+// 콘텐츠를 preview 요소에 렌더링
+//   figureImg : 크롭/Canvas base64 (있으면 그대로 <img>)
+//   pageNum   : 원본 페이지 번호 (3단계 폴백 — 축소 이미지 + 캡션)
+function _renderPreviewContent(el, rawText, figureImg, pageNum) {
   const parts = rawText.split(/(\[그림[^\]]*\])/g);
   el.innerHTML = '';
   parts.forEach(part => {
     if (/^\[그림[^\]]*\]$/.test(part)) {
-      if (pageImage) {
-        // 실제 페이지 이미지 인라인 표시
+
+      const pageFullImg = pageNum ? (_extractPageImages[pageNum - 1] || null) : null;
+
+      if (figureImg || pageFullImg) {
         const wrapper = document.createElement('span');
         wrapper.className = 'ex-fig-ref';
         wrapper.style.cssText = 'display:block;margin:8px 0;';
 
         const img = document.createElement('img');
-        img.src = `data:image/jpeg;base64,${pageImage}`;
         img.alt = part;
         img.title = '클릭하면 전체 크기로 보기';
-        img.style.cssText = 'max-width:100%;border-radius:6px;border:1px solid var(--border);display:block;cursor:zoom-in;';
         img.onclick = () => exShowPageImages();
+
+        if (figureImg) {
+          // 1단계(크롭) 또는 2단계(Canvas) 결과 — 원본 크기 그대로
+          img.src = `data:image/jpeg;base64,${figureImg}`;
+          img.style.cssText = 'max-width:100%;border-radius:6px;border:1px solid var(--border);display:block;cursor:zoom-in;';
+        } else {
+          // 3단계 폴백 — 전체 페이지 이미지 축소 + 캡션
+          img.src = `data:image/jpeg;base64,${pageFullImg}`;
+          img.style.cssText = 'max-width:100%;max-height:320px;object-fit:contain;border-radius:6px;border:1px solid var(--border);display:block;cursor:zoom-in;opacity:0.9;';
+        }
 
         const caption = document.createElement('div');
         caption.style.cssText = 'font-size:11px;color:var(--text3);margin-top:3px;';
-        caption.textContent = part;
+        caption.textContent = figureImg ? part : `원본 시험지 ${pageNum}페이지 참조`;
 
         wrapper.appendChild(img);
         wrapper.appendChild(caption);
         el.appendChild(wrapper);
       } else {
-        // 페이지 이미지 없을 때 — 클릭 가능한 배지
+        // 이미지 없음 — 클릭 가능한 배지
         const span = document.createElement('span');
         span.className = 'ex-fig-ref';
         span.textContent = part;
@@ -11022,8 +11044,7 @@ function exUpdatePreview(i) {
   const preview = document.getElementById('exPreview-'  + i);
   if (!ta || !preview) return;
   const q = _extractedQuestions[i];
-  const pageImage = q?._figureImg || (q?._page ? (_extractPageImages[q._page - 1] || null) : null);
-  _renderPreviewContent(preview, ta.value, pageImage);
+  _renderPreviewContent(preview, ta.value, q?._figureImg || null, q?._page || null);
 }
 
 function exUpdateAnswerPreview(i) {
