@@ -54,23 +54,32 @@
           }
         });
 
-        // 명령어에서 좌표 최댓값 추출해 뷰 범위 설정
+        // 실제 점 좌표로 bbox 계산 후 뷰 맞춤
         setTimeout(function() {
           try {
-            // 모든 숫자 추출해서 범위 계산
-            var allNums = cmds.join(' ').match(/-?\d+(\.\d+)?/g) || [];
-            var vals = allNums.map(Number).filter(function(n) { return isFinite(n); });
-            var maxVal = vals.length ? Math.max.apply(null, vals.map(Math.abs)) : 5;
-            var pad = Math.max(1, maxVal * 0.3);
-            var lo = -(pad);
-            var hi = maxVal + pad;
-            ggb.setCoordSystem(lo, hi, lo, hi);
-            log('완료 (' + cmds.length + '개 명령, 범위 ' + lo.toFixed(1) + '~' + hi.toFixed(1) + ')');
+            var pts = ggb.getAllObjectNames('point');
+            var xs = [], ys = [];
+            pts.forEach(function(n) {
+              var x = ggb.getXcoord(n), y = ggb.getYcoord(n);
+              if (isFinite(x) && isFinite(y)) { xs.push(x); ys.push(y); }
+            });
+            if (xs.length) {
+              var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+              var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+              var rangeX = Math.max(maxX - minX, 1);
+              var rangeY = Math.max(maxY - minY, 1);
+              var padX = rangeX * 0.25, padY = rangeY * 0.25;
+              ggb.setCoordSystem(minX - padX, maxX + padX, minY - padY, maxY + padY);
+              log('완료 (' + cmds.length + '개, bbox 자동)');
+            } else {
+              ggb.setCoordSystem(-1, 6, -1, 6);
+              log('완료 (fallback)');
+            }
           } catch(e) {
             try { ggb.setCoordSystem(-1, 6, -1, 6); } catch(e2) {}
-            log('완료 (' + cmds.length + '개 명령, fallback 범위)');
+            log('완료 (err fallback)');
           }
-        }, 200);
+        }, 300);
       }
 
       // 구버전 string 방식 fallback도 등록
