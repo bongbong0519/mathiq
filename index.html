@@ -10797,7 +10797,7 @@ async function loadStudentView() {
     .eq('student_id', student.id)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const scores = (results || []).map(r => r.score).filter(v => v != null);
   const avg = scores.length ? (scores.reduce((a,b) => a+b,0) / scores.length).toFixed(1) : null;
