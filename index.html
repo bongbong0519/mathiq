@@ -7096,30 +7096,74 @@ async function loadStudentExams() {
   const wrap = document.getElementById('se-exam-list');
   if (!wrap || !sbClient || !currentUser) return;
 
-  // 로그인된 학생 → students 테이블에서 이메일로 조회
-  const { data: student } = await sbClient.from('students')
-    .select('*').eq('email', currentUser.email).maybeSingle();
+  console.log('[loadStudentExams] 시작 — currentUser:', { id: currentUser.id, email: currentUser.email });
 
-  if (!student) {
-    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:12px">👤</div><div class="empty-state-text">학생 정보가 없습니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px">담당 선생님께 계정 연동을 요청하세요.</div></div>';
+  // ── Step 1: students 테이블에서 이메일로 학생 조회 ──
+  const { data: student, error: stuErr } = await sbClient
+    .from('students')
+    .select('*')
+    .eq('email', currentUser.email)
+    .maybeSingle();
+
+  console.log('[loadStudentExams] Step1 students 조회 →', { student, error: stuErr });
+
+  // ── Step 1-B: email 컬럼 없거나 매핑 없으면 profiles.id로 직접 시도 ──
+  let effectiveStudentId = student?.id ?? null;
+  if (!effectiveStudentId) {
+    console.warn('[loadStudentExams] students 테이블에서 email 매칭 실패. profiles.id 로 fallback 시도:', currentUser.id);
+    // exam_assignments.student_id 가 profiles.id 를 직접 저장하는 구조인지 확인
+    const { data: directAssign, error: daErr } = await sbClient
+      .from('exam_assignments')
+      .select('id, student_id')
+      .eq('student_id', currentUser.id)
+      .limit(1);
+    console.log('[loadStudentExams] Step1-B profiles.id 직접 조회 →', { directAssign, error: daErr });
+    if (directAssign?.length) {
+      effectiveStudentId = currentUser.id;
+      console.log('[loadStudentExams] → profiles.id 방식으로 매핑 확인됨');
+    }
+  }
+
+  if (!effectiveStudentId) {
+    console.error('[loadStudentExams] student_id 를 확정할 수 없음. students 테이블 email 컬럼 또는 배정 데이터를 확인하세요.');
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px">
+      <div style="font-size:32px;margin-bottom:12px">👤</div>
+      <div class="empty-state-text">학생 정보가 없습니다</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:8px">
+        담당 선생님께 계정 연동을 요청하세요.<br>
+        <span style="font-size:11px;opacity:0.7">(email: ${currentUser.email})</span>
+      </div>
+    </div>`;
     return;
   }
-  examTaking.studentId = student.id;
+  examTaking.studentId = effectiveStudentId;
+  console.log('[loadStudentExams] effectiveStudentId:', effectiveStudentId);
 
-  const { data: assignments } = await sbClient
+  // ── Step 2: exam_assignments 조회 (exams JOIN) ──
+  const { data: assignments, error: aErr } = await sbClient
     .from('exam_assignments')
     .select('*, exams(id, title, time_limit, exam_date, unit)')
-    .eq('student_id', student.id)
+    .eq('student_id', effectiveStudentId)
     .order('created_at', { ascending: false });
 
+  console.log('[loadStudentExams] Step2 exam_assignments 조회 →', { count: assignments?.length, error: aErr, assignments });
+
+  if (aErr) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:12px">⚠️</div><div class="empty-state-text">조회 오류: ${aErr.message}</div></div>`;
+    return;
+  }
+
   if (!assignments?.length) {
+    console.warn('[loadStudentExams] 배정된 시험 없음 — student_id:', effectiveStudentId);
     wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:12px">📝</div><div class="empty-state-text">배정된 시험이 없습니다</div></div>';
     return;
   }
 
   const examIds = assignments.map(a => a.exam_id).filter(Boolean);
-  const { data: sessions } = await sbClient.from('exam_sessions')
-    .select('*').eq('student_id', student.id).in('exam_id', examIds);
+  console.log('[loadStudentExams] Step3 exam_sessions 조회 — examIds:', examIds);
+  const { data: sessions, error: sessErr } = await sbClient.from('exam_sessions')
+    .select('*').eq('student_id', effectiveStudentId).in('exam_id', examIds);
+  console.log('[loadStudentExams] Step3 결과 →', { sessions, error: sessErr });
   const sessionMap = {};
   (sessions || []).forEach(s => { sessionMap[s.exam_id] = s; });
 
