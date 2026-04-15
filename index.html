@@ -6007,7 +6007,7 @@ async function sgDetectFigureLabels() {
         contents: [{
           parts: [
             { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
-            { text: '이 이미지에서 수학 그림/도형 영역 안에 있는 치수 라벨(숫자, 수식)만 찾아줘.\n문제 텍스트나 선택지는 제외.\n반환 형식(JSON만, 마크다운 없이):\n{"numbers":[{"text":"라벨","x":0.0,"y":0.0,"w":0.05,"h":0.03}]}\nx,y는 라벨 중심의 비율 좌표(0~1), w,h는 너비/높이 비율.' }
+            { text: '이 이미지에서 수학 도형 그림 안에 있는 모든 숫자와 수식 라벨을 찾아줘. 도형의 변 길이, 각도, 좌표 등 그림 안에 직접 표시된 값들을 모두 포함해.\n반환 형식(JSON만, 마크다운 없이):\n{"numbers":[{"text":"라벨","x":0.0,"y":0.0,"w":0.05,"h":0.03}]}\nx,y는 라벨 중심의 비율 좌표(0~1), w,h는 너비/높이 비율.' }
           ]
         }]
       })
