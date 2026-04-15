@@ -9,6 +9,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="config.js"></script>
+<link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
+<script src="https://tikzjax.com/v1/tikzjax.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
@@ -6114,7 +6116,59 @@ async function sgExtractTikZ() {
   }
 }
 
-// TikZ 코드 + changedValues → Claude로 SVG 생성
+// TikZ 코드 → tikzjax로 브라우저에서 직접 SVG 렌더링
+async function sgRenderTikZ(tikzCode, changedValues) {
+  if (!tikzCode) return null;
+
+  // changedValues 적용: TikZ 코드 내 문자열 치환
+  let modifiedTikZ = tikzCode;
+  if (changedValues?.length) {
+    changedValues.forEach(cv => {
+      const orig = String(cv.original);
+      const next = String(cv.new);
+      const escaped = orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(escaped, 'g');
+      modifiedTikZ = modifiedTikZ.replace(re, next);
+    });
+    console.log('[sgRenderTikZ] 치환 적용:', changedValues.map(cv => `${cv.original}→${cv.new}`).join(', '));
+  }
+
+  return new Promise((resolve) => {
+    // 임시 컨테이너 생성
+    const container = document.createElement('div');
+    container.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+    document.body.appendChild(container);
+
+    // TikZ script 태그 생성
+    const script = document.createElement('script');
+    script.type = 'text/tikz';
+    script.textContent = modifiedTikZ;
+    container.appendChild(script);
+
+    // tikzjax가 렌더링 완료할 때까지 대기
+    const checkInterval = setInterval(() => {
+      const svg = container.querySelector('svg');
+      if (svg) {
+        clearInterval(checkInterval);
+        clearTimeout(timeout);
+        const svgString = svg.outerHTML;
+        console.log('[sgRenderTikZ] SVG 렌더링 완료, 길이:', svgString.length);
+        document.body.removeChild(container);
+        resolve(svgString);
+      }
+    }, 100);
+
+    // 10초 타임아웃
+    const timeout = setTimeout(() => {
+      clearInterval(checkInterval);
+      console.warn('[sgRenderTikZ] 렌더링 타임아웃');
+      document.body.removeChild(container);
+      resolve(null);
+    }, 10000);
+  });
+}
+
+// TikZ 코드 + changedValues → Claude로 SVG 생성 (fallback용)
 async function sgGenerateSVG(tikzCode, changedValues, apiKey) {
   if (!tikzCode || !apiKey) return null;
 
@@ -6134,7 +6188,7 @@ async function sgGenerateSVG(tikzCode, changedValues, apiKey) {
 - 직각 기호: 8×8 사각형
 - 꼭짓점 점: 반지름 3 원
 - 절대 3D 변형 금지, 원본과 동일한 2D 평면 도형으로만 표현
-- 배경: 흰색
+- 배경은 반드시 흰색(#ffffff)으로 설정. 검은색 배경 절대 금지. fill='none' 또는 fill='white'만 사용.
 - 완전한 SVG 코드만 출력, 설명 없이`;
 
   const userPrompt = `다음 TikZ 코드를 SVG로 변환해줘.${changesInstruction}
@@ -6533,9 +6587,14 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
       if (sg.tikzCode) console.log('[sgGenerate] TikZ 코드 내용:', sg.tikzCode);
 
       if (sg.tikzCode) {
-        document.getElementById('sg-loading-text').textContent = 'SVG 그림 생성 중...';
+        document.getElementById('sg-loading-text').textContent = 'TikZ → SVG 렌더링 중...';
         figureSvgs = await Promise.all((parsed.problems || []).map(async (p, idx) => {
-          const svg = await sgGenerateSVG(sg.tikzCode, p.changed_values, apiKey);
+          // tikzjax로 브라우저 렌더링 시도, 실패 시 Claude API fallback
+          let svg = await sgRenderTikZ(sg.tikzCode, p.changed_values);
+          if (!svg) {
+            console.log(`[sgGenerate] 문제 ${idx + 1}: tikzjax 실패 → Claude API fallback`);
+            svg = await sgGenerateSVG(sg.tikzCode, p.changed_values, apiKey);
+          }
           if (!svg) {
             console.warn(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 실패`);
           } else {
