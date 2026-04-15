@@ -6114,13 +6114,13 @@ async function sgExtractTikZ() {
   }
 }
 
-// 원본 이미지 + changedValues → Claude로 SVG 재생성
-async function sgGenerateSVG(imageData, imageType, changedValues, apiKey) {
-  if (!imageData || !apiKey) return null;
+// TikZ 코드 + changedValues → Claude로 SVG 생성
+async function sgGenerateSVG(tikzCode, changedValues, apiKey) {
+  if (!tikzCode || !apiKey) return null;
 
   const changesList = (changedValues || []).map(cv => `${cv.original} → ${cv.new}`).join(', ');
   const changesInstruction = changedValues?.length
-    ? `\n\n원본 이미지와 동일한 구조로 SVG를 그리되, 다음 치수 라벨을 교체해줘: ${changesList}`
+    ? ` 치수 라벨은 다음과 같이 교체해줘: ${changesList}`
     : '';
 
   const systemPrompt = `당신은 수학 그림 전문 SVG 생성기입니다.
@@ -6137,12 +6137,11 @@ async function sgGenerateSVG(imageData, imageType, changedValues, apiKey) {
 - 도형 내부 색상: fill은 연한 색상(opacity .12~.18)
 - 꼭짓점 알파벳 라벨(A, B, C 등)은 원본과 동일하게 유지`;
 
-  const userPrompt = `이 수학 그림을 분석하고 동일한 구조의 SVG로 재현해주세요.
-- 도형의 형태, 점의 위치, 선분 연결 관계를 정확히 유지
-- 모든 치수 라벨과 각도 표시를 포함
-- 꼭짓점 알파벳 라벨 위치 유지${changesInstruction}`;
+  const userPrompt = `다음 TikZ 코드를 SVG로 변환해줘.${changesInstruction}
 
-  console.log('[sgGenerateSVG] 치환 목록:', changesList || '없음');
+${tikzCode}`;
+
+  console.log('[sgGenerateSVG] TikZ 코드 길이:', tikzCode.length, '치환 목록:', changesList || '없음');
 
   try {
     const res = await fetch('/api/proxy', {
@@ -6158,10 +6157,7 @@ async function sgGenerateSVG(imageData, imageType, changedValues, apiKey) {
         system: systemPrompt,
         messages: [{
           role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: imageType || 'image/png', data: imageData } },
-            { type: 'text', text: userPrompt }
-          ]
+          content: userPrompt
         }]
       })
     });
@@ -6523,26 +6519,37 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (!match) throw new Error('응답 형식 오류');
     const parsed = JSON.parse(match[0]);
     console.log('[sgGenerate] 파싱 완료, 문제 수:', parsed.problems?.length);
-    // 이미지 입력 시: Claude로 SVG 직접 생성 (원본 이미지 + changedValues)
+    // 이미지 입력 시: TikZ → SVG 변환 (Claude 사용)
     let figureDataUrls = null;
     let figureSvgs = null;
     if (input.type === 'image') {
-      document.getElementById('sg-loading-text').textContent = 'SVG 그림 생성 중...';
-      figureSvgs = await Promise.all((parsed.problems || []).map(async (p, idx) => {
-        const svg = await sgGenerateSVG(input.data, input.mediaType, p.changed_values, apiKey);
-        if (!svg) {
-          console.warn(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 실패`);
-        } else {
-          console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공 (${svg.length}자)`);
-        }
-        return svg || null;
-      }));
-      // SVG 생성 결과 요약
-      const successCount = figureSvgs.filter(s => s).length;
-      console.log(`[sgGenerate] SVG 생성 완료: ${successCount}/${figureSvgs.length}개 성공`);
-      // SVG 실패 시 원본 이미지 fallback
+      // TikZ 코드가 없으면 먼저 추출
+      if (!sg.tikzCode) {
+        console.log('[sgGenerate] TikZ 코드 없음 → 추출 시도');
+        document.getElementById('sg-loading-text').textContent = 'TikZ 코드 추출 중...';
+        await sgExtractTikZ();
+      }
+      console.log('[sgGenerate] TikZ 코드:', sg.tikzCode ? `있음 (${sg.tikzCode.length}자)` : '없음');
+
+      if (sg.tikzCode) {
+        document.getElementById('sg-loading-text').textContent = 'SVG 그림 생성 중...';
+        figureSvgs = await Promise.all((parsed.problems || []).map(async (p, idx) => {
+          const svg = await sgGenerateSVG(sg.tikzCode, p.changed_values, apiKey);
+          if (!svg) {
+            console.warn(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 실패`);
+          } else {
+            console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공 (${svg.length}자)`);
+          }
+          return svg || null;
+        }));
+        // SVG 생성 결과 요약
+        const successCount = figureSvgs.filter(s => s).length;
+        console.log(`[sgGenerate] SVG 생성 완료: ${successCount}/${figureSvgs.length}개 성공`);
+      }
+      // TikZ 없거나 SVG 실패 시 원본 이미지 fallback
       const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
-      figureDataUrls = figureSvgs.map(svg => svg ? null : baseDataUrl);
+      figureDataUrls = (figureSvgs || []).map(svg => svg ? null : baseDataUrl);
+      if (!figureSvgs) figureDataUrls = (parsed.problems || []).map(() => baseDataUrl);
     }
     sgRenderResults(parsed, hint, figureDataUrls, figureSvgs);
 
