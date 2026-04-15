@@ -6065,17 +6065,26 @@ function sgSyncFigureCheck(i) {
 // Apply checked replacements onto canvas, return modified base64 or null
 function sgApplyFigureEdits() {
   return new Promise((resolve) => {
-    if (!sg.figureLabels?.length) { resolve(null); return; }
+    if (!sg.figureLabels?.length) {
+      console.log('[sgApplyFigureEdits] figureLabels 없음 → null 반환');
+      resolve(null); return;
+    }
     const replacements = [];
     sg.figureLabels.forEach((lb, i) => {
       const check = document.getElementById(`sg-fl-check-${i}`);
       const newVal = document.getElementById(`sg-fl-new-${i}`)?.value?.trim();
       if (check?.checked && newVal) replacements.push({ ...lb, newText: newVal });
     });
-    if (!replacements.length) { resolve(null); return; }
+    console.log(`[sgApplyFigureEdits] 체크된 교체 항목 (${replacements.length}개):`,
+      replacements.map(r => `"${r.text}" → "${r.newText}" @ (${r.x.toFixed(3)}, ${r.y.toFixed(3)}) w=${r.w.toFixed(3)} h=${r.h.toFixed(3)}`));
+    if (!replacements.length) {
+      console.log('[sgApplyFigureEdits] 교체 항목 없음 → null 반환 (원본 이미지 사용)');
+      resolve(null); return;
+    }
 
     const img = new Image();
     img.onload = () => {
+      console.log(`[sgApplyFigureEdits] 이미지 로드 완료: ${img.naturalWidth}×${img.naturalHeight}px`);
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
@@ -6088,27 +6097,38 @@ function sgApplyFigureEdits() {
         const bw = r.w * img.naturalWidth;
         const bh = r.h * img.naturalHeight;
         const pad = Math.max(4, bh * 0.3);
-        // Sample background color near bbox top-left
-        const sample = ctx.getImageData(Math.max(0, cx - bw/2 - 10), Math.max(0, cy - bh/2 - 5), 4, 4);
+        // Sample background color near bbox
+        const sx = Math.max(0, Math.round(cx - bw/2 - 10));
+        const sy = Math.max(0, Math.round(cy - bh/2 - 5));
+        const sample = ctx.getImageData(sx, sy, 4, 4);
         let rSum=0,gSum=0,bSum=0;
         for(let k=0;k<sample.data.length;k+=4){rSum+=sample.data[k];gSum+=sample.data[k+1];bSum+=sample.data[k+2];}
         const n=sample.data.length/4;
         const bg = `rgb(${Math.round(rSum/n)},${Math.round(gSum/n)},${Math.round(bSum/n)})`;
         // Erase
+        const ex = cx - bw/2 - pad, ey = cy - bh/2 - pad;
         ctx.fillStyle = bg;
-        ctx.fillRect(cx - bw/2 - pad, cy - bh/2 - pad, bw + pad*2, bh + pad*2);
+        ctx.fillRect(ex, ey, bw + pad*2, bh + pad*2);
         // Render new text
         const fontSize = Math.max(Math.round(bh * 0.85), 11);
         ctx.fillStyle = '#000000';
         ctx.font = `${fontSize}px "Times New Roman", serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(sgLatexToDisplay(r.newText), cx, cy);
+        const displayText = sgLatexToDisplay(r.newText);
+        ctx.fillText(displayText, cx, cy);
+        console.log(`[sgApplyFigureEdits] "${r.text}" → "${displayText}"  erase=(${Math.round(ex)},${Math.round(ey)},${Math.round(bw+pad*2)}×${Math.round(bh+pad*2)})  bg=${bg}  fontSize=${fontSize}px`);
       });
 
-      resolve(canvas.toDataURL(sg.imageType || 'image/png').split(',')[1]);
+      const result = canvas.toDataURL(sg.imageType || 'image/png').split(',')[1];
+      const same = result === sg.imageData;
+      console.log(`[sgApplyFigureEdits] 수정된 이미지 생성 완료 — base64 길이: 원본=${sg.imageData.length} / 수정본=${result.length} / 동일여부=${same}`);
+      resolve(result);
     };
-    img.onerror = () => resolve(null);
+    img.onerror = (e) => {
+      console.error('[sgApplyFigureEdits] 이미지 로드 실패:', e, 'imageType=', sg.imageType, 'imageData 앞 30자=', sg.imageData?.slice(0,30));
+      resolve(null);
+    };
     img.src = `data:${sg.imageType || 'image/png'};base64,${sg.imageData}`;
   });
 }
