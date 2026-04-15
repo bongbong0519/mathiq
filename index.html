@@ -6123,19 +6123,19 @@ async function sgGenerateSVG(tikzCode, changedValues, apiKey) {
     ? ` 치수 라벨은 다음과 같이 교체해줘: ${changesList}`
     : '';
 
-  const systemPrompt = `당신은 수학 그림 전문 SVG 생성기입니다.
-
+  const systemPrompt = `당신은 수학 문제 도형을 SVG로 정밀하게 재현하는 전문가입니다.
 규칙:
-- viewBox="0 0 400 320" 고정 사용
-- 반드시 완전한 SVG 코드만 출력 (설명, 마크다운 코드블록 없이 <svg>로 시작해서 </svg>로 끝)
-- 배경: <rect width="400" height="320" fill="#fff"/>
-- 선: stroke="#1e293b" stroke-width="1.5" fill="none"
-- 점: 반지름 3~4의 원, fill="#1e293b"
-- 레이블: font-family="Georgia,serif" font-size="14"
-- 직각 기호: 8×8 사각형 path
-- 치수선: 숫자 라벨 포함
-- 도형 내부 색상: fill은 연한 색상(opacity .12~.18)
-- 꼭짓점 알파벳 라벨(A, B, C 등)은 원본과 동일하게 유지`;
+- viewBox는 이미지 비율에 맞게 설정
+- 원본 이미지의 도형 구조, 모양, 비율을 최대한 정확하게 재현
+- 선분: stroke='#1e293b' stroke-width='1.5'
+- 도형 내부: fill='#d1d5db' opacity='0.4' (회색 음영)
+- 라벨: font-family='Georgia,serif' font-size='14' 수식은 유니코드 사용(√ 등)
+- 치수선: 점선(stroke-dasharray='4,3') + 화살표 마커
+- 직각 기호: 8×8 사각형
+- 꼭짓점 점: 반지름 3 원
+- 절대 3D 변형 금지, 원본과 동일한 2D 평면 도형으로만 표현
+- 배경: 흰색
+- 완전한 SVG 코드만 출력, 설명 없이`;
 
   const userPrompt = `다음 TikZ 코드를 SVG로 변환해줘.${changesInstruction}
 
