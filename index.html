@@ -6022,8 +6022,8 @@ async function sgGenerate() {
 
   // ── 구독 티어 / 월 사용 횟수 체크 ──
   const tier = currentProfile?.subscription_tier || 'free';
-  const aiLimit = TIER_AI_LIMIT[tier] ?? 0;
-  if (aiLimit === 0) {
+  const aiLimit = OPEN_EVENT ? Infinity : (TIER_AI_LIMIT[tier] ?? 0);
+  if (!OPEN_EVENT && aiLimit === 0) {
     showToast('AI 유사문제 생성은 베이직 이상 구독이 필요합니다. 요금제를 확인해주세요.', '🔒');
     return;
   }
@@ -6031,7 +6031,7 @@ async function sgGenerate() {
   const now = new Date();
   const isNewMonth = now.getFullYear() !== resetAt.getFullYear() || now.getMonth() !== resetAt.getMonth();
   const currentUsage = isNewMonth ? 0 : (currentProfile?.ai_usage_count ?? 0);
-  if (currentUsage >= aiLimit) {
+  if (!OPEN_EVENT && currentUsage >= aiLimit) {
     showToast(`이번 달 사용 횟수를 초과했습니다. 구독을 업그레이드 해주세요 (${currentUsage}/${aiLimit}회 사용)`, '⛔');
     return;
   }
@@ -8260,12 +8260,16 @@ let _extractedQuestions = [];
 let _extractPageImages  = [];   // 추출 시 저장된 페이지 이미지 (base64)
 let _quSelectedDiff = 3;
 
+// ── 오픈 이벤트: true 이면 모든 로그인 유저가 제한 없이 무료 이용 ──
+const OPEN_EVENT = true;
+
 // ── 구독 티어 ──
 const TIER_ORDER    = ['free', 'basic', 'standard', 'premium', 'pro'];
 const TIER_AI_LIMIT = { free: 0, basic: 10, standard: 30, premium: 100, pro: 300 };
 const TIER_LABEL_KO = { free: 'Free', basic: '베이직', standard: '스탠다드', premium: '프리미엄', pro: '프로' };
 const TIER_COLOR    = { free: '#888', basic: '#4c9be8', standard: '#3ecf8e', premium: 'var(--accent)', pro: '#9b59b6' };
 function tierAtLeast(current, required) {
+  if (OPEN_EVENT) return true;
   return TIER_ORDER.indexOf(current || 'free') >= TIER_ORDER.indexOf(required);
 }
 
@@ -8642,21 +8646,23 @@ async function confirmViewContact(tuteeId, tuteeUserId) {
   const content = document.getElementById('student-contact-modal-content');
   if (content) content.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3)">처리 중...</div>`;
 
-  const { error: rpcErr } = await sbClient.rpc('deduct_points', { amount: 500 });
-  if (rpcErr) {
-    showToast('포인트 차감 실패: ' + rpcErr.message, '❌');
-    closeStudentContactModal();
-    return;
+  if (!OPEN_EVENT) {
+    const { error: rpcErr } = await sbClient.rpc('deduct_points', { amount: 500 });
+    if (rpcErr) {
+      showToast('포인트 차감 실패: ' + rpcErr.message, '❌');
+      closeStudentContactModal();
+      return;
+    }
+    if (currentProfile) {
+      currentProfile.point_balance = (currentProfile.point_balance || 0) - 500;
+      updateBalanceDisplay(currentProfile.point_balance, currentProfile.cash_balance);
+    }
   }
 
   await sbClient.from('tutor_contact_views').insert({ tutor_id: currentUser.id, tutee_id: tuteeId });
 
   window._viewedTuteeSet = window._viewedTuteeSet || new Set();
   window._viewedTuteeSet.add(tuteeId);
-  if (currentProfile) {
-    currentProfile.point_balance = (currentProfile.point_balance || 0) - 500;
-    updateBalanceDisplay(currentProfile.point_balance, currentProfile.cash_balance);
-  }
 
   const p     = (window._studentProfileMap || {})[tuteeUserId] || {};
   const email = p.email || '—';
