@@ -7205,17 +7205,18 @@ async function loadStudentExams() {
   console.log('[loadStudentExams] Step4 exam_sessions 조회 — examIds:', examIds);
   const { data: sessions, error: sessErr } = await sbClient.from('exam_sessions')
     .select('*').eq('student_id', student.id).in('exam_id', examIds);
+  if (sessErr) console.warn('[loadStudentExams] Step4 sessions 조회 오류 (무시하고 진행):', sessErr.message);
   console.log('[loadStudentExams] Step4 결과 →', { sessions, error: sessErr });
   const sessionMap = {};
   (sessions || []).forEach(s => { sessionMap[s.exam_id] = s; });
 
   wrap.innerHTML = assignments.map(a => {
-    const exam = a.exams;
-    if (!exam) return '';
+    // exams JOIN이 null이면 assignment 자체 데이터로 fallback
+    const exam = a.exams || { id: a.exam_id, title: '(시험 정보 없음)', time_limit: 60, exam_date: null, unit: null };
     const timeLimit = exam.time_limit || 60;
-    const sess = sessionMap[exam.id];
-    const eid = exam.id;
-    const etitle = exam.title.replace(/'/g, "\\'");
+    const sess = sessionMap[a.exam_id];
+    const eid = a.exam_id;
+    const etitle = (exam.title || '').replace(/'/g, "\\'");
 
     let statusHtml, actionHtml;
     if (!sess) {
