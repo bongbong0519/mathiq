@@ -6118,6 +6118,9 @@ async function sgGenerate() {
      * 정삼각형(한변a): A=(0,0) B=(a,0) C=(a/2, a*0.866)  [√3/2≈0.866]
      * 직사각형(가로w, 세로h): A=(0,0) B=(w,0) C=(w,h) D=(0,h)
    - 치수 라벨: SetCaption(seg, "라벨"), ShowLabel(seg, true)
+   - 명령어 순서 규칙: 반드시 모든 점(A, B, C...)을 먼저 정의한 후 Polygon() 등 사용할 것
+   - 예약어 금지: I는 GeoGebra 내부 예약어이므로 점 이름으로 절대 사용 금지 (A~H, J~Z 사용)
+   - 수식 표기: sqrt() 함수 사용, √ 기호 사용 금지 (예: sqrt(3) O, √3 X)
    - 계산·확률·대수 문제는 figure_commands를 생략하세요.
 
 반드시 아래 JSON만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.

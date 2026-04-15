@@ -45,6 +45,9 @@
         var ggb = api || window.ggbApplet;
         if (!ggb) { log('API 객체 없음'); return; }
 
+        // 에러 팝업 비활성화 — evalCommand 실패 시 다이얼로그 없이 콘솔만 출력
+        try { ggb.setErrorDialogsActive(false); } catch(e) {}
+
         cmds.forEach(function(cmd) {
           try {
             var ok = ggb.evalCommand(cmd);
