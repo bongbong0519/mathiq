@@ -10790,17 +10790,28 @@ async function loadStudentView() {
     .eq('student_id', student.id)
     .order('created_at', { ascending: false });
 
-  // 코멘트 불러오기
-  const { data: comment } = await sbClient
+  // 시험 세션 불러오기 (통계용)
+  const { data: sessions } = await sbClient
+    .from('exam_sessions')
+    .select('*, exams(title)')
+    .eq('student_id', student.id)
+    .not('submitted_at', 'is', null)
+    .order('submitted_at', { ascending: false });
+
+  // 코멘트 불러오기 (에러 무시)
+  const { data: comments } = await sbClient
     .from('teacher_comments')
     .select('*')
     .eq('student_id', student.id)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  const comment = comments?.[0] || null;
 
-  const scores = (results || []).map(r => r.score).filter(v => v != null);
-  const avg = scores.length ? (scores.reduce((a,b) => a+b,0) / scores.length).toFixed(1) : null;
+  // 통계 계산 (exam_sessions 기반)
+  const completedSessions = sessions || [];
+  const sessionScores = completedSessions.map(s => s.score).filter(v => v != null);
+  const avg = sessionScores.length ? (sessionScores.reduce((a,b) => a+b,0) / sessionScores.length).toFixed(1) : null;
+  const recentScore = completedSessions[0]?.score;
 
   const wrap = document.getElementById('student-view-wrap');
   if (!wrap) return;
@@ -10822,7 +10833,7 @@ async function loadStudentView() {
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
           <div style="font-size:28px;margin-bottom:8px">📝</div>
-          <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${(results||[]).length}회</div>
+          <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${completedSessions.length}회</div>
           <div style="font-size:12px;color:var(--text3);margin-top:4px">응시한 시험</div>
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
@@ -10832,7 +10843,7 @@ async function loadStudentView() {
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
           <div style="font-size:28px;margin-bottom:8px">🎯</div>
-          <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${results?.[0]?.score != null ? results[0].score+'점' : '—'}</div>
+          <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${recentScore != null ? recentScore+'점' : '—'}</div>
           <div style="font-size:12px;color:var(--text3);margin-top:4px">최근 점수</div>
         </div>
       </div>
