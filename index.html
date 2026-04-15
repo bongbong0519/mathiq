@@ -6995,15 +6995,26 @@ async function loadExamQuestions(examId, title) {
     </div>` : ''}`;
 
   // ── 문제 탭 HTML ──
-  const tabQuestions = !questions?.length
+  const currentExamId = examId;
+  const addQuestionForm = `
+    <div id="add-question-form" style="background:var(--bg3);border:2px dashed var(--accent);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="font-weight:700;color:var(--accent);margin-bottom:12px">➕ 문제 추가</div>
+      <textarea id="aq-question" placeholder="문제 내용을 입력하세요" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);margin-bottom:8px;resize:vertical;min-height:60px;box-sizing:border-box"></textarea>
+      ${[1,2,3,4,5].map(n => `<input id="aq-choice${n}" placeholder="${n}번 보기" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);margin-bottom:6px;box-sizing:border-box">`).join('')}
+      <div style="margin:8px 0 12px;font-size:13px;color:var(--text2)">정답:
+        ${[1,2,3,4,5].map(n => `<label style="margin-right:10px"><input type="radio" name="aq-answer" value="${n-1}"> ${n}번</label>`).join('')}
+      </div>
+      <button onclick="submitAddQuestion('${currentExamId}')" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:8px 18px;cursor:pointer;font-weight:600">저장</button>
+    </div>`;
+
+  const tabQuestions = addQuestionForm + (!questions?.length
     ? '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">저장된 문제가 없습니다</div></div>'
     : questions.map((q, i) => `
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
         <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${i+1}번 문제</div>
         <div style="font-size:14px;line-height:1.8;color:var(--text)">${sgEsc(q.question)}</div>
         ${q.choices ? q.choices.map((c,ci) => `<div style="font-size:13px;padding:4px 0;color:${ci===q.answer_index?'var(--green)':'var(--text2)'}">${ci+1}. ${sgEsc(c)}</div>`).join('') : ''}
-        ${q.answer ? `<div style="font-size:12px;color:var(--green);margin-top:6px">✅ 정답: ${sgEsc(q.answer)}</div>` : ''}
-      </div>`).join('');
+      </div>`).join(''));
 
   // ── 응시 현황 탭 HTML ──
   const allAssignedStudents = assignments || [];
@@ -7051,6 +7062,28 @@ async function loadExamQuestions(examId, title) {
     <div id="eq-panel-2" style="display:none">${sessionTab}</div>`;
 
   modal.classList.add('open');
+}
+
+async function submitAddQuestion(examId) {
+  const question = document.getElementById('aq-question').value.trim();
+  const choices = [1,2,3,4,5].map(n => document.getElementById(`aq-choice${n}`).value.trim());
+  const answerEl = document.querySelector('input[name="aq-answer"]:checked');
+  if(!question || choices.some(c=>!c) || !answerEl) { showToast('모든 항목을 입력하고 정답을 선택해주세요', '⚠️'); return; }
+  const { data: lastQ } = await sbClient.from('exam_questions').select('question_number').eq('exam_id', examId).order('question_number', { ascending: false }).limit(1);
+  const nextNum = (lastQ && lastQ[0]) ? lastQ[0].question_number + 1 : 1;
+  const { error } = await sbClient.from('exam_questions').insert({
+    exam_id: examId,
+    question,
+    choices,
+    answer_index: parseInt(answerEl.value),
+    question_type: 'multiple_choice',
+    question_number: nextNum
+  });
+  if(error) { showToast('저장 실패: ' + error.message, '❌'); return; }
+  showToast('문제가 저장되었습니다', '✅');
+  // 현재 모달 타이틀에서 시험명 추출
+  const title = document.querySelector('#createExamModal .modal-title')?.textContent?.replace('📝 ', '') || '';
+  loadExamQuestions(examId, title);
 }
 
 async function assignStudent(examId, studentId, title) {
