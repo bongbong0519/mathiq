@@ -6168,6 +6168,45 @@ async function sgRenderTikZ(tikzCode, changedValues) {
   });
 }
 
+// Railway API로 이미지 생성 (matplotlib 기반)
+async function sgDrawRailway(imageData, mediaType, changedValues) {
+  if (!imageData) return null;
+
+  const changes = (changedValues || []).map(cv => ({ original: cv.original, new: cv.new }));
+  console.log('[sgDrawRailway] 호출, 치환:', changes.length ? changes : '없음');
+
+  try {
+    const res = await fetch('https://web-production-132a5.up.railway.app/draw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: imageData,
+        mediaType: mediaType || 'image/png',
+        changes: changes
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('[sgDrawRailway] HTTP', res.status, err.error || JSON.stringify(err).slice(0, 200));
+      return null;
+    }
+
+    const data = await res.json();
+    if (!data.success || !data.image) {
+      console.warn('[sgDrawRailway] 응답 실패:', data.error || '이미지 없음');
+      return null;
+    }
+
+    console.log('[sgDrawRailway] 이미지 생성 성공');
+    // PNG base64를 data URL로 반환
+    return `data:image/png;base64,${data.image}`;
+  } catch (e) {
+    console.error('[sgDrawRailway] 네트워크 오류:', e.message);
+    return null;
+  }
+}
+
 // TikZ 코드 + changedValues → Claude로 SVG 생성 (fallback용)
 async function sgGenerateSVG(tikzCode, changedValues, apiKey) {
   if (!tikzCode || !apiKey) return null;
@@ -6573,43 +6612,56 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (!match) throw new Error('응답 형식 오류');
     const parsed = JSON.parse(match[0]);
     console.log('[sgGenerate] 파싱 완료, 문제 수:', parsed.problems?.length);
-    // 이미지 입력 시: TikZ → SVG 변환 (Claude 사용)
+    // 이미지 입력 시: Railway API → TikZ fallback
     let figureDataUrls = null;
     let figureSvgs = null;
     if (input.type === 'image') {
-      // TikZ 코드가 없으면 먼저 추출
-      if (!sg.tikzCode) {
-        console.log('[sgGenerate] TikZ 코드 없음 → 추출 시도');
+      const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
+
+      // 1차: Railway API로 matplotlib 이미지 생성 시도
+      document.getElementById('sg-loading-text').textContent = '도형 이미지 생성 중...';
+      figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, idx) => {
+        const imgUrl = await sgDrawRailway(input.data, input.mediaType, p.changed_values);
+        if (imgUrl) {
+          console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 성공`);
+          return imgUrl;
+        }
+        console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 실패 → TikZ fallback`);
+        return null;
+      }));
+
+      // Railway 실패한 문제들은 TikZ 방식으로 재시도
+      const failedIndices = figureDataUrls.map((url, i) => url ? -1 : i).filter(i => i >= 0);
+      if (failedIndices.length > 0 && !sg.tikzCode) {
+        console.log('[sgGenerate] TikZ 코드 추출 시도');
         document.getElementById('sg-loading-text').textContent = 'TikZ 코드 추출 중...';
         await sgExtractTikZ();
       }
-      console.log('[sgGenerate] TikZ 코드:', sg.tikzCode ? `있음 (${sg.tikzCode.length}자)` : '없음');
-      if (sg.tikzCode) console.log('[sgGenerate] TikZ 코드 내용:', sg.tikzCode);
 
-      if (sg.tikzCode) {
+      if (failedIndices.length > 0 && sg.tikzCode) {
+        console.log('[sgGenerate] TikZ 코드:', `있음 (${sg.tikzCode.length}자)`);
         document.getElementById('sg-loading-text').textContent = 'TikZ → SVG 렌더링 중...';
-        figureSvgs = await Promise.all((parsed.problems || []).map(async (p, idx) => {
-          // tikzjax로 브라우저 렌더링 시도, 실패 시 Claude API fallback
+        figureSvgs = new Array(parsed.problems.length).fill(null);
+
+        for (const idx of failedIndices) {
+          const p = parsed.problems[idx];
           let svg = await sgRenderTikZ(sg.tikzCode, p.changed_values);
           if (!svg) {
             console.log(`[sgGenerate] 문제 ${idx + 1}: tikzjax 실패 → Claude API fallback`);
             svg = await sgGenerateSVG(sg.tikzCode, p.changed_values, apiKey);
           }
-          if (!svg) {
-            console.warn(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 실패`);
+          if (svg) {
+            figureSvgs[idx] = svg;
+            console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공`);
           } else {
-            console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공 (${svg.length}자)`);
+            console.warn(`[sgGenerate] 문제 ${idx + 1}: 모든 방법 실패 → 원본 이미지`);
+            figureDataUrls[idx] = baseDataUrl;
           }
-          return svg || null;
-        }));
-        // SVG 생성 결과 요약
-        const successCount = figureSvgs.filter(s => s).length;
-        console.log(`[sgGenerate] SVG 생성 완료: ${successCount}/${figureSvgs.length}개 성공`);
+        }
+      } else if (failedIndices.length > 0) {
+        // TikZ도 없으면 원본 이미지로 fallback
+        failedIndices.forEach(idx => { figureDataUrls[idx] = baseDataUrl; });
       }
-      // TikZ 없거나 SVG 실패 시 원본 이미지 fallback
-      const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
-      figureDataUrls = (figureSvgs || []).map(svg => svg ? null : baseDataUrl);
-      if (!figureSvgs) figureDataUrls = (parsed.problems || []).map(() => baseDataUrl);
     }
     sgRenderResults(parsed, hint, figureDataUrls, figureSvgs);
 
