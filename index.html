@@ -6064,6 +6064,55 @@ function sgRedetectLabels() {
   sgDetectFigureLabels();
 }
 
+// 치수 라벨에 대한 랜덤 새 값 생성
+function sgGenerateRandomValue(original) {
+  const text = String(original).trim();
+  const sqrtPrimes = [2, 3, 5, 6, 7, 10, 11, 13];
+
+  // √ 포함 (예: 2+√7, 3-√5, √3 등)
+  const sqrtMatch = text.match(/^(\d+)?([+\-])?(√|sqrt)(\d+)$/i) || text.match(/^(√|sqrt)(\d+)([+\-])?(\d+)?$/i);
+  if (text.includes('√') || text.toLowerCase().includes('sqrt')) {
+    // 복합 형태: n+√m 또는 n-√m
+    const complexMatch = text.match(/^(\d+)([+\-])(√|sqrt)(\d+)$/i);
+    if (complexMatch) {
+      const intPart = parseInt(complexMatch[1]);
+      const op = complexMatch[2];
+      const newInt = Math.max(1, intPart + (Math.random() < 0.5 ? -1 : 1) * (Math.floor(Math.random() * 2) + 1));
+      const newSqrt = sqrtPrimes[Math.floor(Math.random() * sqrtPrimes.length)];
+      return `${newInt}${op}√${newSqrt}`;
+    }
+    // 단순 √n
+    const simpleMatch = text.match(/^(√|sqrt)(\d+)$/i);
+    if (simpleMatch) {
+      const newSqrt = sqrtPrimes[Math.floor(Math.random() * sqrtPrimes.length)];
+      return `√${newSqrt}`;
+    }
+    // 기타 √ 포함: 그냥 √ 안의 숫자만 바꿈
+    const newSqrt = sqrtPrimes[Math.floor(Math.random() * sqrtPrimes.length)];
+    return text.replace(/\d+/, newSqrt);
+  }
+
+  // 정수
+  const intMatch = text.match(/^(\d+)$/);
+  if (intMatch) {
+    const num = parseInt(intMatch[1]);
+    const delta = Math.floor(Math.random() * 2) + 1; // 1 or 2
+    const newNum = Math.random() < 0.5 ? num - delta : num + delta;
+    return String(Math.max(1, newNum)); // 양수 유지
+  }
+
+  // 소수 또는 기타 숫자
+  const floatMatch = text.match(/^(\d+\.?\d*)$/);
+  if (floatMatch) {
+    const num = parseFloat(floatMatch[1]);
+    const delta = (Math.floor(Math.random() * 2) + 1) * (Math.random() < 0.5 ? -1 : 1);
+    return String(Math.max(0.5, num + delta));
+  }
+
+  // 패턴 매칭 실패: 원본 + 1
+  return text + '+1';
+}
+
 function sgRenderFigurePanel(labels) {
   const labelsEl = document.getElementById('sg-figure-labels');
   const noneEl = document.getElementById('sg-figure-none');
@@ -6073,14 +6122,19 @@ function sgRenderFigurePanel(labels) {
     return;
   }
   let hasRisky = false;
+
+  // 각 라벨에 대해 랜덤 새 값 생성
+  const newValues = labels.map(lb => sgGenerateRandomValue(lb.text));
+
   labelsEl.innerHTML = labels.map((lb, i) => {
     const risky = lb.y < 0.22; // top 22% likely overlaps problem text
     if (risky) hasRisky = true;
+    const newVal = newValues[i];
     return `<div style="display:flex;align-items:center;gap:7px;padding:7px 9px;background:var(--bg3);border:1px solid ${risky ? 'rgba(246,173,85,0.3)' : 'var(--border)'};border-radius:var(--radius-sm)">
-      <input type="checkbox" id="sg-fl-check-${i}" ${risky ? '' : ''} style="width:14px;height:14px;cursor:pointer;flex-shrink:0" onchange="sgSyncFigureCheck(${i})">
+      <input type="checkbox" id="sg-fl-check-${i}" ${risky ? '' : 'checked'} style="width:14px;height:14px;cursor:pointer;flex-shrink:0" onchange="sgSyncFigureCheck(${i})">
       <span style="font-size:12px;font-family:'Space Mono',monospace;color:${risky ? 'var(--yellow)' : 'var(--text)'};min-width:54px;flex-shrink:0" title="${risky ? '문제 텍스트와 겹칠 수 있음' : ''}">${escapeHtml(lb.text)}${risky ? ' ⚠' : ''}</span>
       <span style="font-size:10px;color:var(--text3)">→</span>
-      <input type="text" id="sg-fl-new-${i}" placeholder="새 값 (예: 3+√5)"
+      <input type="text" id="sg-fl-new-${i}" value="${escapeHtml(newVal)}" placeholder="새 값 (예: 3+√5)"
         style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;font-family:'Space Mono',monospace;padding:4px 7px;outline:none;min-width:0"
         oninput="sgSyncFigureCheck(${i})">
     </div>`;
