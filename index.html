@@ -5984,7 +5984,7 @@ function sgLatexToDisplay(str) {
     .replace(/\\/g, '');
 }
 
-// Detect figure labels via Gemini Vision
+// Detect figure labels via Claude Vision
 async function sgDetectFigureLabels() {
   if (!sg.imageData) return;
   const panel = document.getElementById('sg-figure-edit');
@@ -6000,23 +6000,41 @@ async function sgDetectFigureLabels() {
   warnEl.style.display = 'none';
   sg.figureLabels = null;
 
+  const apiKey = document.getElementById('sg-api-key')?.value?.trim();
+  if (!apiKey) {
+    console.warn('[sgDetectFigureLabels] API 키 없음');
+    sg.figureLabels = [];
+    noneEl.style.display = 'block';
+    detecting.style.display = 'none';
+    return;
+  }
+
+  const prompt = '당신은 수학 문제 이미지에서 도형의 치수 데이터만 추출하는 전문 비전 AI입니다.\n제공된 이미지에서 아래의 지침을 엄격하게 따라 JSON 형식으로만 응답하세요. 다른 설명이나 마크다운 코드 블록은 절대 출력하지 마세요.\n[지침]\n1. 분석 영역: 이미지 내에 있는 도형 다이어그램과 그 주변에 표시된 치수선 및 라벨 영역으로 한정합니다.\n2. 절대 제외 대상:\n   - 문제 설명, 조건, 질문 등 일반 텍스트 문장\n   - 하단의 객관식 보기 텍스트 및 번호\n   - 도형의 꼭짓점, 영역, 각도 위치 등을 지칭하는 단순 알파벳 기호 및 식별자 (예: A, B, C, P, Q, O 등)\n3. 추출 대상: 도형의 선분 길이나 크기를 명시적으로 나타내는 치수 라벨(숫자 및 수학 수식)만 정확히 추출하세요.\n4. 좌표계 기준: 이미지의 전체 너비와 높이를 1.0으로 가정한 정규화된 좌표계를 사용합니다.\n   - x, y: 텍스트 바운딩 박스의 좌측 상단 모서리 좌표\n   - w, h: 텍스트 바운딩 박스의 너비와 높이\n[출력 형식]\n{"numbers":[{"text":"라벨 텍스트","x":0.0,"y":0.0,"w":0.0,"h":0.0}]}';
+
   try {
-    const res = await fetch('/api/gemini', {
+    const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
       body: JSON.stringify({
-        model: 'gemini-2.5-flash',
-        contents: [{
-          parts: [
-            { inlineData: { mimeType: sg.imageType || 'image/png', data: sg.imageData } },
-            { text: '당신은 수학 문제 이미지에서 도형의 치수 데이터만 추출하는 전문 비전 AI입니다.\n제공된 이미지에서 아래의 지침을 엄격하게 따라 JSON 형식으로만 응답하세요. 다른 설명이나 마크다운 코드 블록은 절대 출력하지 마세요.\n[지침]\n1. 분석 영역: 이미지 내에 있는 도형 다이어그램과 그 주변에 표시된 치수선 및 라벨 영역으로 한정합니다.\n2. 절대 제외 대상:\n   - 문제 설명, 조건, 질문 등 일반 텍스트 문장\n   - 하단의 객관식 보기 텍스트 및 번호\n   - 도형의 꼭짓점, 영역, 각도 위치 등을 지칭하는 단순 알파벳 기호 및 식별자 (예: A, B, C, P, Q, O 등)\n3. 추출 대상: 도형의 선분 길이나 크기를 명시적으로 나타내는 치수 라벨(숫자 및 수학 수식)만 정확히 추출하세요.\n4. 좌표계 기준: 이미지의 전체 너비와 높이를 1.0으로 가정한 정규화된 좌표계를 사용합니다.\n   - x, y: 텍스트 바운딩 박스의 좌측 상단 모서리 좌표\n   - w, h: 텍스트 바운딩 박스의 너비와 높이\n[출력 형식]\n{"numbers":[{"text":"라벨 텍스트","x":0.0,"y":0.0,"w":0.0,"h":0.0}]}' }
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: sg.imageType || 'image/png', data: sg.imageData } },
+            { type: 'text', text: prompt }
           ]
         }]
       })
     });
-    if (!res.ok) throw new Error('Gemini API error');
+    if (!res.ok) throw new Error('Claude API error');
     const data = await res.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const rawText = data.content?.map(b => b.type === 'text' ? b.text : '').join('') || '';
+    console.log('[sgDetectFigureLabels] Claude 응답:', rawText);
     const match = rawText.match(/\{[\s\S]*\}/);
     if (match) {
       const parsed = JSON.parse(match[0]);
@@ -6034,6 +6052,7 @@ async function sgDetectFigureLabels() {
       noneEl.style.display = 'block';
     }
   } catch(e) {
+    console.error('[sgDetectFigureLabels] 오류:', e.message);
     sg.figureLabels = [];
     noneEl.style.display = 'block';
   } finally {
