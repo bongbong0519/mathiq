@@ -6729,7 +6729,7 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
       figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, idx) => {
         const imgUrl = await sgDrawRailway(input.data, input.mediaType, p.changed_values, sg.tikzCode);
         if (imgUrl) {
-          console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 성공`);
+          console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 성공, 이미지 길이: ${imgUrl?.length || 0}`);
           return imgUrl;
         }
         console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 실패 → TikZ fallback`);
@@ -6895,6 +6895,7 @@ for (let i = 0; i < problems.length; i++) {
     // 문제별 그림 소스: SVG > 이미지 > 없음
     const figureSvg    = Array.isArray(figureSvgs) ? figureSvgs[i] : null;
     const figureDataUrl = Array.isArray(figureDataUrls) ? figureDataUrls[i] : figureDataUrls;
+    console.log('[sgRenderResults] figureDataUrl:', figureDataUrl?.substring(0, 80), 'figureSvg:', !!figureSvg);
     // GeoGebra는 함수·그래프 문제(y=, f(x), 함수, 그래프 키워드)에만 사용
     const GRAPH_RE = /y\s*=|f\s*\(x\)|함수|그래프/;
     const hasGgb   = Array.isArray(p.figure_commands) && p.figure_commands.length > 0
