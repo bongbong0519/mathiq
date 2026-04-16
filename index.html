@@ -6242,11 +6242,44 @@ async function sgRenderTikZ(tikzCode, changedValues) {
 }
 
 // Railway API로 이미지 생성 (matplotlib 기반)
-async function sgDrawRailway(imageData, mediaType, changedValues) {
-  if (!imageData) return null;
-
+// tikzCode가 있으면 /draw-tikz, 없으면 /draw 호출
+async function sgDrawRailway(imageData, mediaType, changedValues, tikzCode) {
   const changes = (changedValues || []).map(cv => ({ original: cv.original, new: cv.new }));
-  console.log('[sgDrawRailway] 호출, 치환:', changes.length ? changes : '없음');
+
+  // tikzCode가 있으면 /draw-tikz 엔드포인트 사용
+  if (tikzCode) {
+    console.log('[sgDrawRailway] TikZ 코드 있음 → /draw-tikz 호출');
+    try {
+      const res = await fetch('https://web-production-132a5.up.railway.app/draw-tikz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tikz: tikzCode,
+          changes: changes
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('[sgDrawRailway/tikz] HTTP', res.status, err.error || JSON.stringify(err).slice(0, 200));
+        // TikZ 실패 시 이미지 기반으로 fallback
+        console.log('[sgDrawRailway] TikZ 실패 → 이미지 기반 fallback');
+      } else {
+        const data = await res.json();
+        if (data.success && data.image) {
+          console.log('[sgDrawRailway/tikz] 이미지 생성 성공');
+          return `data:image/png;base64,${data.image}`;
+        }
+        console.warn('[sgDrawRailway/tikz] 응답 실패:', data.error || '이미지 없음');
+      }
+    } catch (e) {
+      console.error('[sgDrawRailway/tikz] 네트워크 오류:', e.message);
+    }
+  }
+
+  // 이미지 기반 /draw 호출
+  if (!imageData) return null;
+  console.log('[sgDrawRailway] 이미지 기반 /draw 호출, 치환:', changes.length ? changes : '없음');
 
   try {
     const res = await fetch('https://web-production-132a5.up.railway.app/draw', {
@@ -6691,10 +6724,10 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (input.type === 'image') {
       const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
 
-      // 1차: Railway API로 matplotlib 이미지 생성 시도
+      // 1차: Railway API로 matplotlib 이미지 생성 시도 (tikzCode 있으면 /draw-tikz 사용)
       document.getElementById('sg-loading-text').textContent = '도형 이미지 생성 중...';
       figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, idx) => {
-        const imgUrl = await sgDrawRailway(input.data, input.mediaType, p.changed_values);
+        const imgUrl = await sgDrawRailway(input.data, input.mediaType, p.changed_values, sg.tikzCode);
         if (imgUrl) {
           console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 성공`);
           return imgUrl;
