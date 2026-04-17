@@ -6324,13 +6324,13 @@ async function sgGenerateSVG(tikzCode, changedValues, apiKey) {
 
   const systemPrompt = `당신은 수학 문제 도형을 SVG로 정밀하게 재현하는 전문가입니다.
 규칙:
-- viewBox는 이미지 비율에 맞게 설정
+- viewBox는 상하좌우에 충분한 여백(padding 30~50)을 포함해서 설정. 치수 라벨(2+√7 등)이 잘리지 않도록 넉넉하게.
 - 원본 이미지의 도형 구조, 모양, 비율을 최대한 정확하게 재현
 - 선분: stroke='#1e293b' stroke-width='1.5'
 - 도형 내부: fill='#d1d5db' opacity='0.4' (회색 음영)
-- 라벨: font-family='Georgia,serif' font-size='14' 수식은 유니코드 사용(√ 등)
+- 라벨(텍스트): font-family='Georgia,serif' font-size='16' font-weight='bold'. 꼭짓점 라벨(P, Q, R, S 등)과 치수 라벨 모두 최소 16px 이상으로 크게.
 - 치수선: 점선(stroke-dasharray='4,3') + 화살표 마커
-- 직각 기호: 8×8 사각형
+- 직각 기호: 10×10 사각형
 - 꼭짓점 점: 반지름 3 원
 - 절대 3D 변형 금지, 원본과 동일한 2D 평면 도형으로만 표현
 - 배경은 반드시 흰색(#ffffff)으로 설정. 검은색 배경 절대 금지. fill='none' 또는 fill='white'만 사용.
