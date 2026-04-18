@@ -6064,6 +6064,66 @@ function sgRedetectLabels() {
   sgDetectFigureLabels();
 }
 
+// Canvas 기반으로 원본 이미지 위에 숫자만 교체
+async function sgReplaceLabelsOnCanvas(imageBase64, mediaType, detectedLabels, changes) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+
+      // 1. 원본 이미지 그리기
+      ctx.drawImage(img, 0, 0);
+
+      // 2. changes 매핑 생성
+      const changeMap = {};
+      (changes || []).forEach(c => {
+        changeMap[String(c.original).trim()] = String(c.new).trim();
+      });
+
+      // 3. 각 라벨 처리
+      (detectedLabels || []).forEach(label => {
+        const originalText = String(label.text).trim();
+        const newText = changeMap[originalText];
+        if (!newText) return; // 교체 대상 아님
+
+        // 비율 좌표를 픽셀로 변환
+        const x = label.x * img.width;
+        const y = label.y * img.height;
+        const w = label.w * img.width;
+        const h = label.h * img.height;
+        const padding = 2;
+
+        // 4. 흰색 사각형으로 기존 숫자 덮기
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - padding, y - padding, w + padding * 2, h + padding * 2);
+
+        // 5. 새 숫자 텍스트 그리기
+        const fontSize = Math.max(12, Math.min(h * 0.9, 24));
+        ctx.font = `bold ${fontSize}px Georgia, serif`;
+        ctx.fillStyle = '#1e293b';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(newText, x + w / 2, y + h / 2);
+      });
+
+      // 6. Canvas를 data URL로 반환
+      const dataUrl = canvas.toDataURL('image/png');
+      console.log('[sgReplaceLabelsOnCanvas] 완료, 교체 수:', Object.keys(changeMap).length);
+      resolve(dataUrl);
+    };
+
+    img.onerror = () => {
+      console.error('[sgReplaceLabelsOnCanvas] 이미지 로드 실패');
+      resolve(null);
+    };
+
+    img.src = `data:${mediaType || 'image/png'};base64,${imageBase64}`;
+  });
+}
+
 // 치수 라벨에 대한 랜덤 새 값 생성
 function sgGenerateRandomValue(original) {
   const text = String(original).trim();
@@ -6718,56 +6778,31 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (!match) throw new Error('응답 형식 오류');
     const parsed = JSON.parse(match[0]);
     console.log('[sgGenerate] 파싱 완료, 문제 수:', parsed.problems?.length);
-    // 이미지 입력 시: Railway API → TikZ fallback
+    // 이미지 입력 시: Canvas 기반 라벨 교체
     let figureDataUrls = null;
-    let figureSvgs = null;
+    const figureSvgs = null;
     if (input.type === 'image') {
       const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
 
-      // 1차: Railway API로 matplotlib 이미지 생성 시도 (tikzCode 있으면 /draw-tikz 사용)
-      document.getElementById('sg-loading-text').textContent = '도형 이미지 생성 중...';
+      // Canvas로 원본 이미지 위에 숫자만 교체
+      document.getElementById('sg-loading-text').textContent = '도형 라벨 교체 중...';
+      console.log('[sgGenerate] Canvas 라벨 교체 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
+
       figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, idx) => {
-        const imgUrl = await sgDrawRailway(input.data, input.mediaType, p.changed_values, sg.tikzCode);
+        if (!sg.figureLabels || sg.figureLabels.length === 0 || !p.changed_values || p.changed_values.length === 0) {
+          console.log(`[sgGenerate] 문제 ${idx + 1}: 라벨 교체 불필요 → 원본 이미지`);
+          return baseDataUrl;
+        }
+
+        const imgUrl = await sgReplaceLabelsOnCanvas(input.data, input.mediaType, sg.figureLabels, p.changed_values);
         if (imgUrl) {
-          console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 성공, 이미지 길이: ${imgUrl?.length || 0}`);
+          console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 성공, 이미지 길이: ${imgUrl?.length || 0}`);
           return imgUrl;
         }
-        console.log(`[sgGenerate] 문제 ${idx + 1}: Railway API 실패 → TikZ fallback`);
-        return null;
+
+        console.warn(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 실패 → 원본 이미지`);
+        return baseDataUrl;
       }));
-
-      // Railway 실패한 문제들은 TikZ 방식으로 재시도
-      const failedIndices = figureDataUrls.map((url, i) => url ? -1 : i).filter(i => i >= 0);
-      if (failedIndices.length > 0 && !sg.tikzCode) {
-        console.log('[sgGenerate] TikZ 코드 추출 시도');
-        document.getElementById('sg-loading-text').textContent = 'TikZ 코드 추출 중...';
-        await sgExtractTikZ();
-      }
-
-      if (failedIndices.length > 0 && sg.tikzCode) {
-        console.log('[sgGenerate] TikZ 코드:', `있음 (${sg.tikzCode.length}자)`);
-        document.getElementById('sg-loading-text').textContent = 'TikZ → SVG 렌더링 중...';
-        figureSvgs = new Array(parsed.problems.length).fill(null);
-
-        for (const idx of failedIndices) {
-          const p = parsed.problems[idx];
-          let svg = await sgRenderTikZ(sg.tikzCode, p.changed_values);
-          if (!svg) {
-            console.log(`[sgGenerate] 문제 ${idx + 1}: tikzjax 실패 → Claude API fallback`);
-            svg = await sgGenerateSVG(sg.tikzCode, p.changed_values, apiKey);
-          }
-          if (svg) {
-            figureSvgs[idx] = svg;
-            console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공`);
-          } else {
-            console.warn(`[sgGenerate] 문제 ${idx + 1}: 모든 방법 실패 → 원본 이미지`);
-            figureDataUrls[idx] = baseDataUrl;
-          }
-        }
-      } else if (failedIndices.length > 0) {
-        // TikZ도 없으면 원본 이미지로 fallback
-        failedIndices.forEach(idx => { figureDataUrls[idx] = baseDataUrl; });
-      }
     }
     sgRenderResults(parsed, hint, figureDataUrls, figureSvgs);
 
