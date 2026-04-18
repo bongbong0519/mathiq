@@ -6904,6 +6904,20 @@ for (let i = 0; i < problems.length; i++) {
     // TikZ SVG 우선, 없으면 이미지 (함수/그래프 GeoGebra가 없을 때)
     const showFigureSvg = !!figureSvg && !hasGgb;
     const showFigureImg = !showFigureSvg && !!figureDataUrl && !hasGgb;
+    console.log('[sgRenderResults] 조건 체크:', {
+      figureSvg: !!figureSvg,
+      figureDataUrl: !!figureDataUrl,
+      hasGgb,
+      showFigureSvg,
+      showFigureImg
+    });
+    if (!showFigureImg && figureDataUrl) {
+      console.warn('[sgRenderResults] showFigureImg=false 이유:', {
+        'showFigureSvg가 true?': showFigureSvg,
+        'hasGgb가 true?': hasGgb,
+        'figureDataUrl 앞 50자': figureDataUrl?.substring(0, 50)
+      });
+    }
 
     const card = document.createElement('div');
     card.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;animation:slideUp 0.3s ease both';
