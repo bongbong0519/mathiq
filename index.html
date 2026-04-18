@@ -6245,6 +6245,24 @@ function sgSyncFigureCheck(i) {
   if (check && val) check.checked = true;
 }
 
+// UI에서 체크된 라벨 교체 매핑 수집
+function sgGetCheckedLabelChanges() {
+  if (!sg.figureLabels?.length) return [];
+  const changes = [];
+  sg.figureLabels.forEach((lb, i) => {
+    const check = document.getElementById(`sg-fl-check-${i}`);
+    const newInput = document.getElementById(`sg-fl-new-${i}`);
+    if (check?.checked && newInput?.value?.trim()) {
+      changes.push({
+        original: String(lb.text).trim(),
+        new: newInput.value.trim()
+      });
+    }
+  });
+  console.log('[sgGetCheckedLabelChanges] UI에서 수집:', changes);
+  return changes;
+}
+
 // Apply checked replacements onto canvas, return modified base64 or null
 // TikZ 파이프라인: 이미지 → TikZ 코드 추출 (Gemini Vision)
 async function sgExtractTikZ() {
@@ -6821,19 +6839,25 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (input.type === 'image') {
       const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
 
+      // UI에서 체크된 라벨 교체 매핑 수집
+      const uiChanges = sgGetCheckedLabelChanges();
+      console.log('[sgGenerate] UI 라벨 매핑:', uiChanges.length, '개');
+
       // Canvas로 원본 이미지 위에 숫자만 교체
       document.getElementById('sg-loading-text').textContent = '도형 라벨 교체 중...';
       console.log('[sgGenerate] Canvas 라벨 교체 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
 
       figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, idx) => {
-        // changed_values가 있으면 무조건 Canvas 교체 시도
-        if (!p.changed_values || p.changed_values.length === 0) {
-          console.log(`[sgGenerate] 문제 ${idx + 1}: changed_values 없음 → 원본 이미지`);
+        // UI 매핑 우선, 없으면 AI 응답의 changed_values 사용
+        const changes = uiChanges.length > 0 ? uiChanges : (p.changed_values || []);
+
+        if (changes.length === 0) {
+          console.log(`[sgGenerate] 문제 ${idx + 1}: 교체할 라벨 없음 → 원본 이미지`);
           return baseDataUrl;
         }
 
-        console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 시도, labels=${sg.figureLabels?.length || 0}, changes=${p.changed_values.length}`);
-        const imgUrl = await sgReplaceLabelsOnCanvas(input.data, input.mediaType, sg.figureLabels || [], p.changed_values);
+        console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 시도, labels=${sg.figureLabels?.length || 0}, changes=${changes.length}`);
+        const imgUrl = await sgReplaceLabelsOnCanvas(input.data, input.mediaType, sg.figureLabels || [], changes);
         if (imgUrl) {
           console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 성공, 이미지 길이: ${imgUrl?.length || 0}`);
           return imgUrl;
