@@ -6084,6 +6084,7 @@ async function sgReplaceLabelsOnCanvas(imageBase64, mediaType, detectedLabels, c
       });
 
       // 3. 각 라벨 처리
+      ctx.globalCompositeOperation = 'source-over'; // 초기화
       (detectedLabels || []).forEach(label => {
         const originalText = String(label.text).trim();
         const newText = changeMap[originalText];
@@ -6094,14 +6095,26 @@ async function sgReplaceLabelsOnCanvas(imageBase64, mediaType, detectedLabels, c
         const y = label.y * img.height;
         const w = label.w * img.width;
         const h = label.h * img.height;
-        const padding = 2;
+
+        // padding: 영역 높이의 30% 이상
+        const paddingX = Math.max(4, w * 0.3);
+        const paddingY = Math.max(4, h * 0.3);
+
+        // 덮을 영역 계산
+        const canvasX = x - paddingX;
+        const canvasY = y - paddingY;
+        const canvasW = w + paddingX * 2;
+        const canvasH = h + paddingY * 2;
+
+        console.log('[Canvas] 덮기:', {text: label.text, x, y, w, h, canvasX, canvasY, canvasW, canvasH});
 
         // 4. 흰색 사각형으로 기존 숫자 덮기
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(x - padding, y - padding, w + padding * 2, h + padding * 2);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(canvasX, canvasY, canvasW, canvasH);
 
         // 5. 새 숫자 텍스트 그리기
-        const fontSize = Math.max(12, Math.min(h * 0.9, 24));
+        const fontSize = Math.max(14, Math.min(h * 0.85, 28));
         ctx.font = `bold ${fontSize}px Georgia, serif`;
         ctx.fillStyle = '#1e293b';
         ctx.textAlign = 'center';
