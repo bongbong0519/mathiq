@@ -6090,36 +6090,46 @@ async function sgReplaceLabelsOnCanvas(imageBase64, mediaType, detectedLabels, c
         const newText = changeMap[originalText];
         if (!newText) return; // 교체 대상 아님
 
-        // 비율 좌표를 픽셀로 변환
-        const x = label.x * img.width;
-        const y = label.y * img.height;
-        const w = label.w * img.width;
-        const h = label.h * img.height;
+        // 비율 좌표(0~1)를 픽셀로 변환
+        const labelX = label.x * img.width;   // 라벨 좌상단 X
+        const labelY = label.y * img.height;  // 라벨 좌상단 Y
+        const labelW = label.w * img.width;   // 라벨 너비
+        const labelH = label.h * img.height;  // 라벨 높이
 
-        // padding: 영역 높이의 30% 이상
-        const paddingX = Math.max(4, w * 0.3);
-        const paddingY = Math.max(4, h * 0.3);
+        // padding: 상하좌우 50% 확장 (원래 글자 확실히 덮기)
+        const paddingX = labelW * 0.5;
+        const paddingY = labelH * 0.5;
 
-        // 덮을 영역 계산
-        const canvasX = x - paddingX;
-        const canvasY = y - paddingY;
-        const canvasW = w + paddingX * 2;
-        const canvasH = h + paddingY * 2;
+        // 흰색 사각형 영역 (확장된 영역)
+        const rectX = Math.max(0, labelX - paddingX);
+        const rectY = Math.max(0, labelY - paddingY);
+        const rectW = Math.min(img.width - rectX, labelW + paddingX * 2);
+        const rectH = Math.min(img.height - rectY, labelH + paddingY * 2);
 
-        console.log('[Canvas] 덮기:', {text: label.text, x, y, w, h, canvasX, canvasY, canvasW, canvasH});
+        // 흰색 사각형 중심 좌표
+        const centerX = rectX + rectW / 2;
+        const centerY = rectY + rectH / 2;
+
+        console.log('[Canvas] 덮기:', {
+          text: label.text, newText,
+          imgSize: {w: img.width, h: img.height},
+          label: {x: labelX.toFixed(1), y: labelY.toFixed(1), w: labelW.toFixed(1), h: labelH.toFixed(1)},
+          rect: {x: rectX.toFixed(1), y: rectY.toFixed(1), w: rectW.toFixed(1), h: rectH.toFixed(1)},
+          center: {x: centerX.toFixed(1), y: centerY.toFixed(1)}
+        });
 
         // 4. 흰색 사각형으로 기존 숫자 덮기
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(canvasX, canvasY, canvasW, canvasH);
+        ctx.fillRect(rectX, rectY, rectW, rectH);
 
-        // 5. 새 숫자 텍스트 그리기
-        const fontSize = Math.max(14, Math.min(h * 0.85, 28));
+        // 5. 새 숫자 텍스트 그리기 (흰색 사각형 중앙에)
+        const fontSize = Math.max(12, Math.min(rectH * 0.8, 32));
         ctx.font = `bold ${fontSize}px Georgia, serif`;
         ctx.fillStyle = '#1e293b';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(newText, x + w / 2, y + h / 2);
+        ctx.fillText(newText, centerX, centerY);
       });
 
       // 6. Canvas를 data URL로 반환
