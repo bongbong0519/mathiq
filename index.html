@@ -6077,64 +6077,78 @@ async function sgReplaceLabelsOnCanvas(imageBase64, mediaType, detectedLabels, c
       // 1. 원본 이미지 그리기
       ctx.drawImage(img, 0, 0);
 
-      // 2. changes 매핑 생성
-      const changeMap = {};
-      (changes || []).forEach(c => {
-        changeMap[String(c.original).trim()] = String(c.new).trim();
+      const labels = detectedLabels || [];
+      const changeList = changes || [];
+
+      // 디버깅: 매칭 시도 로그
+      console.log('[Canvas] 매칭 시도:', {
+        detectedTexts: labels.map(l => l.text),
+        changeOriginals: changeList.map(c => c.original),
+        labelsCount: labels.length,
+        changesCount: changeList.length
       });
 
-      // 3. 각 라벨 처리
-      ctx.globalCompositeOperation = 'source-over'; // 초기화
-      (detectedLabels || []).forEach(label => {
-        const originalText = String(label.text).trim();
-        const newText = changeMap[originalText];
-        if (!newText) return; // 교체 대상 아님
+      // changes가 없으면 원본 이미지 반환
+      if (changeList.length === 0) {
+        console.log('[Canvas] changes 없음 → 원본 이미지');
+        resolve(canvas.toDataURL('image/png'));
+        return;
+      }
+
+      // 2. 위치 기반 매칭: detectedLabels[i] ↔ changes[i]
+      // labels가 없어도 changes 기반으로 처리 시도
+      ctx.globalCompositeOperation = 'source-over';
+
+      const matchCount = Math.min(labels.length, changeList.length);
+      console.log('[Canvas] 위치 기반 매칭:', matchCount, '개');
+
+      for (let i = 0; i < matchCount; i++) {
+        const label = labels[i];
+        const change = changeList[i];
+        const newText = String(change.new).trim();
 
         // 비율 좌표(0~1)를 픽셀로 변환
-        const labelX = label.x * img.width;   // 라벨 좌상단 X
-        const labelY = label.y * img.height;  // 라벨 좌상단 Y
-        const labelW = label.w * img.width;   // 라벨 너비
-        const labelH = label.h * img.height;  // 라벨 높이
+        const labelX = label.x * img.width;
+        const labelY = label.y * img.height;
+        const labelW = label.w * img.width;
+        const labelH = label.h * img.height;
 
-        // padding: 상하좌우 50% 확장 (원래 글자 확실히 덮기)
+        // padding: 상하좌우 50% 확장
         const paddingX = labelW * 0.5;
         const paddingY = labelH * 0.5;
 
-        // 흰색 사각형 영역 (확장된 영역)
+        // 흰색 사각형 영역
         const rectX = Math.max(0, labelX - paddingX);
         const rectY = Math.max(0, labelY - paddingY);
         const rectW = Math.min(img.width - rectX, labelW + paddingX * 2);
         const rectH = Math.min(img.height - rectY, labelH + paddingY * 2);
 
-        // 흰색 사각형 중심 좌표
         const centerX = rectX + rectW / 2;
         const centerY = rectY + rectH / 2;
 
-        console.log('[Canvas] 덮기:', {
-          text: label.text, newText,
-          imgSize: {w: img.width, h: img.height},
-          label: {x: labelX.toFixed(1), y: labelY.toFixed(1), w: labelW.toFixed(1), h: labelH.toFixed(1)},
-          rect: {x: rectX.toFixed(1), y: rectY.toFixed(1), w: rectW.toFixed(1), h: rectH.toFixed(1)},
-          center: {x: centerX.toFixed(1), y: centerY.toFixed(1)}
+        console.log('[Canvas] 교체:', {
+          idx: i,
+          original: label.text,
+          newText,
+          rect: {x: rectX.toFixed(1), y: rectY.toFixed(1), w: rectW.toFixed(1), h: rectH.toFixed(1)}
         });
 
-        // 4. 흰색 사각형으로 기존 숫자 덮기
-        ctx.globalCompositeOperation = 'source-over';
+        // 흰색 사각형으로 덮기
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(rectX, rectY, rectW, rectH);
 
-        // 5. 새 숫자 텍스트 그리기 (흰색 사각형 중앙에)
+        // 새 텍스트 그리기
         const fontSize = Math.max(12, Math.min(rectH * 0.8, 32));
         ctx.font = `bold ${fontSize}px Georgia, serif`;
         ctx.fillStyle = '#1e293b';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(newText, centerX, centerY);
-      });
+      }
 
-      // 6. Canvas를 data URL로 반환
+      // Canvas를 data URL로 반환
       const dataUrl = canvas.toDataURL('image/png');
-      console.log('[sgReplaceLabelsOnCanvas] 완료, 교체 수:', Object.keys(changeMap).length);
+      console.log('[sgReplaceLabelsOnCanvas] 완료, 교체 수:', matchCount);
       resolve(dataUrl);
     };
 
@@ -6812,12 +6826,14 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
       console.log('[sgGenerate] Canvas 라벨 교체 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
 
       figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, idx) => {
-        if (!sg.figureLabels || sg.figureLabels.length === 0 || !p.changed_values || p.changed_values.length === 0) {
-          console.log(`[sgGenerate] 문제 ${idx + 1}: 라벨 교체 불필요 → 원본 이미지`);
+        // changed_values가 있으면 무조건 Canvas 교체 시도
+        if (!p.changed_values || p.changed_values.length === 0) {
+          console.log(`[sgGenerate] 문제 ${idx + 1}: changed_values 없음 → 원본 이미지`);
           return baseDataUrl;
         }
 
-        const imgUrl = await sgReplaceLabelsOnCanvas(input.data, input.mediaType, sg.figureLabels, p.changed_values);
+        console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 시도, labels=${sg.figureLabels?.length || 0}, changes=${p.changed_values.length}`);
+        const imgUrl = await sgReplaceLabelsOnCanvas(input.data, input.mediaType, sg.figureLabels || [], p.changed_values);
         if (imgUrl) {
           console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 성공, 이미지 길이: ${imgUrl?.length || 0}`);
           return imgUrl;
