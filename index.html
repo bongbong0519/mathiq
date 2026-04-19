@@ -3789,6 +3789,16 @@
             </label>
           </div>
           <div id="quFileInfo" style="display:none;margin-bottom:16px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);font-size:13px;color:var(--text)"></div>
+          <!-- 답안지 PDF (선택) -->
+          <div style="margin-bottom:16px;padding:16px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">📋 답안지 PDF (선택)</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:10px">답안지가 있으면 정답 추출 정확도가 높아집니다. 없어도 AI가 추론합니다.</div>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="file" id="quAnswerFileInput" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="quOnAnswerFileSelect(this)">
+              <span class="btn" style="font-size:12px;padding:6px 12px">📂 답안지 선택</span>
+              <span id="quAnswerFileName" style="font-size:12px;color:var(--text3)">선택 안됨</span>
+            </label>
+          </div>
           <button class="btn btn-primary" style="width:100%" onclick="extractFromFile()" id="quExtractBtn" disabled>🔮 문제 추출</button>
           <div id="quExtractStatus" style="display:none;margin-top:16px;text-align:center;color:var(--text3);font-size:13px">분석 중...</div>
         </div>
@@ -12332,16 +12342,114 @@ function quOnFileSelect(input) {
   document.getElementById('quExtractBtn').disabled = false;
 }
 
+function quOnAnswerFileSelect(input) {
+  const file = input.files[0];
+  const nameEl = document.getElementById('quAnswerFileName');
+  if (!file) {
+    nameEl.textContent = '선택 안됨';
+    return;
+  }
+  nameEl.textContent = `📎 ${file.name}`;
+}
+
+// 답안지 PDF/이미지에서 정답 추출
+const _ANSWER_SHEET_PROMPT = `당신은 수학 시험 답안지에서 정답을 추출하는 전문가입니다.
+
+[작업]
+이 답안지 이미지에서 각 문제 번호와 해당 정답을 추출하세요.
+
+[규칙]
+1. 문제 번호와 정답을 1:1로 매핑
+2. 객관식: 정답 번호 (1, 2, 3, 4, 5)
+3. 단답형/서술형: 정답 값 (숫자, 수식 등)
+4. 답을 확인할 수 없는 문제는 null
+5. 수식은 KaTeX 형식 ($수식$)
+
+[출력 형식 - JSON만 출력, 다른 텍스트 없이]
+{"answers":{"1":"3","2":"5","3":"12","4":"$\\frac{1}{2}$","5":null}}`;
+
+async function _extractAnswerSheet(file) {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+
+  try {
+    const isPdf = file.type === 'application/pdf';
+    let images, mimes;
+
+    if (isPdf) {
+      images = await pdfToPageImages(file);
+      mimes = images.map(() => 'image/jpeg');
+    } else {
+      images = [await _fileToBase64(file)];
+      mimes = [file.type || 'image/jpeg'];
+    }
+
+    // Claude Vision으로 답안지 분석
+    const parts = images.map((b64, i) => ({
+      type: 'image',
+      source: { type: 'base64', media_type: mimes[i], data: b64 }
+    }));
+    parts.push({ type: 'text', text: _ANSWER_SHEET_PROMPT });
+
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: parts }]
+      })
+    });
+
+    if (!res.ok) {
+      console.error('[답안지 추출] HTTP 오류:', res.status);
+      return null;
+    }
+
+    const json = await res.json();
+    const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+    console.log('[답안지 추출] 응답:', text);
+
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      console.log('[답안지 추출] 파싱된 답:', parsed.answers);
+      return parsed.answers || {};
+    }
+    return null;
+  } catch (e) {
+    console.error('[답안지 추출] 오류:', e);
+    return null;
+  }
+}
+
+// 전역 변수: 답안지 정답 매핑
+let _answerSheetMap = null;
+
 async function extractFromFile() {
   const file = document.getElementById('quFileInput')?.files[0];
   if (!file)   { showToast('파일을 먼저 선택하세요', '⚠️'); return; }
   if (file.size > 20 * 1024 * 1024) { showToast('파일 크기가 20MB를 초과합니다', '⚠️'); return; }
+
+  const answerFile = document.getElementById('quAnswerFileInput')?.files[0];
 
   const btn    = document.getElementById('quExtractBtn');
   const status = document.getElementById('quExtractStatus');
   btn.disabled = true; btn.textContent = '분석 중...';
   status.style.display = '';
   _initStepUI(status);
+
+  // 답안지 처리 (있으면)
+  _answerSheetMap = null;
+  if (answerFile) {
+    console.log('[extractFromFile] 답안지 파일:', answerFile.name);
+    try {
+      _answerSheetMap = await _extractAnswerSheet(answerFile);
+      console.log('[extractFromFile] 답안지 매핑:', _answerSheetMap);
+    } catch (e) {
+      console.warn('[extractFromFile] 답안지 추출 실패:', e);
+    }
+  }
 
   const isPdf = file.type === 'application/pdf';
 
@@ -12459,6 +12567,29 @@ async function extractFromFile() {
 
     await new Promise(r => setTimeout(r, 200));
     _extractedQuestions = step3Questions;
+
+    // 답안지 정답 적용 (있으면)
+    if (_answerSheetMap && Object.keys(_answerSheetMap).length > 0) {
+      console.log('[extractFromFile] 답안지 정답 적용 시작');
+      _extractedQuestions.forEach((q, i) => {
+        const qNum = String(i + 1);
+        if (_answerSheetMap[qNum] !== undefined && _answerSheetMap[qNum] !== null) {
+          q._answerSource = 'sheet'; // 답안지에서 확인
+          q.answer = _answerSheetMap[qNum];
+          console.log(`[답안지 적용] ${qNum}번: ${q.answer}`);
+        } else if (q.answer) {
+          q._answerSource = 'ai'; // AI 추론
+        } else {
+          q._answerSource = 'none'; // 미확인
+        }
+      });
+    } else {
+      // 답안지 없음 → 모두 AI 추론 또는 미확인
+      _extractedQuestions.forEach(q => {
+        q._answerSource = q.answer ? 'ai' : 'none';
+      });
+    }
+
     _setStep(3, 'done', `${_extractedQuestions.length}개 완료`);
     await new Promise(r => setTimeout(r, 400));
 
@@ -12508,6 +12639,15 @@ function renderExtractedQuestions(list) {
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:12px;color:var(--text2);white-space:nowrap">정답</span>
           <input type="text" id="exAnswer-${i}" placeholder="정답 (없으면 빈칸)" value="${_exEsc(q.answer || '')}" oninput="exUpdateAnswerPreview(${i})" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text)">
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;white-space:nowrap;${
+            q._answerSource === 'sheet' ? 'background:#d4edda;color:#155724' :
+            q._answerSource === 'ai' ? 'background:#fff3cd;color:#856404' :
+            'background:#f8d7da;color:#721c24'
+          }">${
+            q._answerSource === 'sheet' ? '📋 답안지 확인' :
+            q._answerSource === 'ai' ? '🤖 AI 추론' :
+            '❓ 답 미확인'
+          }</span>
         </div>
         <div id="exAnswerPreview-${i}" style="margin-top:4px;padding:4px 10px;min-height:20px;font-size:13px;color:var(--text);line-height:1.8"></div>
       </div>
