@@ -5999,6 +5999,7 @@ async function sgDetectFigureLabels() {
   labelsEl.innerHTML = '';
   warnEl.style.display = 'none';
   sg.figureLabels = null;
+  sg.figureBbox = null;
 
   const apiKey = document.getElementById('sg-api-key')?.value?.trim();
   if (!apiKey) {
@@ -6009,7 +6010,26 @@ async function sgDetectFigureLabels() {
     return;
   }
 
-  const prompt = '당신은 수학 문제 이미지에서 도형의 치수 데이터만 추출하는 전문 비전 AI입니다.\n제공된 이미지에서 아래의 지침을 엄격하게 따라 JSON 형식으로만 응답하세요. 다른 설명이나 마크다운 코드 블록은 절대 출력하지 마세요.\n[지침]\n1. 분석 영역: 이미지 내에 있는 도형 다이어그램과 그 주변에 표시된 치수선 및 라벨 영역으로 한정합니다.\n2. 절대 제외 대상:\n   - 문제 설명, 조건, 질문 등 일반 텍스트 문장\n   - 하단의 객관식 보기 텍스트 및 번호\n   - 도형의 꼭짓점, 영역, 각도 위치 등을 지칭하는 단순 알파벳 기호 및 식별자 (예: A, B, C, P, Q, O 등)\n3. 추출 대상: 도형의 선분 길이나 크기를 명시적으로 나타내는 치수 라벨(숫자 및 수학 수식)만 정확히 추출하세요.\n4. 좌표계 기준: 이미지의 전체 너비와 높이를 1.0으로 가정한 정규화된 좌표계를 사용합니다.\n   - x, y: 텍스트 바운딩 박스의 좌측 상단 모서리 좌표\n   - w, h: 텍스트 바운딩 박스의 너비와 높이\n[출력 형식]\n{"numbers":[{"text":"라벨 텍스트","x":0.0,"y":0.0,"w":0.0,"h":0.0}]}';
+  const prompt = `당신은 수학 문제 이미지에서 도형 영역과 치수 데이터를 추출하는 전문 비전 AI입니다.
+제공된 이미지에서 아래의 지침을 엄격하게 따라 JSON 형식으로만 응답하세요. 다른 설명이나 마크다운 코드 블록은 절대 출력하지 마세요.
+
+[지침]
+1. figure_bbox: 원본 이미지에서 순수 그림(도형, 다이어그램) 영역만 포함하는 사각 영역입니다.
+   - 문제 번호, 지문 텍스트, 선택지는 제외
+   - 치수 라벨이 그림 주변에 있으면 함께 포함
+   - 0~1 정규화 비율 (전체 이미지 너비/높이 대비)
+
+2. numbers: figure_bbox 안에 있는 치수 라벨만 포함하세요.
+   - 지문이나 선택지에 있는 숫자는 절대 포함하지 마세요.
+   - 도형의 선분 길이나 크기를 명시적으로 나타내는 치수 라벨(숫자 및 수학 수식)만 추출
+   - 꼭짓점 알파벳(A, B, C, P, Q 등)은 제외
+
+3. 좌표계: 이미지의 전체 너비와 높이를 1.0으로 가정한 정규화된 좌표계
+   - x, y: 좌측 상단 모서리 좌표
+   - w, h: 너비와 높이
+
+[출력 형식]
+{"figure_bbox":{"x":0.0,"y":0.0,"w":0.0,"h":0.0},"numbers":[{"text":"라벨 텍스트","x":0.0,"y":0.0,"w":0.0,"h":0.0}]}`;
 
   try {
     const res = await fetch('/api/proxy', {
@@ -6038,6 +6058,19 @@ async function sgDetectFigureLabels() {
     const match = rawText.match(/\{[\s\S]*\}/);
     if (match) {
       const parsed = JSON.parse(match[0]);
+      // figure_bbox 파싱 및 저장
+      if (parsed.figure_bbox) {
+        sg.figureBbox = {
+          x: parseFloat(parsed.figure_bbox.x) || 0,
+          y: parseFloat(parsed.figure_bbox.y) || 0,
+          w: parseFloat(parsed.figure_bbox.w || parsed.figure_bbox.width) || 1,
+          h: parseFloat(parsed.figure_bbox.h || parsed.figure_bbox.height) || 1
+        };
+        console.log('[sgDetectFigureLabels] figure_bbox:', sg.figureBbox);
+      } else {
+        sg.figureBbox = null;
+        console.log('[sgDetectFigureLabels] figure_bbox 없음, 전체 이미지 사용');
+      }
       const nums = (parsed.numbers || []).map(n => ({
         text: n.text,
         x: parseFloat(n.x) || 0,
@@ -6071,29 +6104,36 @@ function sgRedetectLabels() {
   sgDetectFigureLabels();
 }
 
-// SVG 오버레이 방식으로 원본 이미지 위에 숫자 교체
-async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, changes) {
+// SVG 오버레이 방식으로 원본 이미지 위에 숫자 교체 (figureBbox로 크롭 가능)
+async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, changes, figureBbox) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       // 이미지 실제 크기
       const imgW = img.naturalWidth;
       const imgH = img.naturalHeight;
-      const width = imgW;
-      const height = imgH;
       const labels = detectedLabels || [];
       const changeList = changes || [];
 
+      // figureBbox가 있으면 해당 영역만 크롭, 없으면 전체 이미지
+      const bbox = figureBbox || { x: 0, y: 0, w: 1, h: 1 };
+      // 여백 추가 (bbox 외곽에 5% 여백)
+      const padding = 0.03;
+      const cropX = Math.max(0, bbox.x - padding) * imgW;
+      const cropY = Math.max(0, bbox.y - padding) * imgH;
+      const cropW = Math.min(1, bbox.w + padding * 2) * imgW;
+      const cropH = Math.min(1, bbox.h + padding * 2) * imgH;
+
       console.log('[SVG] 이미지 크기:', {
-        naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight,
-        width: img.width,
-        height: img.height
+        naturalWidth: imgW,
+        naturalHeight: imgH
       });
-      console.log('[SVG] SVG 설정:', {
-        svgWidth: width,
-        svgHeight: height,
-        viewBox: `0 0 ${width} ${height}`
+      console.log('[SVG] figureBbox:', figureBbox);
+      console.log('[SVG] 크롭 영역 (px):', {
+        cropX: cropX.toFixed(1),
+        cropY: cropY.toFixed(1),
+        cropW: cropW.toFixed(1),
+        cropH: cropH.toFixed(1)
       });
       console.log('[SVG] 입력 데이터:', {
         labelsCount: labels.length,
@@ -6108,8 +6148,8 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
         return;
       }
 
-      // SVG 시작 + 텍스트 배경용 filter 정의
-      let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+      // SVG 시작: viewBox로 크롭 영역만 표시
+      let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${cropW}" height="${cropH}" viewBox="${cropX} ${cropY} ${cropW} ${cropH}">`;
       svgContent += `<defs>
         <filter x="-0.15" y="-0.15" width="1.3" height="1.3" id="text-bg">
           <feFlood flood-color="white"/>
@@ -6117,9 +6157,9 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
         </filter>
       </defs>`;
 
-      // 1. 원본 이미지를 <image>로 삽입
+      // 1. 원본 이미지를 <image>로 삽입 (전체 이미지, viewBox가 크롭함)
       const dataUrl = `data:${mediaType || 'image/png'};base64,${imageBase64}`;
-      svgContent += `<image href="${dataUrl}" x="0" y="0" width="${width}" height="${height}" />`;
+      svgContent += `<image href="${dataUrl}" x="0" y="0" width="${imgW}" height="${imgH}" />`;
 
       // 2. 위치 기반 매칭: labels[i] ↔ changes[i]
       const matchCount = Math.min(labels.length, changeList.length);
@@ -6130,11 +6170,11 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
         const change = changeList[i];
         const newText = String(change.new).trim();
 
-        // 비율 좌표(0~1)를 픽셀로 변환
-        const svgX = label.x * width;
-        const svgY = label.y * height;
-        const svgW = label.w * width;
-        const svgH = label.h * height;
+        // 비율 좌표(0~1)를 픽셀로 변환 (전체 이미지 기준)
+        const svgX = label.x * imgW;
+        const svgY = label.y * imgH;
+        const svgW = label.w * imgW;
+        const svgH = label.h * imgH;
 
         // 라벨 영역의 중앙 좌표
         const centerX = svgX + svgW / 2;
@@ -6907,8 +6947,8 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
           return null; // figureSvgs가 null이면 sgRenderResults에서 figureDataUrls 사용
         }
 
-        console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 오버레이 시도, labels=${sg.figureLabels?.length || 0}, changes=${changes.length}`);
-        const svg = await sgOverlayLabelsWithSVG(input.data, input.mediaType, sg.figureLabels || [], changes);
+        console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 오버레이 시도, labels=${sg.figureLabels?.length || 0}, changes=${changes.length}, figureBbox=${sg.figureBbox ? 'yes' : 'no'}`);
+        const svg = await sgOverlayLabelsWithSVG(input.data, input.mediaType, sg.figureLabels || [], changes, sg.figureBbox);
         if (svg) {
           console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공, 길이: ${svg.length}`);
           return svg;
