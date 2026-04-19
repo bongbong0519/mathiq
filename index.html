@@ -12045,6 +12045,274 @@ async function _claudeExtract(file, onProgress) {
 }
 
 // ════════════════════════════════════════════════════════
+// Gemini 독립 추출 (이중 추출용)
+// ════════════════════════════════════════════════════════
+async function _geminiExtract(pageImages, onProgress) {
+  const validImages = pageImages.filter(img => img !== null);
+  if (validImages.length === 0) {
+    throw new Error('이미지 변환 실패');
+  }
+
+  console.log(`[Gemini 추출] ${validImages.length}개 이미지 처리 시작`);
+
+  // 배치 처리: 5페이지씩, 1페이지 overlap
+  const BATCH_SIZE = 5;
+  const OVERLAP = 1;
+  let allQuestions = [];
+  let batchNum = 0;
+
+  for (let start = 0; start < pageImages.length; start += (BATCH_SIZE - OVERLAP)) {
+    const end = Math.min(start + BATCH_SIZE, pageImages.length);
+    batchNum++;
+
+    const parts = [];
+    for (let p = start; p < end; p++) {
+      if (pageImages[p]) {
+        parts.push({ text: `=== 페이지 ${p + 1} ===` });
+        parts.push({ inline_data: { mime_type: 'image/jpeg', data: pageImages[p] } });
+      }
+    }
+
+    if (parts.length === 0) continue;
+
+    // Claude 프롬프트와 동일한 형식 사용
+    parts.push({ text: _CLAUDE_EXTRACT_PROMPT });
+
+    // 배치 간 1.5초 대기 (첫 배치 제외)
+    if (batchNum > 1) {
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    if (onProgress) onProgress(start + 1, pageImages.length);
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-pro',
+          systemInstruction: { parts: [{ text: 'You are a JSON-only API. Output only raw JSON array. No markdown, no explanation.' }] },
+          contents: [{ role: 'user', parts }],
+          generationConfig: { maxOutputTokens: 8192, temperature: 0, responseMimeType: 'application/json' }
+        })
+      });
+
+      if (!res.ok) {
+        console.error(`[Gemini 추출] 배치 ${batchNum} 오류:`, res.status);
+        continue;
+      }
+
+      const json = await res.json();
+      const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+      const qs = _parseJsonArray(text);
+      allQuestions = allQuestions.concat(qs);
+      console.log(`[Gemini 추출] 배치 ${batchNum} (페이지 ${start+1}~${end}): ${qs.length}개 문제`);
+    } catch (e) {
+      console.warn(`[Gemini 추출] 배치 ${batchNum} 실패:`, e.message);
+    }
+
+    if (end >= pageImages.length) break;
+  }
+
+  const dedupedQuestions = _deduplicateQuestions(allQuestions);
+  console.debug(`[Gemini 추출] 총 ${allQuestions.length}개 → 중복 제거 후 ${dedupedQuestions.length}개`);
+  return dedupedQuestions;
+}
+
+// ════════════════════════════════════════════════════════
+// 이중 추출: Claude + Gemini 병렬 실행
+// ════════════════════════════════════════════════════════
+async function _dualExtract(pageImages, onProgress) {
+  const apiKey = getApiKey();
+
+  // Claude와 Gemini 병렬 실행
+  const claudePromise = apiKey
+    ? (async () => {
+        try {
+          // Claude용 배치 처리 (기존 로직 재사용)
+          const BATCH_SIZE = 5, OVERLAP = 1;
+          let allQuestions = [], batchNum = 0;
+
+          for (let start = 0; start < pageImages.length; start += (BATCH_SIZE - OVERLAP)) {
+            const end = Math.min(start + BATCH_SIZE, pageImages.length);
+            const batchContent = [];
+            batchNum++;
+
+            for (let p = start; p < end; p++) {
+              if (pageImages[p]) {
+                batchContent.push({ type: 'text', text: `=== 페이지 ${p + 1} ===` });
+                batchContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: pageImages[p] } });
+              }
+            }
+
+            if (batchContent.length === 0) continue;
+            batchContent.push({ type: 'text', text: _CLAUDE_EXTRACT_PROMPT });
+
+            if (batchNum > 1) await new Promise(r => setTimeout(r, 2000));
+
+            const res = await _fetchWithRetry('/api/proxy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+              body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000,
+                messages: [{ role: 'user', content: batchContent }] })
+            });
+
+            if (res.ok) {
+              const json = await res.json();
+              const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+              try {
+                allQuestions = allQuestions.concat(_parseJsonArray(text));
+              } catch (e) { console.warn(`[Claude] 배치 ${batchNum} 파싱 실패`); }
+            }
+
+            if (end >= pageImages.length) break;
+          }
+
+          return { source: 'claude', questions: _deduplicateQuestions(allQuestions), error: null };
+        } catch (e) {
+          return { source: 'claude', questions: [], error: e.message };
+        }
+      })()
+    : Promise.resolve({ source: 'claude', questions: [], error: 'API key missing' });
+
+  const geminiPromise = (async () => {
+    try {
+      const questions = await _geminiExtract(pageImages, onProgress);
+      return { source: 'gemini', questions, error: null };
+    } catch (e) {
+      return { source: 'gemini', questions: [], error: e.message };
+    }
+  })();
+
+  const [claudeResult, geminiResult] = await Promise.all([claudePromise, geminiPromise]);
+
+  console.log(`[이중 추출] Claude: ${claudeResult.questions.length}개, Gemini: ${geminiResult.questions.length}개`);
+
+  return { claudeResult, geminiResult };
+}
+
+// ════════════════════════════════════════════════════════
+// 결과 비교 및 병합
+// ════════════════════════════════════════════════════════
+function _normalizeText(text) {
+  return (text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function _compareQuestions(q1, q2) {
+  const content1 = _normalizeText(q1?.content);
+  const content2 = _normalizeText(q2?.content);
+  const answer1 = _normalizeText(q1?.answer);
+  const answer2 = _normalizeText(q2?.answer);
+
+  // 본문 유사도 (간단한 방식: 앞 200자 비교)
+  const contentMatch = content1.slice(0, 200) === content2.slice(0, 200);
+
+  // 정답 일치
+  const answerMatch = answer1 === answer2 || (!answer1 && !answer2);
+
+  // 문제 유형 일치
+  const typeMatch = q1?.question_type === q2?.question_type;
+
+  return {
+    contentMatch,
+    answerMatch,
+    typeMatch,
+    fullMatch: contentMatch && answerMatch && typeMatch
+  };
+}
+
+function _mergeExtractionResults(claudeResult, geminiResult) {
+  const claudeQs = claudeResult.questions || [];
+  const geminiQs = geminiResult.questions || [];
+
+  // q_num + subject_type 키로 매핑
+  const claudeMap = new Map();
+  claudeQs.forEach(q => {
+    const key = `${q.q_num || 'x'}_${q.subject_type || 'null'}`;
+    claudeMap.set(key, q);
+  });
+
+  const geminiMap = new Map();
+  geminiQs.forEach(q => {
+    const key = `${q.q_num || 'x'}_${q.subject_type || 'null'}`;
+    geminiMap.set(key, q);
+  });
+
+  // 모든 문제 번호 수집
+  const allKeys = new Set([...claudeMap.keys(), ...geminiMap.keys()]);
+  const mergedQuestions = [];
+  let matchedCount = 0, mismatchCount = 0, singleCount = 0;
+
+  allKeys.forEach(key => {
+    const cq = claudeMap.get(key);
+    const gq = geminiMap.get(key);
+
+    if (cq && gq) {
+      // 양쪽 모두 추출됨 → 비교
+      const comparison = _compareQuestions(cq, gq);
+
+      if (comparison.fullMatch) {
+        // 완전 일치 → 자동 승인 (Claude 버전 사용, 더 긴 본문 선택)
+        const chosen = (cq.content || '').length >= (gq.content || '').length ? cq : gq;
+        mergedQuestions.push({
+          ...chosen,
+          _validationStatus: 'approved',
+          _dualSource: 'both',
+          _matchType: 'full'
+        });
+        matchedCount++;
+      } else {
+        // 불일치 → 검수 필요, 양쪽 결과 저장
+        const primary = (cq.content || '').length >= (gq.content || '').length ? cq : gq;
+        mergedQuestions.push({
+          ...primary,
+          _validationStatus: 'needs_review',
+          _dualSource: 'both',
+          _matchType: 'partial',
+          _claudeVersion: cq,
+          _geminiVersion: gq,
+          _comparison: comparison,
+          _validationIssues: [
+            !comparison.contentMatch ? '본문 불일치' : null,
+            !comparison.answerMatch ? `정답 불일치 (C:${cq.answer || '없음'} / G:${gq.answer || '없음'})` : null,
+            !comparison.typeMatch ? '유형 불일치' : null
+          ].filter(Boolean)
+        });
+        mismatchCount++;
+      }
+    } else {
+      // 한쪽만 추출됨
+      const q = cq || gq;
+      mergedQuestions.push({
+        ...q,
+        _validationStatus: 'needs_review',
+        _dualSource: cq ? 'claude' : 'gemini',
+        _matchType: 'single',
+        _validationIssues: [`한쪽 AI만 추출 (${cq ? 'Claude' : 'Gemini'})`]
+      });
+      singleCount++;
+    }
+  });
+
+  // q_num 순 정렬
+  mergedQuestions.sort((a, b) => (a.q_num || 0) - (b.q_num || 0));
+
+  console.log(`[결과 병합] 완전일치: ${matchedCount}, 불일치: ${mismatchCount}, 단독추출: ${singleCount}`);
+
+  return {
+    questions: mergedQuestions,
+    summary: {
+      total: mergedQuestions.length,
+      matched: matchedCount,
+      mismatched: mismatchCount,
+      single: singleCount,
+      approved: matchedCount,
+      needsReview: mismatchCount + singleCount
+    }
+  };
+}
+
+// ════════════════════════════════════════════════════════
 // 2단계: Gemini — 원본 이미지 + Claude 텍스트로 그림 설명 보완
 // ════════════════════════════════════════════════════════
 // system 프롬프트 — Gemini JSON 전용 모드 설정
@@ -12732,94 +13000,69 @@ async function extractFromFile() {
 
   const isPdf = file.type === 'application/pdf';
 
+  // 이중 추출 결과 저장 (검수 UI용)
+    let _dualExtractionResult = null;
+
   try {
     // ════════════════════════════════════════════════════════
-    // STEP 1: Claude — 텍스트 추출 + KaTeX + [그림 참조] 마킹
+    // STEP 1: Claude + Gemini 이중 추출
     // ════════════════════════════════════════════════════════
     _setStep(1, 'running', isPdf ? 'PDF 변환 중...' : '분석 중...');
     let step1Questions;
-    let usedClaudeFallback = false;
-
-    try {
-      const { result, skipped } = await _claudeExtract(file, (cur, total) => {
-        _setStep(1, 'running', `페이지 ${cur}/${total} 변환 중`);
-      });
-
-      if (skipped) {
-        // Claude 키 없음 → Gemini로 폴백
-        _setStep(1, 'skip', '텍스트 추출 건너뜀 — 이미지 직접 분석으로 대체');
-        usedClaudeFallback = true;
-      } else {
-        step1Questions = result;
-        _setStep(1, 'done', `${step1Questions.length}개 추출 완료`);
-      }
-    } catch(e1) {
-      console.warn('[Claude 추출] 실패, Gemini 폴백:', e1);
-      _setStep(1, 'error', '텍스트 추출 실패 — 이미지 직접 분석으로 대체');
-      usedClaudeFallback = true;
-    }
 
     _extractPageImages = []; // 이전 추출 이미지 초기화
 
-    if (usedClaudeFallback) {
-      // Gemini 직접 추출 (그림 설명 포함)
-      _setStep(1, 'running', isPdf ? 'PDF 이미지 변환 중...' : '분석 중...');
-      let fbImages, fbMimes;
-      if (isPdf) {
-        fbImages = await pdfToPageImages(file, (cur, total) => {
-          _setStep(1, 'running', `PDF ${cur}/${total} 페이지 변환 중`);
-        });
-        fbMimes = fbImages.map(() => 'image/jpeg');
-      } else {
-        fbImages = [await _fileToBase64(file)];
-        fbMimes  = [file.type || 'image/jpeg'];
-      }
-      _extractPageImages = fbImages; // 팝업 참조용 저장
-      const FBATCH = 6;
-      step1Questions = [];
-      for (let i = 0; i < fbImages.length; i += FBATCH) {
-        _setStep(1, 'running', `페이지 ${i+1}~${Math.min(i+FBATCH, fbImages.length)} 분석 중`);
-        const qs = await _geminiCallBatch(fbImages.slice(i, i+FBATCH), fbMimes.slice(i, i+FBATCH));
-        step1Questions = step1Questions.concat(qs);
-      }
-      _setStep(1, 'done', `${step1Questions.length}개 추출 완료`);
+    // PDF/이미지 → 페이지 이미지 배열
+    let pageImages;
+    if (isPdf) {
+      pageImages = await pdfToPageImages(file, (cur, total) => {
+        _setStep(1, 'running', `PDF ${cur}/${total} 페이지 변환 중`);
+      }, { scale: 1.4, quality: 0.75 });
+    } else {
+      pageImages = [await _fileToBase64(file)];
+    }
+    _extractPageImages = pageImages;
+
+    const validCount = pageImages.filter(img => img !== null).length;
+    if (validCount === 0) {
+      throw new Error('이미지 변환 실패');
     }
 
+    _setStep(1, 'running', 'Claude + Gemini 이중 추출 중...');
+
+    // 이중 추출 실행
+    const { claudeResult, geminiResult } = await _dualExtract(pageImages, (cur, total) => {
+      _setStep(1, 'running', `이중 추출 중... (${cur}/${total})`);
+    });
+
+    // 결과 병합
+    const mergeResult = _mergeExtractionResults(claudeResult, geminiResult);
+    step1Questions = mergeResult.questions;
+    _dualExtractionResult = { claudeResult, geminiResult, mergeResult };
+
+    const { matched, mismatched, single } = mergeResult.summary;
+    _setStep(1, 'done', `${step1Questions.length}개 추출 (✅${matched} 일치, ⚠️${mismatched + single} 검수)`);
+
+    console.log('[이중 추출 완료]', mergeResult.summary);
+
     // ════════════════════════════════════════════════════════
-    // STEP 2: Gemini — 원본 이미지 + Claude 텍스트로 그림 설명 보완
-    //         (Claude가 추출한 경우에만 실행)
+    // STEP 2: 그림 설명 보완 (이중 추출에서 [그림 참조] 있는 경우)
     // ════════════════════════════════════════════════════════
     _setStep(2, 'running', '그림 확인 중...');
     let step2Questions = step1Questions;
 
-    if (usedClaudeFallback) {
-      // Gemini 폴백은 이미 그림 설명 포함 → 2단계 불필요
-      _setStep(2, 'skip', '이미지 직접 분석 — 그림 설명 포함됨');
+    const hasFigures = step1Questions.some(q => (q.content || '').includes('[그림 참조]'));
+    if (!hasFigures) {
+      _setStep(2, 'skip', '그림 설명 불필요');
     } else {
-      const hasFigures = step1Questions.some(q => (q.content || '').includes('[그림 참조]'));
-      if (!hasFigures) {
-        _setStep(2, 'skip', '그림 없음 — 건너뜀');
-      } else {
-        // PDF → 페이지 이미지 변환 (그림 설명용)
-        let pageImages;
-        if (isPdf) {
-          _setStep(2, 'running', 'PDF 이미지 변환 중...');
-          pageImages = await pdfToPageImages(file, (cur, total) => {
-            _setStep(2, 'running', `페이지 ${cur}/${total} 변환 중`);
-          });
-        } else {
-          pageImages = [await _fileToBase64(file)];
-        }
-        _extractPageImages = pageImages; // 팝업 참조용 저장
-        _setStep(2, 'running', `${step1Questions.filter(q=>(q.content||'').includes('[그림 참조]')).length}개 그림 설명 생성 중...`);
-        try {
-          const { result, skipped, reason } = await _geminiFillFigures(step1Questions, pageImages);
-          step2Questions = result;
-          _setStep(2, skipped ? 'skip' : 'done', skipped ? reason : '그림 설명 보완 완료');
-        } catch(e2) {
-          console.warn('[Gemini 그림 보완] 실패, 1단계 결과 유지:', e2);
-          _setStep(2, 'error', '그림 보완 실패 — 1단계 결과 유지');
-        }
+      _setStep(2, 'running', `${step1Questions.filter(q=>(q.content||'').includes('[그림 참조]')).length}개 그림 설명 생성 중...`);
+      try {
+        const { result, skipped, reason } = await _geminiFillFigures(step1Questions, pageImages);
+        step2Questions = result;
+        _setStep(2, skipped ? 'skip' : 'done', skipped ? reason : '그림 설명 보완 완료');
+      } catch(e2) {
+        console.warn('[Gemini 그림 보완] 실패, 1단계 결과 유지:', e2);
+        _setStep(2, 'error', '그림 보완 실패 — 1단계 결과 유지');
       }
     }
 
@@ -12875,46 +13118,18 @@ async function extractFromFile() {
     await new Promise(r => setTimeout(r, 200));
 
     // ════════════════════════════════════════════════════════
-    // STEP 4: AI 교차검증 (추출 결과 + 원본 이미지 비교)
+    // STEP 4: 이중 추출 검증 결과 표시 (별도 검증 불필요)
     // ════════════════════════════════════════════════════════
-    _setStep(4, 'running', '검증 중...');
-    _validationResult = null;
+    const approvedByDual = _extractedQuestions.filter(q => q._validationStatus === 'approved').length;
+    const needsReviewByDual = _extractedQuestions.filter(q => q._validationStatus === 'needs_review').length;
 
-    try {
-      const { skipped, reason, result } = await _validateExtraction(_extractedQuestions, _extractPageImages);
-      if (skipped) {
-        _setStep(4, 'skip', reason || '건너뜀');
-        // 검증 건너뛴 경우: 모두 needs_review로 설정
-        _extractedQuestions.forEach(q => { q._validationStatus = 'needs_review'; });
-      } else {
-        _validationResult = result;
-        const summary = result.summary || {};
-        const passed = summary.passed || 0;
-        const failed = summary.failed || 0;
-
-        // 각 문제에 검증 상태 적용
-        (result.results || []).forEach(r => {
-          const idx = r.q_num - 1;
-          if (_extractedQuestions[idx]) {
-            _extractedQuestions[idx]._validationStatus = r.status === 'pass' ? 'approved' : 'needs_review';
-            _extractedQuestions[idx]._validationIssues = r.issues || [];
-          }
-        });
-
-        // 검증 결과가 없는 문제는 needs_review
-        _extractedQuestions.forEach(q => {
-          if (!q._validationStatus) q._validationStatus = 'needs_review';
-        });
-
-        _setStep(4, 'done', `✅ ${passed}개 통과, ⚠️ ${failed}개 검수 필요`);
-      }
-    } catch (e4) {
-      console.warn('[검증] 실패:', e4);
-      _setStep(4, 'error', '검증 실패 — 수동 검토 필요');
-      _extractedQuestions.forEach(q => { q._validationStatus = 'needs_review'; });
+    if (approvedByDual > 0 || needsReviewByDual > 0) {
+      _setStep(4, 'done', `이중검증: ✅ ${approvedByDual}개 일치, ⚠️ ${needsReviewByDual}개 검수`);
+    } else {
+      _setStep(4, 'skip', '검증 정보 없음');
     }
 
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 200));
 
     renderExtractedQuestions(_extractedQuestions);
     const approvedCount = _extractedQuestions.filter(q => q._validationStatus === 'approved').length;
@@ -12989,7 +13204,24 @@ function renderExtractedQuestions(list) {
         <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px" onclick="exToggleEdit(${i})">✏️ 편집</button>
       </div>
       ${q._validationIssues?.length ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:#856404">
-        <strong>검증 문제:</strong> ${q._validationIssues.join(' / ')}
+        <strong>이중 검증:</strong> ${q._validationIssues.join(' / ')}
+      </div>` : ''}
+      ${q._dualSource === 'both' && q._matchType === 'partial' && q._claudeVersion && q._geminiVersion ? `
+      <div style="margin-bottom:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <div style="padding:8px;background:#eff6ff;border-right:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:600;color:#1e40af;margin-bottom:6px">🔵 Claude</div>
+            <div style="font-size:12px;color:#1e3a5f;white-space:pre-wrap;max-height:120px;overflow:auto">${_exEsc((q._claudeVersion.content || '').slice(0, 300))}${(q._claudeVersion.content || '').length > 300 ? '...' : ''}</div>
+            <div style="font-size:11px;margin-top:6px;padding-top:6px;border-top:1px solid #bfdbfe">정답: <strong>${_exEsc(q._claudeVersion.answer || '없음')}</strong></div>
+            <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-top:6px" onclick="exAdoptVersion(${i}, 'claude')">Claude 채택</button>
+          </div>
+          <div style="padding:8px;background:#f0fdf4">
+            <div style="font-size:11px;font-weight:600;color:#166534;margin-bottom:6px">🟢 Gemini</div>
+            <div style="font-size:12px;color:#14532d;white-space:pre-wrap;max-height:120px;overflow:auto">${_exEsc((q._geminiVersion.content || '').slice(0, 300))}${(q._geminiVersion.content || '').length > 300 ? '...' : ''}</div>
+            <div style="font-size:11px;margin-top:6px;padding-top:6px;border-top:1px solid #bbf7d0">정답: <strong>${_exEsc(q._geminiVersion.answer || '없음')}</strong></div>
+            <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-top:6px" onclick="exAdoptVersion(${i}, 'gemini')">Gemini 채택</button>
+          </div>
+        </div>
       </div>` : ''}
       <!-- KaTeX 렌더링 미리보기 -->
       <div id="exPreview-${i}" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;background:var(--bg2);color:var(--text);white-space:pre-wrap;line-height:1.9;min-height:40px"></div>
@@ -13138,6 +13370,34 @@ function _renderAnswerPreview(el, rawText) {
   }
 }
 
+// 이중 추출 버전 채택 (Claude 또는 Gemini)
+function exAdoptVersion(idx, source) {
+  const q = _extractedQuestions[idx];
+  if (!q) return;
+
+  const version = source === 'claude' ? q._claudeVersion : q._geminiVersion;
+  if (!version) { showToast('해당 버전을 찾을 수 없습니다', '⚠️'); return; }
+
+  // content 업데이트
+  const contentEl = document.getElementById('exContent-' + idx);
+  if (contentEl) contentEl.value = version.content || '';
+
+  // answer 업데이트
+  const answerEl = document.getElementById('exAnswer-' + idx);
+  if (answerEl) answerEl.value = version.answer || '';
+
+  // 미리보기 새로고침
+  exUpdatePreview(idx);
+  exUpdateAnswerPreview(idx);
+
+  // 내부 데이터 업데이트
+  q.content = version.content || '';
+  q.answer = version.answer || '';
+  q._adoptedFrom = source;
+
+  showToast(`${source === 'claude' ? 'Claude' : 'Gemini'} 버전을 채택했습니다`, '✅');
+}
+
 // ── [그림 참조] 클릭 시 페이지 이미지 팝업 ──
 function exShowPageImages() {
   if (!_extractPageImages || _extractPageImages.length === 0) {
@@ -13196,7 +13456,11 @@ async function saveExtractedQuestions() {
     const validationNotes = {
       issues: q._validationIssues || [],
       answerSource: q._answerSource || 'ai',
-      validatedAt: new Date().toISOString()
+      validatedAt: new Date().toISOString(),
+      // 이중 추출 정보
+      dualSource: q._dualSource || null,
+      matchType: q._matchType || null,
+      adoptedFrom: q._adoptedFrom || null
     };
 
     return {
