@@ -6064,43 +6064,39 @@ function sgRedetectLabels() {
   sgDetectFigureLabels();
 }
 
-// Canvas 기반으로 원본 이미지 위에 숫자만 교체
-async function sgReplaceLabelsOnCanvas(imageBase64, mediaType, detectedLabels, changes) {
+// SVG 오버레이 방식으로 원본 이미지 위에 숫자 교체
+async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, changes) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-
-      // 1. 원본 이미지 그리기
-      ctx.drawImage(img, 0, 0);
-
+      const width = img.width;
+      const height = img.height;
       const labels = detectedLabels || [];
       const changeList = changes || [];
 
-      // 디버깅: 매칭 시도 로그
-      console.log('[Canvas] 매칭 시도:', {
-        detectedTexts: labels.map(l => l.text),
-        changeOriginals: changeList.map(c => c.original),
+      console.log('[SVG] 오버레이 시작:', {
+        imgSize: {width, height},
         labelsCount: labels.length,
         changesCount: changeList.length
       });
 
-      // changes가 없으면 원본 이미지 반환
+      // changes가 없으면 null 반환 (원본 이미지 사용하도록)
       if (changeList.length === 0) {
-        console.log('[Canvas] changes 없음 → 원본 이미지');
-        resolve(canvas.toDataURL('image/png'));
+        console.log('[SVG] changes 없음 → null');
+        resolve(null);
         return;
       }
 
-      // 2. 위치 기반 매칭: detectedLabels[i] ↔ changes[i]
-      // labels가 없어도 changes 기반으로 처리 시도
-      ctx.globalCompositeOperation = 'source-over';
+      // SVG 시작
+      let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
 
+      // 1. 원본 이미지를 <image>로 삽입
+      const dataUrl = `data:${mediaType || 'image/png'};base64,${imageBase64}`;
+      svgContent += `<image href="${dataUrl}" x="0" y="0" width="${width}" height="${height}" />`;
+
+      // 2. 위치 기반 매칭: labels[i] ↔ changes[i]
       const matchCount = Math.min(labels.length, changeList.length);
-      console.log('[Canvas] 위치 기반 매칭:', matchCount, '개');
+      console.log('[SVG] 위치 기반 매칭:', matchCount, '개');
 
       for (let i = 0; i < matchCount; i++) {
         const label = labels[i];
@@ -6108,52 +6104,48 @@ async function sgReplaceLabelsOnCanvas(imageBase64, mediaType, detectedLabels, c
         const newText = String(change.new).trim();
 
         // 비율 좌표(0~1)를 픽셀로 변환
-        const labelX = label.x * img.width;
-        const labelY = label.y * img.height;
-        const labelW = label.w * img.width;
-        const labelH = label.h * img.height;
+        const labelX = label.x * width;
+        const labelY = label.y * height;
+        const labelW = label.w * width;
+        const labelH = label.h * height;
 
-        // padding: 상하좌우 50% 확장
-        const paddingX = labelW * 0.5;
-        const paddingY = labelH * 0.5;
+        // padding: 상하좌우 20% 확장
+        const paddingX = labelW * 0.2;
+        const paddingY = labelH * 0.2;
 
         // 흰색 사각형 영역
         const rectX = Math.max(0, labelX - paddingX);
         const rectY = Math.max(0, labelY - paddingY);
-        const rectW = Math.min(img.width - rectX, labelW + paddingX * 2);
-        const rectH = Math.min(img.height - rectY, labelH + paddingY * 2);
+        const rectW = Math.min(width - rectX, labelW + paddingX * 2);
+        const rectH = Math.min(height - rectY, labelH + paddingY * 2);
 
         const centerX = rectX + rectW / 2;
         const centerY = rectY + rectH / 2;
+        const fontSize = Math.max(12, Math.min(rectH * 0.8, 32));
 
-        console.log('[Canvas] 교체:', {
+        console.log('[SVG] 교체:', {
           idx: i,
           original: label.text,
           newText,
           rect: {x: rectX.toFixed(1), y: rectY.toFixed(1), w: rectW.toFixed(1), h: rectH.toFixed(1)}
         });
 
-        // 흰색 사각형으로 덮기
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(rectX, rectY, rectW, rectH);
+        // a. 흰색 rect로 원본 숫자 덮기
+        svgContent += `<rect x="${rectX}" y="${rectY}" width="${rectW}" height="${rectH}" fill="#FFFFFF" />`;
 
-        // 새 텍스트 그리기
-        const fontSize = Math.max(12, Math.min(rectH * 0.8, 32));
-        ctx.font = `bold ${fontSize}px Georgia, serif`;
-        ctx.fillStyle = '#1e293b';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(newText, centerX, centerY);
+        // b. 새 숫자를 text로 그리기
+        svgContent += `<text x="${centerX}" y="${centerY}" font-family="Georgia, serif" font-size="${fontSize}" font-weight="bold" fill="#1e293b" text-anchor="middle" dominant-baseline="central">${escapeHtml(newText)}</text>`;
       }
 
-      // Canvas를 data URL로 반환
-      const dataUrl = canvas.toDataURL('image/png');
-      console.log('[sgReplaceLabelsOnCanvas] 완료, 교체 수:', matchCount);
-      resolve(dataUrl);
+      // SVG 종료
+      svgContent += '</svg>';
+
+      console.log('[sgOverlayLabelsWithSVG] 완료, 교체 수:', matchCount, 'SVG 길이:', svgContent.length);
+      resolve(svgContent);
     };
 
     img.onerror = () => {
-      console.error('[sgReplaceLabelsOnCanvas] 이미지 로드 실패');
+      console.error('[sgOverlayLabelsWithSVG] 이미지 로드 실패');
       resolve(null);
     };
 
@@ -6831,39 +6823,44 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
     if (!match) throw new Error('응답 형식 오류');
     const parsed = JSON.parse(match[0]);
     console.log('[sgGenerate] 파싱 완료, 문제 수:', parsed.problems?.length);
-    // 이미지 입력 시: Canvas 기반 라벨 교체
+    // 이미지 입력 시: SVG 오버레이로 라벨 교체
     let figureDataUrls = null;
-    const figureSvgs = null;
+    let figureSvgs = null;
     if (input.type === 'image') {
       const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
 
-      // UI에서 체크된 라벨 교체 매핑 수집
+      // UI에서 라벨 교체 매핑 수집
       const uiChanges = sgGetCheckedLabelChanges();
       console.log('[sgGenerate] UI 라벨 매핑:', uiChanges.length, '개');
 
-      // Canvas로 원본 이미지 위에 숫자만 교체
+      // SVG 오버레이로 원본 이미지 위에 숫자 교체
       document.getElementById('sg-loading-text').textContent = '도형 라벨 교체 중...';
-      console.log('[sgGenerate] Canvas 라벨 교체 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
+      console.log('[sgGenerate] SVG 오버레이 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
 
-      figureDataUrls = await Promise.all((parsed.problems || []).map(async (p, idx) => {
+      figureSvgs = await Promise.all((parsed.problems || []).map(async (p, idx) => {
         // UI 매핑 우선, 없으면 AI 응답의 changed_values 사용
         const changes = uiChanges.length > 0 ? uiChanges : (p.changed_values || []);
 
         if (changes.length === 0) {
           console.log(`[sgGenerate] 문제 ${idx + 1}: 교체할 라벨 없음 → 원본 이미지`);
-          return baseDataUrl;
+          return null; // figureSvgs가 null이면 sgRenderResults에서 figureDataUrls 사용
         }
 
-        console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 시도, labels=${sg.figureLabels?.length || 0}, changes=${changes.length}`);
-        const imgUrl = await sgReplaceLabelsOnCanvas(input.data, input.mediaType, sg.figureLabels || [], changes);
-        if (imgUrl) {
-          console.log(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 성공, 이미지 길이: ${imgUrl?.length || 0}`);
-          return imgUrl;
+        console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 오버레이 시도, labels=${sg.figureLabels?.length || 0}, changes=${changes.length}`);
+        const svg = await sgOverlayLabelsWithSVG(input.data, input.mediaType, sg.figureLabels || [], changes);
+        if (svg) {
+          console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공, 길이: ${svg.length}`);
+          return svg;
         }
 
-        console.warn(`[sgGenerate] 문제 ${idx + 1}: Canvas 교체 실패 → 원본 이미지`);
-        return baseDataUrl;
+        console.warn(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 실패`);
+        return null;
       }));
+
+      // SVG 실패한 문제들은 원본 이미지로 fallback
+      figureDataUrls = (parsed.problems || []).map((_, idx) => {
+        return figureSvgs[idx] ? null : baseDataUrl;
+      });
     }
     sgRenderResults(parsed, hint, figureDataUrls, figureSvgs);
 
