@@ -6133,13 +6133,13 @@ function sgCalculateFigureBbox(numbers) {
     const avgY = numbers.reduce((s, n) => s + n.y + n.h / 2, 0) / numbers.length;
     console.log('[sgCalculateFigureBbox] 라벨 평균 y:', avgY.toFixed(3));
 
-    // 평균 y 기준으로 상하 확장 (지문 영역 y<0.2 확실히 제외)
-    const y = Math.max(0.25, avgY - 0.25);
+    // 평균 y 기준으로 상하 확장 (지문 영역 y<0.3 확실히 제외)
+    const y = Math.max(0.30, avgY - 0.20);
     return {
       x: 0,
       y: y,
       w: 1,
-      h: Math.min(0.75, 1 - y)
+      h: Math.min(0.70, 1 - y)
     };
   }
 
@@ -6266,14 +6266,29 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
       const dataUrl = `data:${mediaType || 'image/png'};base64,${imageBase64}`;
       svgContent += `<image href="${dataUrl}" x="0" y="0" width="${imgW}" height="${imgH}" />`;
 
-      // 2. 위치 기반 매칭: labels[i] ↔ changes[i]
-      const matchCount = Math.min(labels.length, changeList.length);
-      console.log('[SVG] 위치 기반 매칭:', matchCount, '개');
+      // 2. 원본 값 기반 매칭: label.text와 change.original이 일치하는 항목 찾기
+      let matchedCount = 0;
+      console.log('[SVG] 원본 값 기반 매칭 시작, labels:', labels.length, 'changes:', changeList.length);
 
-      for (let i = 0; i < matchCount; i++) {
-        const label = labels[i];
-        const change = changeList[i];
-        const newText = String(change.new).trim();
+      for (const label of labels) {
+        // changes에서 original이 label.text와 일치하는 항목 찾기
+        const matchedChange = changeList.find(c => String(c.original).trim() === String(label.text).trim());
+
+        console.log('[SVG] 매칭:', {
+          label: label.text,
+          changes: changeList.map(c => c.original),
+          matched: matchedChange ? matchedChange.original : null,
+          newText: matchedChange ? matchedChange.new : null
+        });
+
+        // 일치하는 게 없으면 해당 라벨은 스킵 (덮어쓰지 않음)
+        if (!matchedChange) {
+          console.log('[SVG] 매칭 없음, 스킵:', label.text);
+          continue;
+        }
+
+        const newText = String(matchedChange.new).trim();
+        matchedCount++;
 
         // 비율 좌표(0~1)를 픽셀로 변환 (전체 이미지 기준)
         const svgX = label.x * imgW;
@@ -6288,15 +6303,7 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
         // 텍스트 크기: 라벨 영역 높이의 1.1~1.2배 (원본을 확실히 덮기 위해)
         const fontSize = Math.max(14, Math.min(svgH * 1.15, 36));
 
-        console.log('[SVG] 라벨 좌표:', {
-          text: label.text,
-          raw: {x: label.x, y: label.y, w: label.w, h: label.h},
-          svg: {x: svgX.toFixed(1), y: svgY.toFixed(1), w: svgW.toFixed(1), h: svgH.toFixed(1)},
-          imageSize: {w: imgW, h: imgH}
-        });
-
         console.log('[SVG] 교체:', {
-          idx: i,
           original: label.text,
           newText,
           center: {x: centerX.toFixed(1), y: centerY.toFixed(1)},
@@ -6310,7 +6317,7 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
       // SVG 종료
       svgContent += '</svg>';
 
-      console.log('[sgOverlayLabelsWithSVG] 완료, 교체 수:', matchCount, 'SVG 길이:', svgContent.length);
+      console.log('[sgOverlayLabelsWithSVG] 완료, 교체 수:', matchedCount, 'SVG 길이:', svgContent.length);
       resolve(svgContent);
     };
 
@@ -7044,7 +7051,7 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
       // 필터링된 라벨만 인페인팅 (지문 숫자 제외)
       const labelsForBbox = sg.figureLabelsForBbox || [];
       console.log('[sgGenerate] 인페인팅 대상 라벨:', labelsForBbox.length, '(전체:', sg.figureLabels?.length || 0, ')');
-      const inpaintedImage = await sgInpaintLabels(input.data, input.mediaType, labelsForBbox);
+      const inpaintedImage = await sgInpaintLabels(input.data, input.mediaType, labelsForBbox, 0.04);
       const useInpainted = inpaintedImage !== input.data;
       console.log('[sgGenerate] 인페인팅 결과:', useInpainted ? '성공 (새 이미지)' : '원본 유지');
 
