@@ -11830,21 +11830,29 @@ async function saveQuestionManual() {
 })();
 
 // ── PDF → 페이지별 JPEG base64 배열 ──
-async function pdfToPageImages(file, onProgress) {
+async function pdfToPageImages(file, onProgress, options = {}) {
   const pdfjsLib = window.pdfjsLib;
   if (!pdfjsLib) throw new Error('PDF.js 라이브러리를 불러오지 못했습니다. 페이지를 새로고침해주세요.');
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const images = [];
+  // 옵션: scale (기본 1.5), quality (기본 0.8)
+  const scale = options.scale || 1.5;
+  const quality = options.quality || 0.8;
   for (let i = 1; i <= pdf.numPages; i++) {
     if (onProgress) onProgress(i, pdf.numPages);
-    const page     = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 1.8 }); // 해상도: 1.8x
-    const canvas   = document.createElement('canvas');
-    canvas.width   = viewport.width;
-    canvas.height  = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    images.push(canvas.toDataURL('image/jpeg', 0.88).split(',')[1]);
+    try {
+      const page     = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale });
+      const canvas   = document.createElement('canvas');
+      canvas.width   = viewport.width;
+      canvas.height  = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      images.push(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+    } catch (e) {
+      console.error(`[pdfToPageImages] 페이지 ${i} 변환 실패:`, e.message);
+      images.push(null); // 실패한 페이지는 null로 표시
+    }
   }
   return images;
 }
@@ -11893,34 +11901,89 @@ const _CLAUDE_EXTRACT_PROMPT = `당신은 수학 문제지에서 문제를 추�
 반드시 JSON 배열만 출력, 다른 텍스트 없이:
 [{"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5,"_page":1또는null}]`;
 
-async function _claudeExtract(file) {
+async function _claudeExtract(file, onProgress) {
   const apiKey = getApiKey();
   if (!apiKey) return { result: null, skipped: true };
 
-  const b64   = await _fileToBase64(file);
   const isPdf = file.type === 'application/pdf';
+  let msgContent;
 
-  const msgContent = isPdf
-    ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
-       { type: 'text', text: _CLAUDE_EXTRACT_PROMPT }]
-    : [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: b64 } },
-       { type: 'text', text: _CLAUDE_EXTRACT_PROMPT }];
+  if (isPdf) {
+    // PDF → 페이지 이미지로 변환 후 전송 (413 에러 방지)
+    const pageImages = await pdfToPageImages(file, onProgress, { scale: 1.4, quality: 0.75 });
+    const validImages = pageImages.filter(img => img !== null);
+    console.log(`[Claude 추출] PDF ${pageImages.length}페이지 → ${validImages.length}개 이미지 변환`);
 
-  const res = await fetch('/api/proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000,
-      messages: [{ role: 'user', content: msgContent }] })
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    console.error('[Claude 추출] 오류:', JSON.stringify(e, null, 2));
-    throw new Error(e.error?.message || `Claude HTTP ${res.status}`);
+    if (validImages.length === 0) {
+      throw new Error('PDF 페이지 변환 실패');
+    }
+
+    // 배치 처리: 한 번에 최대 10페이지씩
+    const BATCH_SIZE = 10;
+    let allQuestions = [];
+
+    for (let i = 0; i < validImages.length; i += BATCH_SIZE) {
+      const batch = validImages.slice(i, i + BATCH_SIZE);
+      const batchContent = [];
+
+      batch.forEach((b64, idx) => {
+        batchContent.push({ type: 'text', text: `=== 페이지 ${i + idx + 1} ===` });
+        batchContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
+      });
+      batchContent.push({ type: 'text', text: _CLAUDE_EXTRACT_PROMPT });
+
+      const res = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000,
+          messages: [{ role: 'user', content: batchContent }] })
+      });
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        console.error(`[Claude 추출] 배치 ${Math.floor(i/BATCH_SIZE)+1} 오류:`, e.error?.message || res.status);
+        continue; // 해당 배치 건너뛰고 계속
+      }
+
+      const json = await res.json();
+      const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+      try {
+        const qs = _parseJsonArray(text);
+        // _page 오프셋 조정
+        qs.forEach(q => { if (q._page) q._page += i; });
+        allQuestions = allQuestions.concat(qs);
+      } catch (e) {
+        console.warn(`[Claude 추출] 배치 ${Math.floor(i/BATCH_SIZE)+1} 파싱 실패:`, e.message);
+      }
+    }
+
+    console.debug('[Claude 추출] 총 추출 문제:', allQuestions.length);
+    return { result: allQuestions, skipped: false };
+
+  } else {
+    // 이미지 파일: 직접 전송
+    const b64 = await _fileToBase64(file);
+    msgContent = [
+      { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: b64 } },
+      { type: 'text', text: _CLAUDE_EXTRACT_PROMPT }
+    ];
+
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000,
+        messages: [{ role: 'user', content: msgContent }] })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      console.error('[Claude 추출] 오류:', JSON.stringify(e, null, 2));
+      throw new Error(e.error?.message || `Claude HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+    console.debug('[Claude 추출] 응답 길이:', text.length);
+    return { result: _parseJsonArray(text), skipped: false };
   }
-  const json = await res.json();
-  const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
-  console.debug('[Claude 추출] 응답 길이:', text.length);
-  return { result: _parseJsonArray(text), skipped: false };
 }
 
 // ════════════════════════════════════════════════════════
@@ -12381,49 +12444,67 @@ async function _extractAnswerSheet(file) {
 
   try {
     const isPdf = file.type === 'application/pdf';
-    let images, mimes;
+    let images;
 
     if (isPdf) {
-      images = await pdfToPageImages(file);
-      mimes = images.map(() => 'image/jpeg');
+      // 낮은 해상도로 변환 (답안지는 텍스트 위주)
+      images = await pdfToPageImages(file, null, { scale: 1.2, quality: 0.7 });
+      images = images.filter(img => img !== null);
     } else {
       images = [await _fileToBase64(file)];
-      mimes = [file.type || 'image/jpeg'];
     }
 
-    // Claude Vision으로 답안지 분석
-    const parts = images.map((b64, i) => ({
-      type: 'image',
-      source: { type: 'base64', media_type: mimes[i], data: b64 }
-    }));
-    parts.push({ type: 'text', text: _ANSWER_SHEET_PROMPT });
-
-    const res = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: parts }]
-      })
-    });
-
-    if (!res.ok) {
-      console.error('[답안지 추출] HTTP 오류:', res.status);
+    if (images.length === 0) {
+      console.error('[답안지 추출] 이미지 변환 실패');
       return null;
     }
 
-    const json = await res.json();
-    const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
-    console.log('[답안지 추출] 응답:', text);
+    // 배치 처리: 최대 5페이지씩
+    const BATCH_SIZE = 5;
+    let allAnswers = {};
 
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      console.log('[답안지 추출] 파싱된 답:', parsed.answers);
-      return parsed.answers || {};
+    for (let i = 0; i < images.length; i += BATCH_SIZE) {
+      const batch = images.slice(i, i + BATCH_SIZE);
+      const parts = batch.map(b64 => ({
+        type: 'image',
+        source: { type: 'base64', media_type: 'image/jpeg', data: b64 }
+      }));
+      parts.push({ type: 'text', text: _ANSWER_SHEET_PROMPT });
+
+      const res = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: parts }]
+        })
+      });
+
+      if (!res.ok) {
+        console.error(`[답안지 추출] 배치 ${Math.floor(i/BATCH_SIZE)+1} HTTP 오류:`, res.status);
+        continue;
+      }
+
+      const json = await res.json();
+      const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+      console.log(`[답안지 추출] 배치 ${Math.floor(i/BATCH_SIZE)+1} 응답:`, text.slice(0, 200));
+
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[0]);
+          if (parsed.answers) {
+            allAnswers = { ...allAnswers, ...parsed.answers };
+          }
+        } catch (e) {
+          console.warn('[답안지 추출] 파싱 실패:', e.message);
+        }
+      }
     }
-    return null;
+
+    console.log('[답안지 추출] 총 추출 답:', Object.keys(allAnswers).length);
+    return Object.keys(allAnswers).length > 0 ? allAnswers : null;
   } catch (e) {
     console.error('[답안지 추출] 오류:', e);
     return null;
@@ -12467,50 +12548,89 @@ async function _validateExtraction(questions, pageImages) {
   if (!questions || questions.length === 0) return { skipped: true, reason: '검증할 문제 없음' };
 
   try {
-    // 원본 이미지와 추출 결과를 함께 전송
-    const parts = [];
-    if (pageImages && pageImages.length > 0) {
-      pageImages.forEach((b64, i) => {
-        if (pageImages.length > 1) parts.push({ type: 'text', text: `=== 페이지 ${i + 1} ===` });
-        parts.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
-      });
+    // null 이미지 필터링
+    const validImages = (pageImages || []).filter(img => img !== null);
+    if (validImages.length === 0) {
+      return { skipped: true, reason: '이미지 없음' };
     }
 
     // 추출된 문제 목록 (간소화)
     const qList = questions.map((q, i) => ({
       num: i + 1,
-      content: (q.content || '').slice(0, 500),
+      content: (q.content || '').slice(0, 300), // 크기 줄임
       answer: q.answer,
       type: q.question_type
     }));
-    parts.push({ type: 'text', text: _VALIDATION_PROMPT + '\n\n' + JSON.stringify(qList, null, 2) });
 
-    const res = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: parts }]
-      })
-    });
+    // 배치 처리: 최대 8페이지씩 + 관련 문제
+    const BATCH_SIZE = 8;
+    let allResults = [];
 
-    if (!res.ok) {
-      console.error('[검증] HTTP 오류:', res.status);
-      return { skipped: true, reason: 'API 오류' };
+    for (let i = 0; i < validImages.length; i += BATCH_SIZE) {
+      const batchImages = validImages.slice(i, i + BATCH_SIZE);
+      const startPage = i + 1;
+      const endPage = i + batchImages.length;
+
+      // 해당 페이지에 속하는 문제만 필터링
+      const batchQuestions = qList.filter(q => {
+        const qPage = questions[q.num - 1]?._page;
+        return !qPage || (qPage >= startPage && qPage <= endPage);
+      });
+
+      if (batchQuestions.length === 0) continue;
+
+      const parts = [];
+      batchImages.forEach((b64, idx) => {
+        parts.push({ type: 'text', text: `=== 페이지 ${startPage + idx} ===` });
+        parts.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
+      });
+      parts.push({ type: 'text', text: _VALIDATION_PROMPT + '\n\n' + JSON.stringify(batchQuestions, null, 2) });
+
+      const res = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: parts }]
+        })
+      });
+
+      if (!res.ok) {
+        console.error(`[검증] 배치 ${Math.floor(i/BATCH_SIZE)+1} HTTP 오류:`, res.status);
+        continue;
+      }
+
+      const json = await res.json();
+      const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+      console.log(`[검증] 배치 ${Math.floor(i/BATCH_SIZE)+1} 응답:`, text.slice(0, 300));
+
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[0]);
+          if (parsed.results) {
+            allResults = allResults.concat(parsed.results);
+          }
+        } catch (e) {
+          console.warn('[검증] 파싱 실패:', e.message);
+        }
+      }
     }
 
-    const json = await res.json();
-    const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
-    console.log('[검증] 응답:', text.slice(0, 500));
+    // 결과 집계
+    const passed = allResults.filter(r => r.status === 'pass').length;
+    const failed = allResults.filter(r => r.status === 'fail').length;
 
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      console.log('[검증] 파싱 결과:', parsed.summary);
-      return { skipped: false, result: parsed };
-    }
-    return { skipped: true, reason: '파싱 실패' };
+    console.log('[검증] 총 결과:', { passed, failed, total: allResults.length });
+
+    return {
+      skipped: false,
+      result: {
+        summary: { total: allResults.length, passed, failed },
+        results: allResults
+      }
+    };
   } catch (e) {
     console.error('[검증] 오류:', e);
     return { skipped: true, reason: e.message };
@@ -12551,12 +12671,14 @@ async function extractFromFile() {
     // ════════════════════════════════════════════════════════
     // STEP 1: Claude — 텍스트 추출 + KaTeX + [그림 참조] 마킹
     // ════════════════════════════════════════════════════════
-    _setStep(1, 'running', '분석 중...');
+    _setStep(1, 'running', isPdf ? 'PDF 변환 중...' : '분석 중...');
     let step1Questions;
     let usedClaudeFallback = false;
 
     try {
-      const { result, skipped } = await _claudeExtract(file);
+      const { result, skipped } = await _claudeExtract(file, (cur, total) => {
+        _setStep(1, 'running', `페이지 ${cur}/${total} 변환 중`);
+      });
 
       if (skipped) {
         // Claude 키 없음 → Gemini로 폴백
