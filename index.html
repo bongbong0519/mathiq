@@ -6045,6 +6045,13 @@ async function sgDetectFigureLabels() {
         w: parseFloat(n.w || n.width) || 0.05,
         h: parseFloat(n.h || n.height) || 0.03
       }));
+      console.log('[sgDetectFigureLabels] 파싱된 라벨 좌표 (0~1 정규화, 전체 이미지 기준):', nums.map(n => ({
+        text: n.text,
+        x: n.x.toFixed(3),
+        y: n.y.toFixed(3),
+        w: n.w.toFixed(3),
+        h: n.h.toFixed(3)
+      })));
       sg.figureLabels = nums;
       sgRenderFigurePanel(nums);
     } else {
@@ -6069,15 +6076,29 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const width = img.width;
-      const height = img.height;
+      // 이미지 실제 크기
+      const imgW = img.naturalWidth;
+      const imgH = img.naturalHeight;
+      const width = imgW;
+      const height = imgH;
       const labels = detectedLabels || [];
       const changeList = changes || [];
 
-      console.log('[SVG] 오버레이 시작:', {
-        imgSize: {width, height},
+      console.log('[SVG] 이미지 크기:', {
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        width: img.width,
+        height: img.height
+      });
+      console.log('[SVG] SVG 설정:', {
+        svgWidth: width,
+        svgHeight: height,
+        viewBox: `0 0 ${width} ${height}`
+      });
+      console.log('[SVG] 입력 데이터:', {
         labelsCount: labels.length,
-        changesCount: changeList.length
+        changesCount: changeList.length,
+        labels: labels.map(l => ({text: l.text, x: l.x, y: l.y, w: l.w, h: l.h}))
       });
 
       // changes가 없으면 null 반환 (원본 이미지 사용하도록)
@@ -6104,20 +6125,28 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
         const newText = String(change.new).trim();
 
         // 비율 좌표(0~1)를 픽셀로 변환
-        const labelX = label.x * width;
-        const labelY = label.y * height;
-        const labelW = label.w * width;
-        const labelH = label.h * height;
+        const svgX = label.x * width;
+        const svgY = label.y * height;
+        const svgW = label.w * width;
+        const svgH = label.h * height;
+
+        // 상세 좌표 로그
+        console.log('[SVG] 라벨 좌표:', {
+          text: label.text,
+          raw: {x: label.x, y: label.y, w: label.w, h: label.h},
+          svg: {x: svgX.toFixed(1), y: svgY.toFixed(1), w: svgW.toFixed(1), h: svgH.toFixed(1)},
+          imageSize: {w: imgW, h: imgH}
+        });
 
         // padding: 상하좌우 20% 확장
-        const paddingX = labelW * 0.2;
-        const paddingY = labelH * 0.2;
+        const paddingX = svgW * 0.2;
+        const paddingY = svgH * 0.2;
 
         // 흰색 사각형 영역
-        const rectX = Math.max(0, labelX - paddingX);
-        const rectY = Math.max(0, labelY - paddingY);
-        const rectW = Math.min(width - rectX, labelW + paddingX * 2);
-        const rectH = Math.min(height - rectY, labelH + paddingY * 2);
+        const rectX = Math.max(0, svgX - paddingX);
+        const rectY = Math.max(0, svgY - paddingY);
+        const rectW = Math.min(width - rectX, svgW + paddingX * 2);
+        const rectH = Math.min(height - rectY, svgH + paddingY * 2);
 
         const centerX = rectX + rectW / 2;
         const centerY = rectY + rectH / 2;
@@ -6127,7 +6156,9 @@ async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, ch
           idx: i,
           original: label.text,
           newText,
-          rect: {x: rectX.toFixed(1), y: rectY.toFixed(1), w: rectW.toFixed(1), h: rectH.toFixed(1)}
+          rect: {x: rectX.toFixed(1), y: rectY.toFixed(1), w: rectW.toFixed(1), h: rectH.toFixed(1)},
+          center: {x: centerX.toFixed(1), y: centerY.toFixed(1)},
+          fontSize
         });
 
         // a. 흰색 rect로 원본 숫자 덮기
