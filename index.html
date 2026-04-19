@@ -6140,6 +6140,47 @@ function sgRedetectLabels() {
   sgDetectFigureLabels();
 }
 
+// Railway 인페인팅 API로 라벨 텍스트 제거
+async function sgInpaintLabels(imageBase64, mediaType, labels, padding = 0.02) {
+  if (!labels || labels.length === 0) {
+    console.log('[sgInpaintLabels] 라벨 없음 → 원본 반환');
+    return imageBase64;
+  }
+
+  console.log(`[sgInpaintLabels] 인페인팅 요청: ${labels.length}개 라벨, padding=${padding}`);
+
+  try {
+    const res = await fetch('https://web-production-132a5.up.railway.app/inpaint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: imageBase64,
+        mediaType: mediaType || 'image/png',
+        labels: labels.map(l => ({ x: l.x, y: l.y, w: l.w, h: l.h })),
+        padding
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('[sgInpaintLabels] HTTP', res.status, err.error || '');
+      return imageBase64; // 실패 시 원본 반환
+    }
+
+    const data = await res.json();
+    if (data.success && data.image) {
+      console.log('[sgInpaintLabels] 인페인팅 성공');
+      return data.image;
+    } else {
+      console.warn('[sgInpaintLabels] 응답 실패:', data.error || '이미지 없음');
+      return imageBase64;
+    }
+  } catch (e) {
+    console.error('[sgInpaintLabels] 네트워크 오류:', e.message);
+    return imageBase64; // 실패 시 원본 반환
+  }
+}
+
 // SVG 오버레이 방식으로 원본 이미지 위에 숫자 교체 (figureBbox로 크롭 가능)
 async function sgOverlayLabelsWithSVG(imageBase64, mediaType, detectedLabels, changes, figureBbox) {
   return new Promise((resolve) => {
@@ -6963,16 +7004,23 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
       sgUpdateLabelUIFromAI(parsed.problems[0].changed_values);
     }
 
-    // 이미지 입력 시: SVG 오버레이로 라벨 교체
+    // 이미지 입력 시: 인페인팅 후 SVG 오버레이로 라벨 교체
     let figureDataUrls = null;
     let figureSvgs = null;
     if (input.type === 'image') {
       const baseDataUrl = `data:${sg.imageType || 'image/png'};base64,${input.data}`;
 
-      // SVG 오버레이로 원본 이미지 위에 숫자 교체
+      // 1. 인페인팅: 원본 이미지에서 라벨 텍스트 제거
+      document.getElementById('sg-loading-text').textContent = '도형 라벨 제거 중 (인페인팅)...';
+      console.log('[sgGenerate] 인페인팅 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
+      const inpaintedImage = await sgInpaintLabels(input.data, input.mediaType, sg.figureLabels || []);
+      const useInpainted = inpaintedImage !== input.data;
+      console.log('[sgGenerate] 인페인팅 결과:', useInpainted ? '성공 (새 이미지)' : '원본 유지');
+
+      // 2. SVG 오버레이: 인페인팅된 이미지 위에 새 숫자 추가
       // AI 응답의 p.changed_values를 단일 소스로 사용 (각 문제마다 다른 매핑 적용)
       document.getElementById('sg-loading-text').textContent = '도형 라벨 교체 중...';
-      console.log('[sgGenerate] SVG 오버레이 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
+      console.log('[sgGenerate] SVG 오버레이 시작');
 
       figureSvgs = await Promise.all((parsed.problems || []).map(async (p, idx) => {
         // AI 응답의 changed_values를 직접 사용 (단일 소스)
@@ -6984,7 +7032,8 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
         }
 
         console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 오버레이 시도, labels=${sg.figureLabels?.length || 0}, changes=${changes.length}, figureBbox=${sg.figureBbox ? 'yes' : 'no'}`);
-        const svg = await sgOverlayLabelsWithSVG(input.data, input.mediaType, sg.figureLabels || [], changes, sg.figureBbox);
+        // 인페인팅된 이미지 사용 (라벨이 제거된 깨끗한 도형)
+        const svg = await sgOverlayLabelsWithSVG(inpaintedImage, input.mediaType, sg.figureLabels || [], changes, sg.figureBbox);
         if (svg) {
           console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공, 길이: ${svg.length}`);
           return svg;
