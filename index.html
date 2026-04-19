@@ -6223,39 +6223,37 @@ function sgRenderFigurePanel(labels) {
   // 각 라벨에 대해 랜덤 새 값 생성
   const newValues = labels.map(lb => sgGenerateRandomValue(lb.text));
 
-  labelsEl.innerHTML = labels.map((lb, i) => {
+  labelsEl.innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 8px;background:rgba(62,207,142,0.08);border-radius:6px;border:1px solid rgba(62,207,142,0.2)">
+      💡 유사문제 생성 시 아래 값으로 자동 교체됩니다. 수정하려면 직접 입력하세요.
+    </div>
+  ` + labels.map((lb, i) => {
     const risky = lb.y < 0.22; // top 22% likely overlaps problem text
     if (risky) hasRisky = true;
     const newVal = newValues[i];
     return `<div style="display:flex;align-items:center;gap:7px;padding:7px 9px;background:var(--bg3);border:1px solid ${risky ? 'rgba(246,173,85,0.3)' : 'var(--border)'};border-radius:var(--radius-sm)">
-      <input type="checkbox" id="sg-fl-check-${i}" ${risky ? '' : 'checked'} style="width:14px;height:14px;cursor:pointer;flex-shrink:0" onchange="sgSyncFigureCheck(${i})">
       <span style="font-size:12px;font-family:'Space Mono',monospace;color:${risky ? 'var(--yellow)' : 'var(--text)'};min-width:54px;flex-shrink:0" title="${risky ? '문제 텍스트와 겹칠 수 있음' : ''}">${escapeHtml(lb.text)}${risky ? ' ⚠' : ''}</span>
       <span style="font-size:10px;color:var(--text3)">→</span>
       <input type="text" id="sg-fl-new-${i}" value="${escapeHtml(newVal)}" placeholder="새 값 (예: 3+√5)"
-        style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;font-family:'Space Mono',monospace;padding:4px 7px;outline:none;min-width:0"
-        oninput="sgSyncFigureCheck(${i})">
+        style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;font-family:'Space Mono',monospace;padding:4px 7px;outline:none;min-width:0">
     </div>`;
   }).join('');
   if (hasRisky) warnEl.style.display = 'block';
 }
 
-function sgSyncFigureCheck(i) {
-  const val = document.getElementById(`sg-fl-new-${i}`)?.value?.trim();
-  const check = document.getElementById(`sg-fl-check-${i}`);
-  if (check && val) check.checked = true;
-}
-
-// UI에서 체크된 라벨 교체 매핑 수집
+// UI에서 라벨 교체 매핑 수집 (인풋에 값이 있는 모든 라벨)
 function sgGetCheckedLabelChanges() {
   if (!sg.figureLabels?.length) return [];
   const changes = [];
   sg.figureLabels.forEach((lb, i) => {
-    const check = document.getElementById(`sg-fl-check-${i}`);
     const newInput = document.getElementById(`sg-fl-new-${i}`);
-    if (check?.checked && newInput?.value?.trim()) {
+    const newVal = newInput?.value?.trim();
+    const originalVal = String(lb.text).trim();
+    // 인풋에 값이 있고, 원본과 다르면 교체 대상
+    if (newVal && newVal !== originalVal) {
       changes.push({
-        original: String(lb.text).trim(),
-        new: newInput.value.trim()
+        original: originalVal,
+        new: newVal
       });
     }
   });
