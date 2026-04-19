@@ -6120,44 +6120,47 @@ JSON 형식으로만 응답하세요. 설명이나 마크다운은 절대 출력
 
 // 감지된 라벨 좌표로 figure bbox 계산
 function sgCalculateFigureBbox(numbers) {
+  // 라벨 없음: 전체 이미지의 하단 70%
   if (!numbers || numbers.length === 0) {
-    console.log('[sgCalculateFigureBbox] 라벨 없음 → 전체 이미지');
-    return { x: 0, y: 0, w: 1, h: 1 };
+    console.log('[sgCalculateFigureBbox] 라벨 없음 → 하단 70%');
+    return { x: 0, y: 0.3, w: 1, h: 0.7 };
   }
 
-  // 모든 라벨의 min/max 좌표 계산
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
+  // 라벨 1~2개: 불충분하므로 이미지 하단 65%를 그림으로 가정
+  if (numbers.length <= 2) {
+    console.warn('[sgCalculateFigureBbox] 라벨 부족(' + numbers.length + '개), 기본 영역 사용');
 
-  for (const num of numbers) {
-    // 상단 근접 라벨 경고 (지문 영역에 속할 가능성)
-    if (num.y < 0.1) {
-      console.warn(`[sgCalculateFigureBbox] 경고: 라벨 "${num.text}"이 상단(y=${num.y.toFixed(3)})에 있음 - 지문 숫자일 수 있음`);
-    }
-    minX = Math.min(minX, num.x);
-    minY = Math.min(minY, num.y);
-    maxX = Math.max(maxX, num.x + num.w);
-    maxY = Math.max(maxY, num.y + num.h);
+    // 감지된 라벨의 평균 y값으로 그림 중심 추정
+    const avgY = numbers.reduce((s, n) => s + n.y + n.h / 2, 0) / numbers.length;
+    console.log('[sgCalculateFigureBbox] 라벨 평균 y:', avgY.toFixed(3));
+
+    // 평균 y 기준으로 상하 확장
+    return {
+      x: 0,
+      y: Math.max(0.15, avgY - 0.35),
+      w: 1,
+      h: Math.min(0.85, 0.7)
+    };
   }
 
-  // 여백 추가 (상하좌우 15%씩 확장)
+  // 라벨 3개 이상: 기존 방식 (min/max + padding)
+  let minX = 1, minY = 1, maxX = 0, maxY = 0;
+  numbers.forEach(n => {
+    minX = Math.min(minX, n.x);
+    minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.w);
+    maxY = Math.max(maxY, n.y + n.h);
+  });
+
   const padding = 0.15;
-  const x = Math.max(0, minX - padding);
-  const y = Math.max(0, minY - padding);
-  const w = Math.min(1, maxX + padding) - x;
-  const h = Math.min(1, maxY + padding) - y;
+  const bbox = {
+    x: Math.max(0, minX - padding),
+    y: Math.max(0, minY - padding),
+    w: Math.min(1, maxX + padding) - Math.max(0, minX - padding),
+    h: Math.min(1, maxY + padding) - Math.max(0, minY - padding)
+  };
 
-  const bbox = { x, y, w, h };
   console.log('[sgCalculateFigureBbox] 라벨 기반 bbox:', bbox);
-
-  // bbox가 너무 크면 경고 (지문 영역 포함 가능성)
-  if (h > 0.7) {
-    console.warn(`[sgCalculateFigureBbox] 경고: bbox 높이(${h.toFixed(2)})가 너무 큼 - 지문 영역이 포함됐을 수 있음`);
-  }
-  if (y < 0.05) {
-    console.warn(`[sgCalculateFigureBbox] 경고: bbox 상단(y=${y.toFixed(3)})이 이미지 최상단에 근접 - 지문 포함 가능성`);
-  }
-
   return bbox;
 }
 
