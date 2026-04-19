@@ -6802,7 +6802,8 @@ async function sgGenerate() {
    - 도형·기하·계산·확률·대수 문제는 figure_commands를 반드시 생략하세요.
 
 반드시 아래 JSON만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.
-{"original_topic":"파악된 단원","problems":[{"number":1,"question":"문제 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트","changed_values":[{"original":"원래값","new":"새값"}],"figure_commands":["A=(0,0)","B=(3,0)","C=(3,4)","Polygon(A,B,C)"],"competencies":{"problem_solving":80,"reasoning":60,"communication":40,"connection":50,"info_processing":70,"attitude":30}}]}
+{"original_topic":"파악된 단원","original_question":"원본 문제의 지문 텍스트 (이미지에서 읽은 그대로, 번호/그림설명 제외)","problems":[{"number":1,"question":"유사문제 지문 내용","type":"multiple|short|essay","difficulty":"easy|normal|hard","choices":["① ...","② ...","③ ...","④ ...","⑤ ..."],"answer":"정답","answer_index":0,"hint":"풀이 힌트","changed_values":[{"original":"원래값","new":"새값"}],"figure_commands":["A=(0,0)","B=(3,0)","C=(3,4)","Polygon(A,B,C)"],"competencies":{"problem_solving":80,"reasoning":60,"communication":40,"connection":50,"info_processing":70,"attitude":30}}]}
+original_question은 업로드된 문제 이미지에서 추출한 지문을 그대로 적어주세요. (문제 번호, 그림 설명 제외, 순수 문제 지문만)
 competencies는 각 문제가 요구하는 2022 개정 교육과정 수학적 역량 점수(0-100)입니다:
 - problem_solving(문제해결): 문제 해결 전략 수립 및 실행
 - reasoning(추론): 논리적 사고, 귀납/연역적 추론
@@ -6969,6 +6970,23 @@ function sgRenderResults(data, hintMode, figureDataUrls, figureSvgs) {
 
   const list = document.getElementById('sg-problem-list');
   list.innerHTML = '';
+
+  // 원본 문제 표시 (있는 경우)
+  if (data.original_question) {
+    const origCard = document.createElement('div');
+    origCard.style.cssText = 'background:rgba(255,107,107,0.04);border:1px solid rgba(255,107,107,0.2);border-radius:10px;overflow:hidden;margin-bottom:16px;';
+    origCard.innerHTML = `
+      <div style="padding:10px 14px;border-bottom:1px solid rgba(255,107,107,0.15);display:flex;align-items:center;gap:8px;background:rgba(255,107,107,0.06)">
+        <div style="width:21px;height:21px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center">📝</div>
+        <span style="font-size:12px;font-weight:700;color:var(--accent)">원본 문제</span>
+      </div>
+      <div style="padding:14px">
+        <div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:keep-all">${sgEsc(data.original_question)}</div>
+        ${sg.imageData ? `<img src="data:${sg.imageType || 'image/png'};base64,${sg.imageData}" style="width:100%;max-height:260px;object-fit:contain;border-radius:8px;margin:12px 0;border:1px solid var(--border);display:block;background:var(--bg2)">` : ''}
+      </div>
+    `;
+    list.appendChild(origCard);
+  }
 
   // 역량 평균 계산 및 차트 표시
   const compProblems = problems.filter(p => p.competencies);
