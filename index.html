@@ -5810,6 +5810,7 @@ function sgProcessUpload(file, type) {
       sg.imageData = ev.target.result.split(',')[1];
       sg.imageType = file.type;
       sg.figureLabels = null;
+      sg.figureLabelsForBbox = null;
       document.getElementById('sg-img-preview').src = ev.target.result;
       document.getElementById('sg-img-preview-wrap').style.display = 'block';
       document.getElementById('sg-img-dropzone').style.display = 'none';
@@ -5862,7 +5863,7 @@ function sgProcessUpload(file, type) {
 
 function sgRemoveFile(type) {
   if (type === 'image') {
-    sg.imageData = null; sg.imageType = null; sg.figureLabels = null; sg.tikzCode = null;
+    sg.imageData = null; sg.imageType = null; sg.figureLabels = null; sg.figureLabelsForBbox = null; sg.tikzCode = null;
     document.getElementById('sg-img-preview-wrap').style.display = 'none';
     document.getElementById('sg-img-dropzone').style.display = 'block';
     document.getElementById('sg-img-input').value = '';
@@ -5999,6 +6000,7 @@ async function sgDetectFigureLabels() {
   labelsEl.innerHTML = '';
   warnEl.style.display = 'none';
   sg.figureLabels = null;
+  sg.figureLabelsForBbox = null;
   sg.figureBbox = null;
 
   const apiKey = document.getElementById('sg-api-key')?.value?.trim();
@@ -6069,7 +6071,10 @@ JSON 형식으로만 응답하세요. 설명이나 마크다운은 절대 출력
         w: parseFloat(n.w || n.width) || 0.05,
         h: parseFloat(n.h || n.height) || 0.03
       }));
-      console.log('[sgDetectFigureLabels] 필터링 전:', rawNumbers.length, rawNumbers.map(n => n.text));
+      // sg.figureLabels: 필터링 전 모든 라벨 (UI 표시, changed_values 생성용)
+      // sg.figureLabelsForBbox: 필터링 후 (bbox/인페인팅/오버레이용)
+      sg.figureLabels = rawNumbers;
+      console.log('[sgDetectFigureLabels] 전체 라벨:', rawNumbers.length, rawNumbers.map(n => n.text));
 
       // 필터 1: 상단 15% 이내 라벨 제외 (지문 영역)
       // 필터 2: 하단 5% 이내 라벨 제외 (선지 영역)
@@ -6085,33 +6090,27 @@ JSON 형식으로만 응답하세요. 설명이나 마크다운은 절대 출력
         return true;
       });
 
-      console.log('[sgDetectFigureLabels] 필터링 후:', filtered.length, '제거됨:', rawNumbers.length - filtered.length);
+      sg.figureLabelsForBbox = filtered;
+      console.log('[sgDetectFigureLabels] 필터링 후 (bbox용):', filtered.length, '제거됨:', rawNumbers.length - filtered.length);
 
-      if (filtered.length === 0) {
-        console.warn('[sgDetectFigureLabels] 필터링 후 라벨 없음 → 이미지 하단 70% 영역 사용');
-        sg.figureLabels = [];
-        sg.figureBbox = { x: 0, y: 0.3, w: 1, h: 0.7 };
-        noneEl.style.display = 'block';
+      // bbox 계산은 필터링된 라벨 기준
+      sg.figureBbox = sgCalculateFigureBbox(filtered);
+
+      // UI 표시는 전체 라벨
+      if (rawNumbers.length > 0) {
+        sgRenderFigurePanel(rawNumbers);
       } else {
-        console.log('[sgDetectFigureLabels] 파싱된 라벨 좌표 (0~1 정규화, 전체 이미지 기준):', filtered.map(n => ({
-          text: n.text,
-          x: n.x.toFixed(3),
-          y: n.y.toFixed(3),
-          w: n.w.toFixed(3),
-          h: n.h.toFixed(3)
-        })));
-        sg.figureLabels = filtered;
-        // 라벨 좌표 기반으로 figure bbox 계산 (AI 응답 대신)
-        sg.figureBbox = sgCalculateFigureBbox(filtered);
-        sgRenderFigurePanel(filtered);
+        noneEl.style.display = 'block';
       }
     } else {
       sg.figureLabels = [];
+      sg.figureLabelsForBbox = [];
       noneEl.style.display = 'block';
     }
   } catch(e) {
     console.error('[sgDetectFigureLabels] 오류:', e.message);
     sg.figureLabels = [];
+    sg.figureLabelsForBbox = [];
     noneEl.style.display = 'block';
   } finally {
     detecting.style.display = 'none';
@@ -6126,7 +6125,7 @@ function sgCalculateFigureBbox(numbers) {
     return { x: 0, y: 0.3, w: 1, h: 0.7 };
   }
 
-  // 라벨 1~2개: 불충분하므로 이미지 하단 65%를 그림으로 가정
+  // 라벨 1~2개: 불충분하므로 보수적 기본 영역 사용
   if (numbers.length <= 2) {
     console.warn('[sgCalculateFigureBbox] 라벨 부족(' + numbers.length + '개), 기본 영역 사용');
 
@@ -6134,12 +6133,13 @@ function sgCalculateFigureBbox(numbers) {
     const avgY = numbers.reduce((s, n) => s + n.y + n.h / 2, 0) / numbers.length;
     console.log('[sgCalculateFigureBbox] 라벨 평균 y:', avgY.toFixed(3));
 
-    // 평균 y 기준으로 상하 확장
+    // 평균 y 기준으로 상하 확장 (지문 영역 y<0.2 확실히 제외)
+    const y = Math.max(0.25, avgY - 0.25);
     return {
       x: 0,
-      y: Math.max(0.15, avgY - 0.35),
+      y: y,
       w: 1,
-      h: Math.min(0.85, 0.7)
+      h: Math.min(0.75, 1 - y)
     };
   }
 
@@ -7041,7 +7041,10 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
       // 1. 인페인팅: 원본 이미지에서 라벨 텍스트 제거
       document.getElementById('sg-loading-text').textContent = '도형 라벨 제거 중 (인페인팅)...';
       console.log('[sgGenerate] 인페인팅 시작, 감지된 라벨:', sg.figureLabels?.length || 0);
-      const inpaintedImage = await sgInpaintLabels(input.data, input.mediaType, sg.figureLabels || []);
+      // 필터링된 라벨만 인페인팅 (지문 숫자 제외)
+      const labelsForBbox = sg.figureLabelsForBbox || [];
+      console.log('[sgGenerate] 인페인팅 대상 라벨:', labelsForBbox.length, '(전체:', sg.figureLabels?.length || 0, ')');
+      const inpaintedImage = await sgInpaintLabels(input.data, input.mediaType, labelsForBbox);
       const useInpainted = inpaintedImage !== input.data;
       console.log('[sgGenerate] 인페인팅 결과:', useInpainted ? '성공 (새 이미지)' : '원본 유지');
 
@@ -7059,9 +7062,9 @@ figure_commands가 있으면 GeoGebra로 렌더링됩니다. graph 필드나 fig
           return null; // figureSvgs가 null이면 sgRenderResults에서 figureDataUrls 사용
         }
 
-        console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 오버레이 시도, labels=${sg.figureLabels?.length || 0}, changes=${changes.length}, figureBbox=${sg.figureBbox ? 'yes' : 'no'}`);
-        // 인페인팅된 이미지 사용 (라벨이 제거된 깨끗한 도형)
-        const svg = await sgOverlayLabelsWithSVG(inpaintedImage, input.mediaType, sg.figureLabels || [], changes, sg.figureBbox);
+        console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 오버레이 시도, labelsForBbox=${labelsForBbox.length}, changes=${changes.length}, figureBbox=${sg.figureBbox ? 'yes' : 'no'}`);
+        // 인페인팅된 이미지 사용, 필터링된 라벨 위치에만 오버레이
+        const svg = await sgOverlayLabelsWithSVG(inpaintedImage, input.mediaType, labelsForBbox, changes, sg.figureBbox);
         if (svg) {
           console.log(`[sgGenerate] 문제 ${idx + 1}: SVG 생성 성공, 길이: ${svg.length}`);
           return svg;
