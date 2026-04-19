@@ -6058,19 +6058,6 @@ async function sgDetectFigureLabels() {
     const match = rawText.match(/\{[\s\S]*\}/);
     if (match) {
       const parsed = JSON.parse(match[0]);
-      // figure_bbox 파싱 및 저장
-      if (parsed.figure_bbox) {
-        sg.figureBbox = {
-          x: parseFloat(parsed.figure_bbox.x) || 0,
-          y: parseFloat(parsed.figure_bbox.y) || 0,
-          w: parseFloat(parsed.figure_bbox.w || parsed.figure_bbox.width) || 1,
-          h: parseFloat(parsed.figure_bbox.h || parsed.figure_bbox.height) || 1
-        };
-        console.log('[sgDetectFigureLabels] figure_bbox:', sg.figureBbox);
-      } else {
-        sg.figureBbox = null;
-        console.log('[sgDetectFigureLabels] figure_bbox 없음, 전체 이미지 사용');
-      }
       const nums = (parsed.numbers || []).map(n => ({
         text: n.text,
         x: parseFloat(n.x) || 0,
@@ -6086,6 +6073,8 @@ async function sgDetectFigureLabels() {
         h: n.h.toFixed(3)
       })));
       sg.figureLabels = nums;
+      // 라벨 좌표 기반으로 figure bbox 계산 (AI 응답 대신)
+      sg.figureBbox = sgCalculateFigureBbox(nums);
       sgRenderFigurePanel(nums);
     } else {
       sg.figureLabels = [];
@@ -6098,6 +6087,36 @@ async function sgDetectFigureLabels() {
   } finally {
     detecting.style.display = 'none';
   }
+}
+
+// 감지된 라벨 좌표로 figure bbox 계산
+function sgCalculateFigureBbox(numbers) {
+  if (!numbers || numbers.length === 0) {
+    console.log('[sgCalculateFigureBbox] 라벨 없음 → 전체 이미지');
+    return { x: 0, y: 0, w: 1, h: 1 };
+  }
+
+  // 모든 라벨의 min/max 좌표 계산
+  let minX = Infinity, minY = Infinity;
+  let maxX = -Infinity, maxY = -Infinity;
+
+  for (const num of numbers) {
+    minX = Math.min(minX, num.x);
+    minY = Math.min(minY, num.y);
+    maxX = Math.max(maxX, num.x + num.w);
+    maxY = Math.max(maxY, num.y + num.h);
+  }
+
+  // 여백 추가 (상하좌우 15%씩 확장)
+  const padding = 0.15;
+  const x = Math.max(0, minX - padding);
+  const y = Math.max(0, minY - padding);
+  const w = Math.min(1, maxX + padding) - x;
+  const h = Math.min(1, maxY + padding) - y;
+
+  const bbox = { x, y, w, h };
+  console.log('[sgCalculateFigureBbox] 라벨 기반 bbox:', bbox);
+  return bbox;
 }
 
 function sgRedetectLabels() {
