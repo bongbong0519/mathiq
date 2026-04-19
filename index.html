@@ -12047,6 +12047,84 @@ async function _claudeExtract(file, onProgress) {
 // ════════════════════════════════════════════════════════
 // Gemini 독립 추출 (이중 추출용)
 // ════════════════════════════════════════════════════════
+
+// Gemini JSON 파싱 강화 (코드펜스 제거, 불완전 JSON 복구)
+function _parseGeminiJson(text) {
+  if (!text) return [];
+
+  // 마크다운 코드펜스 제거
+  let cleaned = text
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
+
+  // JSON 배열 추출 시도
+  const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    cleaned = arrayMatch[0];
+  }
+
+  // 불완전 JSON 복구: 끝에 ] 없으면 추가
+  if (cleaned.startsWith('[') && !cleaned.endsWith(']')) {
+    // 마지막 완전한 객체 찾기
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (lastBrace > 0) {
+      cleaned = cleaned.slice(0, lastBrace + 1) + ']';
+      console.log('[Gemini JSON] 불완전 배열 복구 시도');
+    }
+  }
+
+  return _parseJsonArray(cleaned);
+}
+
+// Gemini API 호출 with 재시도
+async function _geminiCallWithRetry(parts, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-pro',
+          systemInstruction: { parts: [{ text: 'You are a JSON-only API. Output only raw JSON array. No markdown, no code blocks, no explanation. Start with [ and end with ].' }] },
+          contents: [{ role: 'user', parts }],
+          generationConfig: { maxOutputTokens: 8192, temperature: 0, responseMimeType: 'application/json' }
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+
+      // 파싱 시도
+      const qs = _parseGeminiJson(text);
+      if (qs.length > 0) {
+        return qs;
+      }
+
+      // 빈 결과인데 재시도 가능하면 재시도
+      if (attempt < maxRetries) {
+        console.warn(`[Gemini] 파싱 결과 비어있음, 재시도 ${attempt + 1}/${maxRetries}`);
+        await new Promise(r => setTimeout(r, 1000));
+        continue;
+      }
+
+      return [];
+    } catch (e) {
+      if (attempt < maxRetries) {
+        console.warn(`[Gemini] 오류 "${e.message}", 재시도 ${attempt + 1}/${maxRetries}`);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      throw e;
+    }
+  }
+  return [];
+}
+
 async function _geminiExtract(pageImages, onProgress) {
   const validImages = pageImages.filter(img => img !== null);
   if (validImages.length === 0) {
@@ -12086,29 +12164,11 @@ async function _geminiExtract(pageImages, onProgress) {
     if (onProgress) onProgress(start + 1, pageImages.length);
 
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gemini-2.5-pro',
-          systemInstruction: { parts: [{ text: 'You are a JSON-only API. Output only raw JSON array. No markdown, no explanation.' }] },
-          contents: [{ role: 'user', parts }],
-          generationConfig: { maxOutputTokens: 8192, temperature: 0, responseMimeType: 'application/json' }
-        })
-      });
-
-      if (!res.ok) {
-        console.error(`[Gemini 추출] 배치 ${batchNum} 오류:`, res.status);
-        continue;
-      }
-
-      const json = await res.json();
-      const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-      const qs = _parseJsonArray(text);
+      const qs = await _geminiCallWithRetry(parts, 2);
       allQuestions = allQuestions.concat(qs);
       console.log(`[Gemini 추출] 배치 ${batchNum} (페이지 ${start+1}~${end}): ${qs.length}개 문제`);
     } catch (e) {
-      console.warn(`[Gemini 추출] 배치 ${batchNum} 실패:`, e.message);
+      console.warn(`[Gemini 추출] 배치 ${batchNum} 최종 실패:`, e.message);
     }
 
     if (end >= pageImages.length) break;
@@ -12194,30 +12254,78 @@ async function _dualExtract(pageImages, onProgress) {
 // ════════════════════════════════════════════════════════
 // 결과 비교 및 병합
 // ════════════════════════════════════════════════════════
-function _normalizeText(text) {
-  return (text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+// 본문 비교용 정규화 (원본은 유지, 비교용만)
+function _normalizeForCompare(text) {
+  if (!text) return '';
+  return text
+    .replace(/\s+/g, ' ')           // 연속 공백 → 단일 공백
+    .replace(/\n/g, ' ')            // 줄바꿈 → 공백
+    .replace(/\\geq/g, '\\ge')      // LaTeX 동치 처리
+    .replace(/\\leq/g, '\\le')
+    .replace(/\\neq/g, '\\ne')
+    .replace(/\\cdot/g, '\\times')
+    .replace(/\$\s+/g, '$')         // $ 뒤 공백 제거
+    .replace(/\s+\$/g, '$')         // $ 앞 공백 제거
+    .replace(/\s*,\s*/g, ', ')      // 쉼표 주변 정규화
+    .trim()
+    .toLowerCase();
+}
+
+// 정답 비교용 정규화
+function _normalizeAnswer(ans) {
+  if (ans === null || ans === undefined) return null;
+  let s = String(ans).trim().toLowerCase();
+  // 원문자 → 숫자 변환
+  const circleMap = { '①': '1', '②': '2', '③': '3', '④': '4', '⑤': '5' };
+  for (const [k, v] of Object.entries(circleMap)) {
+    s = s.replace(new RegExp(k, 'g'), v);
+  }
+  // 숫자만 추출 (순수 숫자 답인 경우)
+  if (/^\d+$/.test(s.replace(/\s/g, ''))) {
+    s = s.replace(/\s/g, '');
+  }
+  return s || null;
+}
+
+// 선지 개수 추출
+function _countChoices(content) {
+  if (!content) return 0;
+  const matches = content.match(/[①②③④⑤]/g);
+  return matches ? matches.length : 0;
 }
 
 function _compareQuestions(q1, q2) {
-  const content1 = _normalizeText(q1?.content);
-  const content2 = _normalizeText(q2?.content);
-  const answer1 = _normalizeText(q1?.answer);
-  const answer2 = _normalizeText(q2?.answer);
+  const content1 = _normalizeForCompare(q1?.content);
+  const content2 = _normalizeForCompare(q2?.content);
+  const answer1 = _normalizeAnswer(q1?.answer);
+  const answer2 = _normalizeAnswer(q2?.answer);
 
-  // 본문 유사도 (간단한 방식: 앞 200자 비교)
-  const contentMatch = content1.slice(0, 200) === content2.slice(0, 200);
+  // 본문 유사도: 앞 300자 비교 (더 긴 범위)
+  const c1Short = content1.slice(0, 300);
+  const c2Short = content2.slice(0, 300);
+  const contentMatch = c1Short === c2Short;
 
-  // 정답 일치
-  const answerMatch = answer1 === answer2 || (!answer1 && !answer2);
+  // 정답 일치 (null 처리 포함)
+  const answerMatch = (answer1 === answer2) || (answer1 === null && answer2 === null);
 
   // 문제 유형 일치
   const typeMatch = q1?.question_type === q2?.question_type;
+
+  // 선지 개수 일치
+  const choices1 = _countChoices(q1?.content);
+  const choices2 = _countChoices(q2?.content);
+  const choicesMatch = choices1 === choices2;
+
+  // 자동 승인 조건: 본문 일치 + 정답 일치 + (선지 개수 일치 또는 둘 다 0)
+  const autoApprove = contentMatch && answerMatch && (choicesMatch || (choices1 === 0 && choices2 === 0));
 
   return {
     contentMatch,
     answerMatch,
     typeMatch,
-    fullMatch: contentMatch && answerMatch && typeMatch
+    choicesMatch,
+    fullMatch: autoApprove  // 자동 승인 조건으로 변경
   };
 }
 
@@ -13040,8 +13148,9 @@ async function extractFromFile() {
     step1Questions = mergeResult.questions;
     _dualExtractionResult = { claudeResult, geminiResult, mergeResult };
 
-    const { matched, mismatched, single } = mergeResult.summary;
-    _setStep(1, 'done', `${step1Questions.length}개 추출 (✅${matched} 일치, ⚠️${mismatched + single} 검수)`);
+    const { matched, mismatched, single, total } = mergeResult.summary;
+    const approvalRate = total > 0 ? Math.round((matched / total) * 100) : 0;
+    _setStep(1, 'done', `${total}개 추출 (✅${matched}개 자동승인 ${approvalRate}%, ⚠️${mismatched + single}개 검수)`);
 
     console.log('[이중 추출 완료]', mergeResult.summary);
 
@@ -13122,9 +13231,11 @@ async function extractFromFile() {
     // ════════════════════════════════════════════════════════
     const approvedByDual = _extractedQuestions.filter(q => q._validationStatus === 'approved').length;
     const needsReviewByDual = _extractedQuestions.filter(q => q._validationStatus === 'needs_review').length;
+    const totalQuestions = _extractedQuestions.length;
+    const finalApprovalRate = totalQuestions > 0 ? Math.round((approvedByDual / totalQuestions) * 100) : 0;
 
     if (approvedByDual > 0 || needsReviewByDual > 0) {
-      _setStep(4, 'done', `이중검증: ✅ ${approvedByDual}개 일치, ⚠️ ${needsReviewByDual}개 검수`);
+      _setStep(4, 'done', `이중검증: ✅${approvedByDual}개 자동승인(${finalApprovalRate}%), ⚠️${needsReviewByDual}개 검수`);
     } else {
       _setStep(4, 'skip', '검증 정보 없음');
     }
@@ -13144,8 +13255,9 @@ async function extractFromFile() {
     });
     const hasSubjects = Object.values(subjectCounts).some(c => c > 0);
 
-    // 요약 메시지 생성
-    let summaryMsg = `${_extractedQuestions.length}개 추출 완료`;
+    // 요약 메시지 생성 (승인률 포함)
+    const summaryApprovalRate = totalQuestions > 0 ? Math.round((approvedCount / totalQuestions) * 100) : 0;
+    let summaryMsg = `${totalQuestions}문제 중 ${approvedCount}개 자동승인(${summaryApprovalRate}%)`;
     if (hasSubjects) {
       const parts = [];
       if (subjectCounts.common > 0) parts.push(`공통 ${subjectCounts.common}`);
@@ -13154,7 +13266,9 @@ async function extractFromFile() {
       if (subjectCounts.geometry > 0) parts.push(`기하 ${subjectCounts.geometry}`);
       summaryMsg += ` (${parts.join(', ')})`;
     }
-    summaryMsg += ` | ✅ ${approvedCount}개 승인, ⚠️ ${reviewCount}개 검수`;
+    if (reviewCount > 0) {
+      summaryMsg += `, ${reviewCount}개 검수 대기`;
+    }
     showToast(summaryMsg, '✅');
   } catch(e) {
     showToast('추출 실패: ' + e.message, '❌');
