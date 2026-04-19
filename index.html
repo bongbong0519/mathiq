@@ -6010,26 +6010,30 @@ async function sgDetectFigureLabels() {
     return;
   }
 
-  const prompt = `당신은 수학 문제 이미지에서 도형 영역과 치수 데이터를 추출하는 전문 비전 AI입니다.
-제공된 이미지에서 아래의 지침을 엄격하게 따라 JSON 형식으로만 응답하세요. 다른 설명이나 마크다운 코드 블록은 절대 출력하지 마세요.
+  const prompt = `당신은 수학 문제 이미지에서 도형에 표시된 치수 라벨만 추출하는 전문 비전 AI입니다.
+JSON 형식으로만 응답하세요. 설명이나 마크다운은 절대 출력하지 마세요.
 
-[지침]
-1. figure_bbox: 원본 이미지에서 순수 그림(도형, 다이어그램) 영역만 포함하는 사각 영역입니다.
-   - 문제 번호, 지문 텍스트, 선택지는 제외
-   - 치수 라벨이 그림 주변에 있으면 함께 포함
-   - 0~1 정규화 비율 (전체 이미지 너비/높이 대비)
+[엄격한 규칙 - 반드시 준수]
+1. 반드시 도형(그림) 내부 또는 도형에 직접 붙어있는 치수 라벨만 추출하세요.
+2. 지문 텍스트 안에 있는 숫자는 절대 포함하지 마세요.
+   예: "가로의 길이가 3인 직사각형" → 여기서 3은 지문 안이므로 제외
+3. 문제 번호(예: 10번, 10.)는 절대 포함하지 마세요.
+4. 선택지의 숫자(①~⑤ 옆 답)는 절대 포함하지 마세요.
+5. 도형 안의 꼭짓점 이름(A, B, C, P, Q, R, S 등)은 숫자가 아니므로 제외하세요.
 
-2. numbers: figure_bbox 안에 있는 치수 라벨만 포함하세요.
-   - 지문이나 선택지에 있는 숫자는 절대 포함하지 마세요.
-   - 도형의 선분 길이나 크기를 명시적으로 나타내는 치수 라벨(숫자 및 수학 수식)만 추출
-   - 꼭짓점 알파벳(A, B, C, P, Q 등)은 제외
+[포함해야 하는 것]
+- 도형의 변 옆에 직접 표시된 길이 (예: 직사각형 변 옆의 '3')
+- 도형에 표시된 각도
+- 도형 내부에 적힌 치수
 
-3. 좌표계: 이미지의 전체 너비와 높이를 1.0으로 가정한 정규화된 좌표계
-   - x, y: 좌측 상단 모서리 좌표
-   - w, h: 너비와 높이
+[좌표계]
+- 이미지 전체 크기 대비 0~1 정규화 값
+- x, y: 좌측 상단 모서리 좌표
+- w, h: 너비와 높이
+- 각 라벨의 위치가 실제로 도형 영역 안에 있는지 재확인하세요.
 
 [출력 형식]
-{"figure_bbox":{"x":0.0,"y":0.0,"w":0.0,"h":0.0},"numbers":[{"text":"라벨 텍스트","x":0.0,"y":0.0,"w":0.0,"h":0.0}]}`;
+{"numbers":[{"text":"라벨텍스트","x":0.0,"y":0.0,"w":0.0,"h":0.0}]}`;
 
   try {
     const res = await fetch('/api/proxy', {
@@ -6101,6 +6105,10 @@ function sgCalculateFigureBbox(numbers) {
   let maxX = -Infinity, maxY = -Infinity;
 
   for (const num of numbers) {
+    // 상단 근접 라벨 경고 (지문 영역에 속할 가능성)
+    if (num.y < 0.1) {
+      console.warn(`[sgCalculateFigureBbox] 경고: 라벨 "${num.text}"이 상단(y=${num.y.toFixed(3)})에 있음 - 지문 숫자일 수 있음`);
+    }
     minX = Math.min(minX, num.x);
     minY = Math.min(minY, num.y);
     maxX = Math.max(maxX, num.x + num.w);
@@ -6116,6 +6124,15 @@ function sgCalculateFigureBbox(numbers) {
 
   const bbox = { x, y, w, h };
   console.log('[sgCalculateFigureBbox] 라벨 기반 bbox:', bbox);
+
+  // bbox가 너무 크면 경고 (지문 영역 포함 가능성)
+  if (h > 0.7) {
+    console.warn(`[sgCalculateFigureBbox] 경고: bbox 높이(${h.toFixed(2)})가 너무 큼 - 지문 영역이 포함됐을 수 있음`);
+  }
+  if (y < 0.05) {
+    console.warn(`[sgCalculateFigureBbox] 경고: bbox 상단(y=${y.toFixed(3)})이 이미지 최상단에 근접 - 지문 포함 가능성`);
+  }
+
   return bbox;
 }
 
