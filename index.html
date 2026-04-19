@@ -3820,6 +3820,7 @@
         </div>
       </div>
       <div class="tab-nav" style="margin-bottom:20px">
+        <button class="tab-btn"        id="aqTabNeeds_review" onclick="switchAqTab('needs_review')">🔍 AI 검수 대기 <span id="aqNeedsReviewBadge" style="display:none;background:#f0ad4e;color:#fff;border-radius:9px;font-size:11px;font-weight:700;padding:0 6px;margin-left:4px"></span></button>
         <button class="tab-btn active" id="aqTabPending"  onclick="switchAqTab('pending')">승인 대기 <span id="aqPendingBadge" style="display:none;background:var(--yellow);color:#fff;border-radius:9px;font-size:11px;font-weight:700;padding:0 6px;margin-left:4px"></span></button>
         <button class="tab-btn"        id="aqTabApproved" onclick="switchAqTab('approved')">승인됨</button>
         <button class="tab-btn"        id="aqTabRejected" onclick="switchAqTab('rejected')">거절됨</button>
@@ -12310,11 +12311,17 @@ function _initStepUI(statusEl) {
         <span style="color:var(--text2)">그림 설명 · 누락 보완</span>
         <span id="exStep2Detail" style="margin-left:auto;font-size:11.5px;color:var(--text3)">대기 중</span>
       </div>
-      <div id="exStep3" style="display:flex;align-items:center;gap:10px;font-size:13px;opacity:0.55">
+      <div id="exStep3" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px;opacity:0.55">
         <span id="exStep3Icon" style="font-size:15px;width:18px;text-align:center;color:var(--text3)">○</span>
         <span style="font-weight:700;color:var(--text)">확인</span>
         <span style="color:var(--text2)">그림 크롭 · Canvas 폴백 · 렌더링</span>
         <span id="exStep3Detail" style="margin-left:auto;font-size:11.5px;color:var(--text3)">대기 중</span>
+      </div>
+      <div id="exStep4" style="display:flex;align-items:center;gap:10px;font-size:13px;opacity:0.55">
+        <span id="exStep4Icon" style="font-size:15px;width:18px;text-align:center;color:var(--text3)">○</span>
+        <span style="font-weight:700;color:var(--text)">검증</span>
+        <span style="color:var(--text2)">AI 교차검증 · 답 확인</span>
+        <span id="exStep4Detail" style="margin-left:auto;font-size:11.5px;color:var(--text3)">대기 중</span>
       </div>
     </div>`;
 }
@@ -12425,6 +12432,93 @@ async function _extractAnswerSheet(file) {
 
 // 전역 변수: 답안지 정답 매핑
 let _answerSheetMap = null;
+
+// AI 교차검증 프롬프트
+const _VALIDATION_PROMPT = `당신은 수학 문제 추출 검증 전문가입니다.
+
+[작업]
+원본 문제지 이미지와 추출된 문제 목록을 비교하여 검증하세요.
+
+[검증 항목]
+1. 문제 내용이 원본과 일치하는가? (지문, 조건, 선택지)
+2. 수식이 정확하게 KaTeX로 변환되었는가?
+3. 정답이 맞는가? (직접 풀어서 확인)
+4. 누락된 문제가 있는가?
+
+[출력 형식 - JSON만 출력]
+{
+  "summary": {"total": 10, "passed": 8, "failed": 2},
+  "results": [
+    {"q_num": 1, "status": "pass", "issues": []},
+    {"q_num": 2, "status": "fail", "issues": ["정답 불일치: 추출=3, 정답=5", "선택지 ③번 수식 오류"]},
+    ...
+  ]
+}
+
+status: "pass" (일치) 또는 "fail" (불일치/오류)
+issues: 발견된 문제점 배열 (없으면 빈 배열)
+
+문제 목록:`;
+
+// AI 교차검증 함수
+async function _validateExtraction(questions, pageImages) {
+  const apiKey = getApiKey();
+  if (!apiKey) return { skipped: true, reason: 'API 키 없음' };
+  if (!questions || questions.length === 0) return { skipped: true, reason: '검증할 문제 없음' };
+
+  try {
+    // 원본 이미지와 추출 결과를 함께 전송
+    const parts = [];
+    if (pageImages && pageImages.length > 0) {
+      pageImages.forEach((b64, i) => {
+        if (pageImages.length > 1) parts.push({ type: 'text', text: `=== 페이지 ${i + 1} ===` });
+        parts.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
+      });
+    }
+
+    // 추출된 문제 목록 (간소화)
+    const qList = questions.map((q, i) => ({
+      num: i + 1,
+      content: (q.content || '').slice(0, 500),
+      answer: q.answer,
+      type: q.question_type
+    }));
+    parts.push({ type: 'text', text: _VALIDATION_PROMPT + '\n\n' + JSON.stringify(qList, null, 2) });
+
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: parts }]
+      })
+    });
+
+    if (!res.ok) {
+      console.error('[검증] HTTP 오류:', res.status);
+      return { skipped: true, reason: 'API 오류' };
+    }
+
+    const json = await res.json();
+    const text = (json.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+    console.log('[검증] 응답:', text.slice(0, 500));
+
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      console.log('[검증] 파싱 결과:', parsed.summary);
+      return { skipped: false, result: parsed };
+    }
+    return { skipped: true, reason: '파싱 실패' };
+  } catch (e) {
+    console.error('[검증] 오류:', e);
+    return { skipped: true, reason: e.message };
+  }
+}
+
+// 전역 변수: 검증 결과
+let _validationResult = null;
 
 async function extractFromFile() {
   const file = document.getElementById('quFileInput')?.files[0];
@@ -12591,10 +12685,54 @@ async function extractFromFile() {
     }
 
     _setStep(3, 'done', `${_extractedQuestions.length}개 완료`);
+    await new Promise(r => setTimeout(r, 200));
+
+    // ════════════════════════════════════════════════════════
+    // STEP 4: AI 교차검증 (추출 결과 + 원본 이미지 비교)
+    // ════════════════════════════════════════════════════════
+    _setStep(4, 'running', '검증 중...');
+    _validationResult = null;
+
+    try {
+      const { skipped, reason, result } = await _validateExtraction(_extractedQuestions, _extractPageImages);
+      if (skipped) {
+        _setStep(4, 'skip', reason || '건너뜀');
+        // 검증 건너뛴 경우: 모두 needs_review로 설정
+        _extractedQuestions.forEach(q => { q._validationStatus = 'needs_review'; });
+      } else {
+        _validationResult = result;
+        const summary = result.summary || {};
+        const passed = summary.passed || 0;
+        const failed = summary.failed || 0;
+
+        // 각 문제에 검증 상태 적용
+        (result.results || []).forEach(r => {
+          const idx = r.q_num - 1;
+          if (_extractedQuestions[idx]) {
+            _extractedQuestions[idx]._validationStatus = r.status === 'pass' ? 'approved' : 'needs_review';
+            _extractedQuestions[idx]._validationIssues = r.issues || [];
+          }
+        });
+
+        // 검증 결과가 없는 문제는 needs_review
+        _extractedQuestions.forEach(q => {
+          if (!q._validationStatus) q._validationStatus = 'needs_review';
+        });
+
+        _setStep(4, 'done', `✅ ${passed}개 통과, ⚠️ ${failed}개 검수 필요`);
+      }
+    } catch (e4) {
+      console.warn('[검증] 실패:', e4);
+      _setStep(4, 'error', '검증 실패 — 수동 검토 필요');
+      _extractedQuestions.forEach(q => { q._validationStatus = 'needs_review'; });
+    }
+
     await new Promise(r => setTimeout(r, 400));
 
     renderExtractedQuestions(_extractedQuestions);
-    showToast(`${_extractedQuestions.length}개 문제 추출 완료`, '✅');
+    const approvedCount = _extractedQuestions.filter(q => q._validationStatus === 'approved').length;
+    const reviewCount = _extractedQuestions.filter(q => q._validationStatus === 'needs_review').length;
+    showToast(`${_extractedQuestions.length}개 추출 완료 (✅ ${approvedCount}개 승인, ⚠️ ${reviewCount}개 검수 대기)`, '✅');
   } catch(e) {
     showToast('추출 실패: ' + e.message, '❌');
     console.error('[extractFromFile]', e);
@@ -12617,7 +12755,10 @@ function renderExtractedQuestions(list) {
   listEl.innerHTML = list.map((q, i) => `
     <div class="card" style="margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <span style="width:22px;height:22px;border-radius:50%;background:${q._validationStatus === 'approved' ? 'var(--green)' : q._validationStatus === 'needs_review' ? '#f0ad4e' : 'var(--accent)'};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:4px;${
+          q._validationStatus === 'approved' ? 'background:#d4edda;color:#155724' : 'background:#fff3cd;color:#856404'
+        }">${q._validationStatus === 'approved' ? '✅ 검증됨' : '⚠️ 검수 필요'}</span>
         <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exType-${i}">
           <option value="단답형" ${q.question_type==='단답형'?'selected':''}>단답형</option>
           <option value="객관식" ${q.question_type==='객관식'?'selected':''}>객관식</option>
@@ -12628,6 +12769,9 @@ function renderExtractedQuestions(list) {
         </select>
         <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px" onclick="exToggleEdit(${i})">✏️ 편집</button>
       </div>
+      ${q._validationIssues?.length ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:#856404">
+        <strong>검증 문제:</strong> ${q._validationIssues.join(' / ')}
+      </div>` : ''}
       <!-- KaTeX 렌더링 미리보기 -->
       <div id="exPreview-${i}" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;background:var(--bg2);color:var(--text);white-space:pre-wrap;line-height:1.9;min-height:40px"></div>
       <!-- 편집용 영역 (기본 숨김) -->
@@ -12827,23 +12971,53 @@ function exShowPageImages() {
 async function saveExtractedQuestions() {
   if (!sbClient || !currentUser) { showToast('로그인이 필요합니다', '🔒'); return; }
   if (!_extractedQuestions.length) { showToast('추출된 문제가 없습니다', '⚠️'); return; }
-  const rows = _extractedQuestions.map((_, i) => ({
-    content:       document.getElementById('exContent-' + i)?.value?.trim() || '',
-    answer:        document.getElementById('exAnswer-' + i)?.value?.trim() || null,
-    question_type: document.getElementById('exType-' + i)?.value || '단답형',
-    difficulty:  parseInt(document.getElementById('exDiff-' + i)?.value) || 3,
-    status:      'pending',
-    uploader_id: currentUser.id
-  })).filter(r => r.content);
+
+  const rows = _extractedQuestions.map((q, i) => {
+    const validationStatus = q._validationStatus || 'needs_review';
+    const validationNotes = {
+      issues: q._validationIssues || [],
+      answerSource: q._answerSource || 'ai',
+      validatedAt: new Date().toISOString()
+    };
+
+    return {
+      content:       document.getElementById('exContent-' + i)?.value?.trim() || '',
+      answer:        document.getElementById('exAnswer-' + i)?.value?.trim() || null,
+      question_type: document.getElementById('exType-' + i)?.value || '단답형',
+      difficulty:    parseInt(document.getElementById('exDiff-' + i)?.value) || 3,
+      // 검증 통과된 문제는 approved, 아니면 needs_review
+      status:        validationStatus === 'approved' ? 'approved' : 'needs_review',
+      validation_status: validationStatus,
+      validation_notes: validationNotes,
+      extracted_source: q._answerSource || 'ai',
+      uploader_id:   currentUser.id
+    };
+  }).filter(r => r.content);
+
   const { error } = await sbClient.from('questions').insert(rows);
   if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
-  showToast(`${rows.length}개 문제가 등록되었습니다. 운영자 검토 후 공개됩니다`, '✅');
+
+  const approvedCount = rows.filter(r => r.status === 'approved').length;
+  const reviewCount = rows.filter(r => r.status === 'needs_review').length;
+
+  if (approvedCount > 0 && reviewCount > 0) {
+    showToast(`✅ ${approvedCount}개 자동 승인, ⚠️ ${reviewCount}개 검수 대기`, '✅');
+  } else if (approvedCount > 0) {
+    showToast(`${approvedCount}개 문제가 자동 승인되었습니다`, '✅');
+  } else {
+    showToast(`${reviewCount}개 문제가 검수 대기열에 추가되었습니다`, '⚠️');
+  }
+
   document.getElementById('quExtractResults').style.display = 'none';
   document.getElementById('quFileInput').value = '';
+  document.getElementById('quAnswerFileInput').value = '';
+  document.getElementById('quAnswerFileName').textContent = '선택 안됨';
   document.getElementById('quFileInfo').style.display = 'none';
   document.getElementById('quExtractBtn').disabled = true;
   _extractedQuestions = [];
   _extractPageImages  = [];
+  _answerSheetMap = null;
+  _validationResult = null;
   checkQbPendingBadge();
 }
 
@@ -12876,8 +13050,9 @@ async function loadAdminQuestionBankView() {
 
 function switchAqTab(tab) {
   _aqCurrentTab = tab;
-  ['pending','approved','rejected'].forEach(t => {
-    document.getElementById('aqTab' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.toggle('active', t === tab);
+  ['needs_review','pending','approved','rejected'].forEach(t => {
+    const tabId = t === 'needs_review' ? 'aqTabNeeds_review' : 'aqTab' + t.charAt(0).toUpperCase() + t.slice(1);
+    document.getElementById(tabId)?.classList.toggle('active', t === tab);
   });
   renderAdminQuestions(tab);
 }
@@ -12888,16 +13063,49 @@ async function renderAdminQuestions(status) {
   wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>';
   const { data, error } = await sbClient
     .from('questions')
-    .select('id,title,content,answer,solution,school_level,grade,semester,area,unit,sub_unit,question_type,difficulty,status,reject_reason,uploader_id,created_at,uploader:profiles!questions_uploader_id_fkey(name)')
+    .select('id,title,content,answer,solution,school_level,grade,semester,area,unit,sub_unit,question_type,difficulty,status,validation_status,validation_notes,extracted_source,reject_reason,uploader_id,created_at,uploader:profiles!questions_uploader_id_fkey(name)')
     .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(50);
   if (error || !data || data.length === 0) {
-    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-text">${status==='pending'?'승인 대기 중인':''}문제가 없습니다</div></div>`;
+    const emptyMsg = status === 'needs_review' ? 'AI 검수 대기 중인 문제가 없습니다' :
+                     status === 'pending' ? '승인 대기 중인 문제가 없습니다' : '문제가 없습니다';
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-text">${emptyMsg}</div></div>`;
     return;
   }
   wrap.innerHTML = data.map(q => aqRenderCard(q, status)).join('');
   if (window.renderMathInElement) renderMathInElement(wrap, { delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false });
+
+  // 키보드 단축키 (needs_review 탭에서만)
+  if (status === 'needs_review') {
+    document.addEventListener('keydown', aqKeyHandler);
+  } else {
+    document.removeEventListener('keydown', aqKeyHandler);
+  }
+}
+
+// 키보드 단축키 핸들러
+let _aqSelectedIdx = 0;
+function aqKeyHandler(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const cards = document.querySelectorAll('#aqListWrap .card');
+  if (!cards.length) return;
+
+  if (e.key === 'a' || e.key === 'A') {
+    // 승인
+    const qid = cards[_aqSelectedIdx]?.dataset.qid;
+    if (qid) approveQuestion(qid);
+  } else if (e.key === 'd' || e.key === 'D') {
+    // 폐기
+    const qid = cards[_aqSelectedIdx]?.dataset.qid;
+    if (qid) rejectQuestion(qid);
+  } else if (e.key === 'ArrowDown') {
+    _aqSelectedIdx = Math.min(_aqSelectedIdx + 1, cards.length - 1);
+    cards[_aqSelectedIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else if (e.key === 'ArrowUp') {
+    _aqSelectedIdx = Math.max(_aqSelectedIdx - 1, 0);
+    cards[_aqSelectedIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function aqRenderCard(q, status) {
@@ -12906,7 +13114,7 @@ function aqRenderCard(q, status) {
   const date = new Date(q.created_at).toLocaleDateString('ko-KR');
   const tagBadges = [q.school_level, q.grade ? q.grade+'학년' : '', q.semester ? q.semester+'학기' : '', q.area, q.unit].filter(Boolean)
     .map(t => `<span style="padding:2px 7px;border-radius:4px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)">${t}</span>`).join('');
-  return `<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
+  return `<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden" data-qid="${q.id}">
     <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.question_type}</span>
       ${tagBadges}
@@ -12915,8 +13123,9 @@ function aqRenderCard(q, status) {
     <div style="padding:14px 16px">
       ${q.title ? `<div style="font-size:13px;font-weight:800;margin-bottom:8px">${q.title}</div>` : ''}
       <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;padding:12px;background:var(--bg2);border-radius:var(--radius-sm)">${q.content}</div>
-      ${q.answer ? `<div style="margin-top:8px;font-size:13px;color:var(--green)">✅ 정답: ${q.answer}</div>` : ''}
+      ${q.answer ? `<div style="margin-top:8px;font-size:13px;color:var(--green)">✅ 정답: ${q.answer} <span style="font-size:11px;color:var(--text3)">(${q.extracted_source === 'sheet' ? '답안지' : 'AI 추론'})</span></div>` : ''}
       ${q.solution ? `<div style="margin-top:6px;font-size:12px;color:var(--text3)">📖 풀이: ${q.solution}</div>` : ''}
+      ${q.validation_notes?.issues?.length ? `<div style="margin-top:8px;font-size:12px;color:#856404;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px"><strong>⚠️ AI 검증 문제:</strong><ul style="margin:4px 0 0 16px;padding:0">${q.validation_notes.issues.map(i => `<li>${i}</li>`).join('')}</ul></div>` : ''}
       ${q.reject_reason ? `<div style="margin-top:8px;font-size:12px;color:var(--red);padding:8px 12px;background:rgba(252,87,87,0.07);border-radius:6px">거절 사유: ${q.reject_reason}</div>` : ''}
     </div>
     <!-- 태깅 수정 영역 -->
@@ -12943,7 +13152,12 @@ function aqRenderCard(q, status) {
         </select>
       </div>
     </div>
-    ${status === 'pending' ? `
+    ${status === 'needs_review' ? `
+    <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center" data-qid="${q.id}">
+      <button class="btn btn-primary btn-sm" onclick="approveQuestion('${q.id}')" title="[A] 승인">✅ 승인 (A)</button>
+      <button class="btn btn-sm" style="background:rgba(252,87,87,0.1);color:var(--red);border:1px solid rgba(252,87,87,0.3)" onclick="rejectQuestion('${q.id}')" title="[D] 폐기">❌ 폐기 (D)</button>
+      <span style="margin-left:auto;font-size:11px;color:var(--text3)">키보드: A=승인, D=폐기, ↑↓=이동</span>
+    </div>` : status === 'pending' ? `
     <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
       <button class="btn btn-primary btn-sm" onclick="approveQuestion('${q.id}')">✅ 승인</button>
       <button class="btn btn-sm" style="background:rgba(252,87,87,0.1);color:var(--red);border:1px solid rgba(252,87,87,0.3)" onclick="rejectQuestion('${q.id}')">❌ 거절</button>
