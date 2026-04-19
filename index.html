@@ -6062,24 +6062,49 @@ JSON 형식으로만 응답하세요. 설명이나 마크다운은 절대 출력
     const match = rawText.match(/\{[\s\S]*\}/);
     if (match) {
       const parsed = JSON.parse(match[0]);
-      const nums = (parsed.numbers || []).map(n => ({
+      const rawNumbers = (parsed.numbers || []).map(n => ({
         text: n.text,
         x: parseFloat(n.x) || 0,
         y: parseFloat(n.y) || 0,
         w: parseFloat(n.w || n.width) || 0.05,
         h: parseFloat(n.h || n.height) || 0.03
       }));
-      console.log('[sgDetectFigureLabels] 파싱된 라벨 좌표 (0~1 정규화, 전체 이미지 기준):', nums.map(n => ({
-        text: n.text,
-        x: n.x.toFixed(3),
-        y: n.y.toFixed(3),
-        w: n.w.toFixed(3),
-        h: n.h.toFixed(3)
-      })));
-      sg.figureLabels = nums;
-      // 라벨 좌표 기반으로 figure bbox 계산 (AI 응답 대신)
-      sg.figureBbox = sgCalculateFigureBbox(nums);
-      sgRenderFigurePanel(nums);
+      console.log('[sgDetectFigureLabels] 필터링 전:', rawNumbers.length, rawNumbers.map(n => n.text));
+
+      // 필터 1: 상단 15% 이내 라벨 제외 (지문 영역)
+      // 필터 2: 하단 5% 이내 라벨 제외 (선지 영역)
+      const filtered = rawNumbers.filter(num => {
+        if (num.y < 0.15) {
+          console.warn('[필터] 상단 제외:', num.text, `y=${num.y.toFixed(3)}`);
+          return false;
+        }
+        if (num.y > 0.95) {
+          console.warn('[필터] 하단 제외:', num.text, `y=${num.y.toFixed(3)}`);
+          return false;
+        }
+        return true;
+      });
+
+      console.log('[sgDetectFigureLabels] 필터링 후:', filtered.length, '제거됨:', rawNumbers.length - filtered.length);
+
+      if (filtered.length === 0) {
+        console.warn('[sgDetectFigureLabels] 필터링 후 라벨 없음 → 이미지 하단 70% 영역 사용');
+        sg.figureLabels = [];
+        sg.figureBbox = { x: 0, y: 0.3, w: 1, h: 0.7 };
+        noneEl.style.display = 'block';
+      } else {
+        console.log('[sgDetectFigureLabels] 파싱된 라벨 좌표 (0~1 정규화, 전체 이미지 기준):', filtered.map(n => ({
+          text: n.text,
+          x: n.x.toFixed(3),
+          y: n.y.toFixed(3),
+          w: n.w.toFixed(3),
+          h: n.h.toFixed(3)
+        })));
+        sg.figureLabels = filtered;
+        // 라벨 좌표 기반으로 figure bbox 계산 (AI 응답 대신)
+        sg.figureBbox = sgCalculateFigureBbox(filtered);
+        sgRenderFigurePanel(filtered);
+      }
     } else {
       sg.figureLabels = [];
       noneEl.style.display = 'block';
