@@ -1794,33 +1794,41 @@
       renderCards(); // 전체 리렌더보다 해당 카드만 업데이트하는 게 이상적이지만 일단 간단히
 
       try {
-        // 본문과 선택지 분리 시도
+        // 본문 (선택지 포함된 전체 텍스트)
         const fullText = p.question_text || '';
-        const parts = fullText.split(/\n\n+/);
-        const bodyText = parts[0] || fullText;
-        const choicesText = parts.length > 1 ? parts.slice(1).join('\n\n') : '';
-        const choicesArray = choicesText
-          ? choicesText.split(/\s{2,}|\n/).filter(s => s.trim().length > 0)
-          : (p.choices || []);
 
+        // 학년/학기 파싱 (예: "고2-1" → grade=2, semester=1)
+        let grade = null;
+        let semester = null;
+        const gsMatch = (p._gradeSemester || '').match(/고(\d)-(\d)/);
+        if (gsMatch) {
+          grade = parseInt(gsMatch[1]);
+          semester = parseInt(gsMatch[2]);
+        }
+
+        // 그림 설명이 있으면 본문 끝에 추가
+        let contentWithFigure = fullText.trim();
+        if (p.has_figure && p.figure_description) {
+          contentWithFigure += '\n\n[그림 설명] ' + p.figure_description;
+        }
+
+        // 실제 questions 테이블 스키마에 맞춘 payload
         const payload = {
-          question_number: p.q_num,
-          question_text: bodyText.trim(),
-          choices: choicesArray,
-          correct_answer: p._answer || null,
-          points: parseInt(p.points) || null,
-          subject_type: p._subjectType,
-          has_figure: !!p.has_figure,
-          figure_description: p.figure_description || null,
+          title: `#${p.q_num || '?'} ${p._subjectType || '객관식'} ${p.points || '?'}점`,
+          content: contentWithFigure,
+          answer: p._answer || null,
+          solution: p._solutionLatex || null,
           school_level: '고등학교',
-          grade_semester: p._gradeSemester || null,
-          domain: p._domain || null,
+          grade: grade,
+          semester: semester,
+          area: p._domain || null,
           unit: p._unit || null,
-          validation_status: 'approved',
-          extracted_source: 'manual_paste',
-          verified_at: new Date().toISOString(),
-          verified_by: state.currentUser.id,
-          // 해설 필드 (마이그레이션 후 사용 가능)
+          sub_unit: p._gradeSemester || null,  // 수능/모평 등 특수 시험 정보
+          question_type: p._subjectType || '객관식',
+          difficulty: parseInt(p.points) || 3,  // 배점을 난이도로 임시 매핑
+          status: 'approved',
+          uploader_id: state.currentUser.id,
+          // 해설 관련 새 컬럼 (마이그레이션 후 사용)
           solution_latex: p._solutionLatex || null,
           solution_source: p._solutionSource || null,
           ai_answer: p._aiAnswer || null,
@@ -1831,7 +1839,7 @@
         const { data, error } = await sb
           .from('questions')
           .insert([payload])
-          .select()
+          .select('id')
           .single();
 
         if (error) throw error;
@@ -1840,7 +1848,7 @@
         p._saving = false;
         state.approvedCount++;
         renderCards();
-        showToast(`#${p.q_num} 저장 완료`, 'success');
+        showToast(`#${p.q_num} 저장 완료 (ID: ${data.id})`, 'success');
 
       } catch (err) {
         console.error(err);
