@@ -11870,51 +11870,84 @@ function _fileToBase64(file) {
 // ════════════════════════════════════════════════════════
 // 1단계: Claude — 텍스트 추출 + KaTeX 변환 + [그림 참조]
 // ════════════════════════════════════════════════════════
-const _CLAUDE_EXTRACT_PROMPT = `당신은 수학 문제지에서 문제를 추출하는 전문가입니다.
+const _CLAUDE_EXTRACT_PROMPT = `당신은 한국 고등학교 수학 문제 추출 전문가입니다.
 
-[중요: 환각 방지]
-- 텍스트를 확실히 읽을 수 없으면 해당 문제는 추출하지 마세요.
-- 절대 추측하거나 지어내지 마세요. 불확실하면 건너뛰세요.
-- 의미 없는 글자 조합이나 깨진 텍스트는 추출 금지.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+★★★ 최우선 원칙: 환각 금지 ★★★
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. 페이지 내용이 흐릿하거나 정확히 읽을 수 없으면
+   해당 문제는 **반드시 건너뛰세요**.
+   추측하거나 비슷한 단어로 채우지 마세요.
 
-[제외 대상 — 추출하지 말 것]
-- "정답", "해설", "풀이", "답", "[참고]" 등이 있는 해설/답지 페이지
+2. 글자가 깨지거나 의미 없는 문자열이 보이면
+   그 문제는 추출하지 마세요.
+
+3. 확신이 없으면 추출하지 않는 것이 맞습니다.
+   빈 배열 []을 반환해도 됩니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+제외 대상 (절대 추출 금지)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- 해설/풀이 페이지: "정답", "해설", "풀이:", "[참고]", "답:" 포함
+- 답만 나열된 페이지: "① ② ③ ④ ⑤" 뒤에 숫자만 있는 것
 - 목차, 안내문, 주의사항 페이지
-- 이미 풀이가 적힌 문제 (학생 필기 등)
+- 학생 필기가 있는 페이지
 
-[추출 규칙]
-1. 문제만 추출 (해설/답지 제외)
-   - q_num: 문제 번호 (정수)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+추출 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+각 문제에 대해:
 
-2. content에 반드시 포함:
-   - 문제 지문 전체 (조건·단서 포함)
-   - [보기] 블록 전체
-   - 객관식 선택지 전부: ① ② ③ ④ ⑤
-   content는 이 문제만 보고 풀 수 있을 만큼 완전해야 한다.
+1. confidence (필수): 추출 확신도
+   - "high": 모든 텍스트가 명확히 보임
+   - "medium": 일부 불확실하지만 대체로 읽힘
+   - "low": 상당 부분 불확실 (이 경우 추출 자제)
 
-3. 수식은 KaTeX 형식으로 변환:
-   - 인라인: $수식$
-   - 독립: $$수식$$
+2. q_num: 문제 번호 (정수)
 
-4. 그림·도표·그래프: [그림 참조] 로만 표시
+3. content: 문제 본문
+   - 지문, [보기], 선택지 ①②③④⑤ 모두 포함
+   - 수식은 KaTeX: $인라인$ 또는 $$독립$$
+   - 그림/도표: [그림 참조]로만 표시
+   - 읽기 어려운 수식: [수식_불명]으로 표시
+   - 읽기 어려운 부분: [불명확]으로 표시
 
-5. 정답(answer): 문서에 표시된 경우만 기재, 없으면 null
+4. answer: 문서에 정답 표시 시 기재, 없으면 null
 
-6. question_type: "객관식" / "단답형" / "서술형"
-7. difficulty: 1~5
-8. _page: 그림 있는 문제는 페이지 번호, 없으면 null
+5. question_type:
+   - "객관식": 선지 5개 모두 명확
+   - "단답형": 빈칸/숫자 답
+   - "서술형": 풀이 요구
+   - "불확실": 선지가 불완전하거나 유형 판단 어려움
 
-9. subject_type (선택과목 구분):
-   [필수] "선택과목:", "확률과 통계", "미적분", "기하" 등 명시적 헤더가 있을 때만 태깅
-   - 헤더 "공통" 또는 1~22번: "common"
-   - 헤더 "확률과 통계" 아래: "prob_stat"
-   - 헤더 "미적분" 아래: "calculus"
-   - 헤더 "기하" 아래: "geometry"
-   - 헤더 없음 또는 불명확: null
-   주의: 단순히 기하 관련 내용이라고 "geometry"로 태깅하지 말 것. 명시적 헤더 필요.
+6. difficulty: 1~5 (판단 어려우면 3)
 
-반드시 JSON 배열만 출력:
-[{"q_num":1,"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5,"_page":null,"subject_type":null}]`;
+7. _page: 그림 있는 문제의 페이지 번호, 없으면 null
+
+8. subject_type: 명시적 헤더 필요
+   - "공통" 헤더 또는 1~22번: "common"
+   - "확률과 통계" 헤더: "prob_stat"
+   - "미적분" 헤더: "calculus"
+   - "기하" 헤더: "geometry"
+   - 헤더 없으면: null (내용으로 추측 금지)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+출력 형식 (JSON 배열만, 설명 없이)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[
+  {
+    "confidence": "high",
+    "q_num": 1,
+    "content": "함수 $f(x) = x^2 + 3x - 2$에 대하여...",
+    "answer": null,
+    "question_type": "객관식",
+    "difficulty": 3,
+    "_page": null,
+    "subject_type": null
+  }
+]
+
+읽을 수 없는 페이지면 빈 배열 반환: []`;
 
 // API 요청 with exponential backoff (429 rate limit 대응)
 async function _fetchWithRetry(url, options, maxRetries = 3) {
@@ -12334,39 +12367,73 @@ function _compareQuestions(q1, q2) {
   };
 }
 
-// 추출 품질 검증 (환각 감지)
+// 추출 품질 검증 (환각 감지 + confidence 체크)
 function _validateExtractionQuality(q) {
   const content = q?.content || '';
-  if (!content || content.length < 10) return { valid: false, issue: 'too_short' };
+  const confidence = q?.confidence || 'medium';
 
-  // 숫자 비율 체크 (수학 문제는 보통 숫자가 많음)
+  // confidence가 low면 자동 reject
+  if (confidence === 'low') {
+    return { valid: false, issue: 'low_confidence', confidence };
+  }
+
+  if (!content || content.length < 10) {
+    return { valid: false, issue: 'too_short', confidence };
+  }
+
+  // [불명확] 또는 [수식_불명] 다수 포함 시 reject
+  const unclearCount = (content.match(/\[불명확\]|\[수식_불명\]/g) || []).length;
+  if (unclearCount >= 3) {
+    return { valid: false, issue: 'too_many_unclear', confidence };
+  }
+
+  // 숫자 비율 체크
   const numbers = content.match(/\d/g) || [];
   const numberRatio = numbers.length / content.length;
 
   // 수학 기호 포함 여부
   const hasMathSymbols = /[\$\^\_\{\}\[\]]/.test(content) || /[①②③④⑤]/.test(content);
 
-  // 한글 비율 체크 (의미 없는 글자 조합 감지)
+  // 수학 용어 포함 여부
+  const mathTerms = ['함수', '방정식', '부등식', '적분', '미분', '극한', '확률', '수열',
+                     '벡터', '행렬', '그래프', '좌표', '삼각', '지수', '로그', '원', '직선'];
+  const hasMathTerms = mathTerms.some(term => content.includes(term));
+
+  // 한글 비율 체크
   const koreanChars = content.match(/[가-힣]/g) || [];
   const koreanRatio = koreanChars.length / content.length;
 
   // 반복 패턴 감지 (환각 특징)
-  const words = content.split(/\s+/);
+  const words = content.split(/\s+/).filter(w => w.length > 1);
   const uniqueWords = new Set(words);
   const repetitionRatio = words.length > 5 ? uniqueWords.size / words.length : 1;
 
-  // 품질 판정
-  if (content.length < 50 && !hasMathSymbols && numberRatio < 0.05) {
-    return { valid: false, issue: 'low_quality_extraction' };
-  }
-  if (repetitionRatio < 0.3 && words.length > 10) {
-    return { valid: false, issue: 'repetitive_content' };
-  }
-  if (koreanRatio > 0.8 && numberRatio < 0.02 && !hasMathSymbols) {
-    return { valid: false, issue: 'no_math_content' };
+  // 무의미한 음절 조합 감지 (환각 패턴)
+  const nonsensePattern = /[ㄱ-ㅎㅏ-ㅣ]{3,}|(.)\1{4,}/;
+  if (nonsensePattern.test(content)) {
+    return { valid: false, issue: 'nonsense_pattern', confidence };
   }
 
-  return { valid: true, issue: null };
+  // 품질 판정
+  const hasMathContent = hasMathSymbols || hasMathTerms || numberRatio > 0.03;
+
+  if (content.length < 50 && !hasMathContent) {
+    return { valid: false, issue: 'low_quality_extraction', confidence };
+  }
+  if (repetitionRatio < 0.3 && words.length > 10) {
+    return { valid: false, issue: 'repetitive_content', confidence };
+  }
+  if (koreanRatio > 0.85 && numberRatio < 0.01 && !hasMathContent) {
+    return { valid: false, issue: 'no_math_content', confidence };
+  }
+
+  // confidence에 따라 결과 설정
+  return {
+    valid: true,
+    issue: null,
+    confidence,
+    needsReview: confidence === 'medium'  // medium이면 검수 권장
+  };
 }
 
 function _mergeExtractionResults(claudeResult, geminiResult) {
@@ -12422,20 +12489,32 @@ function _mergeExtractionResults(claudeResult, geminiResult) {
       // 양쪽 모두 추출됨 → 비교
       const comparison = _compareQuestions(cq, gq);
 
+      // confidence 결합 (양쪽 모두 high일 때만 high)
+      const cConf = cq.confidence || 'medium';
+      const gConf = gq.confidence || 'medium';
+      const combinedConf = (cConf === 'high' && gConf === 'high') ? 'high' :
+                           (cConf === 'low' || gConf === 'low') ? 'low' : 'medium';
+
       if (comparison.fullMatch) {
         const chosen = (cq.content || '').length >= (gq.content || '').length ? cq : gq;
-        matchedCount++;
+        // confidence가 low면 approved 대신 needs_review
+        const status = combinedConf === 'low' ? 'needs_review' : 'approved';
+        if (status === 'approved') matchedCount++;
+        else mismatchCount++;
         return {
           ...chosen,
-          _validationStatus: 'approved',
+          confidence: combinedConf,
+          _validationStatus: status,
           _dualSource: 'both',
-          _matchType: 'full'
+          _matchType: 'full',
+          _validationIssues: combinedConf === 'low' ? ['confidence_low'] : []
         };
       } else {
         const primary = (cq.content || '').length >= (gq.content || '').length ? cq : gq;
         mismatchCount++;
         return {
           ...primary,
+          confidence: combinedConf,
           _validationStatus: 'needs_review',
           _dualSource: 'both',
           _matchType: 'partial',
@@ -12445,7 +12524,8 @@ function _mergeExtractionResults(claudeResult, geminiResult) {
           _validationIssues: [
             !comparison.contentMatch ? '본문 불일치' : null,
             !comparison.answerMatch ? `정답 불일치 (C:${cq.answer || '없음'} / G:${gq.answer || '없음'})` : null,
-            !comparison.typeMatch ? '유형 불일치' : null
+            !comparison.typeMatch ? '유형 불일치' : null,
+            combinedConf === 'low' ? 'confidence_low' : null
           ].filter(Boolean)
         };
       }
@@ -12453,15 +12533,18 @@ function _mergeExtractionResults(claudeResult, geminiResult) {
       // 한쪽만 추출됨
       const q = cq || gq;
       const quality = cq ? cqQuality : gqQuality;
+      const conf = q.confidence || 'medium';
       singleCount++;
       return {
         ...q,
+        confidence: conf,
         _validationStatus: 'needs_review',
         _dualSource: cq ? 'claude' : 'gemini',
         _matchType: 'single',
         _validationIssues: [
           `한쪽 AI만 추출 (${cq ? 'Claude' : 'Gemini'})`,
-          quality.issue ? quality.issue : null
+          quality.issue ? quality.issue : null,
+          conf === 'low' ? 'confidence_low' : null
         ].filter(Boolean)
       };
     }
@@ -13413,10 +13496,20 @@ function renderExtractedQuestions(list) {
         <span style="font-size:11px;padding:2px 8px;border-radius:4px;${
           q._validationStatus === 'approved' ? 'background:#d4edda;color:#155724' : 'background:#fff3cd;color:#856404'
         }">${q._validationStatus === 'approved' ? '✅ 검증됨' : '⚠️ 검수 필요'}</span>
+        ${q.confidence ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;${
+          q.confidence === 'high' ? 'background:#d1fae5;color:#065f46' :
+          q.confidence === 'medium' ? 'background:#fef3c7;color:#92400e' :
+          'background:#fee2e2;color:#991b1b'
+        }" title="AI 추출 확신도">${
+          q.confidence === 'high' ? '✓ high' :
+          q.confidence === 'medium' ? '△ medium' :
+          '✗ low'
+        }</span>` : ''}
         <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exType-${i}">
           <option value="단답형" ${q.question_type==='단답형'?'selected':''}>단답형</option>
           <option value="객관식" ${q.question_type==='객관식'?'selected':''}>객관식</option>
           <option value="서술형" ${q.question_type==='서술형'?'selected':''}>서술형</option>
+          <option value="불확실" ${q.question_type==='불확실'?'selected':''}>불확실</option>
         </select>
         <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)" id="exDiff-${i}">
           ${[1,2,3,4,5].map(d => `<option value="${d}" ${q.difficulty==d?'selected':''}>${'★'.repeat(d)} ${QB_DIFF_LABEL[d]}</option>`).join('')}
