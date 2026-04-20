@@ -7446,17 +7446,17 @@ async function loadStudents() {
     students.forEach((s, i) => {
       const color = colors[i % colors.length];
       html += `<div class="student-card">
-        <div class="student-card-header">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
           <div class="student-ava" style="background:${color}">${s.name[0]}</div>
-          <div style="flex:1;min-width:0;overflow:hidden">
+          <div style="flex:1;min-width:0">
             <div class="student-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-            <div class="student-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.grade}학년 ${s.class_name || ''}</div>
+            <div class="student-meta">${s.grade}학년 ${s.class_name || ''}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-  <button onclick="openAssignExamModal('${s.id}','${s.name}')" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📝 시험배정</button>
-  <button onclick="openStudentReport('${s.id}')" style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);color:var(--green);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📊 리포트</button>
-  <button onclick="deleteStudent('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;white-space:nowrap" title="삭제">🗑</button>
-</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="openAssignExamModal('${s.id}','${s.name}')" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📝 시험배정</button>
+          <button onclick="openStudentReport('${s.id}')" style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);color:var(--green);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📊 리포트</button>
+          <button onclick="deleteStudent('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;margin-left:auto" title="삭제">🗑</button>
         </div>
       </div>`;
     });
