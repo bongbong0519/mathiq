@@ -3233,11 +3233,14 @@
             </select>
           </div>
           <div>
-            <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">지역</label>
-            <input id="ssFilterRegion" class="form-input" placeholder="예) 서울 강남" style="width:150px;padding:7px 10px;font-size:13px">
+            <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px">지역 (광역)</label>
+            <select id="ssFilterProvince" class="form-input" style="width:140px;padding:7px 10px;font-size:13px">
+              <option value="">전체 지역</option>
+              ${REGION_PROVINCES.map(p=>`<option>${p}</option>`).join('')}
+            </select>
           </div>
           <button class="btn btn-primary btn-sm" onclick="loadStudentSearch()">검색</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ssFilterSubject').value='';document.getElementById('ssFilterRegion').value='';loadStudentSearch()">초기화</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ssFilterSubject').value='';document.getElementById('ssFilterProvince').value='';loadStudentSearch()">초기화</button>
         </div>
       </div>
       <div id="student-search-wrap">
@@ -10063,12 +10066,13 @@ async function loadStudentSearch() {
   if (!wrap) return;
   wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
 
-  const subject = document.getElementById('ssFilterSubject')?.value || '';
-  const region  = document.getElementById('ssFilterRegion')?.value?.trim() || '';
+  const subject  = document.getElementById('ssFilterSubject')?.value || '';
+  const province = document.getElementById('ssFilterProvince')?.value || '';
 
   let q = sbClient.from('tutee_profiles').select('*').eq('is_active', true);
-  if (subject) q = q.eq('subject', subject);
-  if (region)  q = q.ilike('region', `%${region}%`);
+  // 배열 필터링 (Step 1에서 TEXT[] 로 변환됨)
+  if (subject) q = q.contains('subject', [subject]);
+  if (province && REGION_MAP[province]) q = q.overlaps('region', REGION_MAP[province]);
   q = q.order('created_at', { ascending: false });
 
   const { data, error } = await q;
@@ -10079,20 +10083,16 @@ async function loadStudentSearch() {
   }
 
   const profileMap = await fetchProfileMap(data.map(t => t.user_id));
-  window._studentProfileMap = profileMap;
 
-  // 이미 열람한 연락처 목록 pre-fetch
-  let viewedSet = new Set();
-  if (currentUser) {
-    const { data: views } = await sbClient.from('tutor_contact_views').select('tutee_id').eq('tutor_id', currentUser.id);
-    (views || []).forEach(v => viewedSet.add(v.tutee_id));
-  }
-  window._viewedTuteeSet = viewedSet;
+  // 배열 포맷 헬퍼
+  const fmtArr = arr => Array.isArray(arr) ? arr.join(', ') : (arr || '—');
 
   wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">` +
     data.map(t => {
       const p = profileMap[t.user_id] || {};
-      const isViewed = viewedSet.has(t.id);
+      const subjectArr = Array.isArray(t.subject) ? t.subject : (t.subject ? [t.subject] : []);
+      const regionArr = Array.isArray(t.region) ? t.region : (t.region ? [t.region] : []);
+
       return `
       <div class="card" style="cursor:default">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -10103,16 +10103,14 @@ async function loadStudentSearch() {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-          <span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${t.subject || '—'}</span>
-          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${t.region || '지역 미기재'}</span>
+          ${subjectArr.map(s => `<span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${s}</span>`).join('') || '<span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text3)">—</span>'}
+          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${regionArr.join(', ') || '지역 미기재'}</span>
           <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${TEACH_MODE_KO[t.teaching_mode] || '—'}</span>
         </div>
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">희망 시급 <span style="color:var(--accent)">${t.desired_rate ? t.desired_rate.toLocaleString() + '원' : '협의'}</span></div>
         ${t.intro ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">${t.intro}</div>` : ''}
-        <div id="sc-${t.id}" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-          ${isViewed
-            ? `<div style="font-size:12px;color:var(--accent);font-weight:600">📧 ${p.email || '—'}</div>`
-            : `<button class="btn btn-ghost btn-sm" style="font-size:12px;width:100%" onclick="openStudentContact('${t.id}','${t.user_id}')">📧 연락처 보기 <span style="color:var(--accent);font-weight:700">(-500P)</span></button>`}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);text-align:center">
+          학부모/학생이 매칭을 신청하면 연락처가 공개됩니다
         </div>
       </div>`;
     }).join('') + '</div>';
@@ -10343,17 +10341,40 @@ async function loadTuteeRegister() {
     toggleBtn.className   = p.is_active !== false ? 'btn btn-green btn-sm' : 'btn btn-ghost btn-sm';
   }
 
+  // 배열 형태로 변환 (Step 1 마이그레이션 후 TEXT[] 타입)
+  const savedSubjects = Array.isArray(p.subject) ? p.subject : (p.subject ? [p.subject] : []);
+  const savedRegions  = Array.isArray(p.region)  ? p.region  : (p.region  ? [p.region]  : []);
+  const savedProvince = savedRegions.length > 0 ? (DISTRICT_TO_PROVINCE[savedRegions[0]] || '') : '';
+
   wrap.innerHTML = `
     <div style="display:grid;gap:16px">
       <div class="form-group">
-        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">원하는 과목 <span style="color:var(--red)">*</span></label>
-        <select id="tr-subject" class="form-input" style="width:100%">
-          ${SUBJECT_LIST.map(s => `<option ${p.subject === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:8px">원하는 과목 <span style="color:var(--red)">*</span> <span style="font-size:11px;font-weight:400;color:var(--text3)">(복수 선택 가능)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          ${SUBJECT_LIST.map(s => {
+            const checked = savedSubjects.includes(s);
+            return `<label style="display:inline-flex;align-items:center;cursor:pointer;padding:5px 12px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid ${checked?'var(--accent)':'var(--border)'};background:${checked?'var(--accent)':'transparent'};color:${checked?'#fff':'var(--text2)'};transition:all 0.12s">
+              <input type="checkbox" name="tr-subjects" value="${s}" ${checked?'checked':''} style="display:none" onchange="const l=this.closest('label');l.style.background=this.checked?'var(--accent)':'transparent';l.style.color=this.checked?'#fff':'var(--text2)';l.style.borderColor=this.checked?'var(--accent)':'var(--border)'"> ${s}
+            </label>`;
+          }).join('')}
+        </div>
       </div>
       <div class="form-group">
-        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">지역 <span style="color:var(--red)">*</span></label>
-        <input id="tr-region" class="form-input" style="width:100%" placeholder="예) 서울 강남구" value="${p.region || ''}">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:8px">지역 <span style="color:var(--red)">*</span> <span style="font-size:11px;font-weight:400;color:var(--text3)">(구/군 복수 선택 가능)</span></label>
+        <select id="tr-province" class="form-input" style="width:100%;margin-bottom:10px" onchange="onTrProvinceChange()">
+          <option value="">광역시/도 선택</option>
+          ${REGION_PROVINCES.map(prov => `<option value="${prov}" ${prov===savedProvince?'selected':''}>${prov}</option>`).join('')}
+        </select>
+        <div id="tr-districts-wrap" style="display:flex;flex-wrap:wrap;gap:6px;padding:12px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border);min-height:48px">
+          ${savedProvince && REGION_MAP[savedProvince]
+            ? REGION_MAP[savedProvince].map(d => {
+                const checked = savedRegions.includes(d);
+                return `<label style="display:inline-flex;align-items:center;cursor:pointer;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid ${checked?'var(--accent)':'var(--border)'};background:${checked?'var(--accent)':'transparent'};color:${checked?'#fff':'var(--text2)'}">
+                  <input type="checkbox" name="tr-regions" value="${d}" ${checked?'checked':''} style="display:none" onchange="const l=this.closest('label');l.style.background=this.checked?'var(--accent)':'transparent';l.style.color=this.checked?'#fff':'var(--text2)';l.style.borderColor=this.checked?'var(--accent)':'var(--border)'"> ${d}
+                </label>`;
+              }).join('')
+            : '<span style="font-size:12px;color:var(--text3)">광역시/도를 먼저 선택해주세요</span>'}
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">희망 시급 (원)</label>
@@ -10379,20 +10400,49 @@ async function loadTuteeRegister() {
     </div>`;
 }
 
+function onTrProvinceChange() {
+  const province = document.getElementById('tr-province')?.value;
+  const wrap = document.getElementById('tr-districts-wrap');
+  if (!wrap) return;
+  if (!province || !REGION_MAP[province]) {
+    wrap.innerHTML = '<span style="font-size:12px;color:var(--text3)">광역시/도를 먼저 선택해주세요</span>';
+    return;
+  }
+  wrap.innerHTML = REGION_MAP[province].map(d => `
+    <label style="display:inline-flex;align-items:center;cursor:pointer;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:transparent;color:var(--text2);transition:all 0.12s">
+      <input type="checkbox" name="tr-regions" value="${d}" style="display:none" onchange="const l=this.closest('label');l.style.background=this.checked?'var(--accent)':'transparent';l.style.color=this.checked?'#fff':'var(--text2)';l.style.borderColor=this.checked?'var(--accent)':'var(--border)'"> ${d}
+    </label>`).join('');
+}
+
 async function saveTuteeProfile() {
   if (!sbClient || !currentUser) return;
-  const subject = document.getElementById('tr-subject')?.value?.trim();
-  const region  = document.getElementById('tr-region')?.value?.trim();
+
+  // 복수 선택 값 수집
+  const subjectCheckboxes = document.querySelectorAll('input[name="tr-subjects"]:checked');
+  const regionCheckboxes  = document.querySelectorAll('input[name="tr-regions"]:checked');
+  const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+  const regions  = Array.from(regionCheckboxes).map(cb => cb.value);
+
   const rate    = parseInt(document.getElementById('tr-rate')?.value || '0', 10);
   const grade   = document.getElementById('tr-grade')?.value?.trim();
   const mode    = document.getElementById('tr-mode')?.value;
   const intro   = document.getElementById('tr-intro')?.value?.trim();
 
-  if (!subject || !region) { showToast('과목과 지역은 필수입니다', '⚠️'); return; }
+  if (!subjects.length || !regions.length) {
+    showToast('과목과 지역은 최소 1개 이상 선택해주세요', '⚠️');
+    return;
+  }
 
-  const payload = { user_id: currentUser.id, subject, region,
-    desired_rate: rate || null, grade: grade || null,
-    teaching_mode: mode, intro: intro || null, updated_at: new Date().toISOString() };
+  const payload = {
+    user_id: currentUser.id,
+    subject: subjects,  // 배열
+    region: regions,    // 배열
+    desired_rate: rate || null,
+    grade: grade || null,
+    teaching_mode: mode,
+    intro: intro || null,
+    updated_at: new Date().toISOString()
+  };
 
   const { error } = await sbClient.from('tutee_profiles').upsert(payload, { onConflict: 'user_id' });
   if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
@@ -10773,17 +10823,20 @@ async function submitMatchRequest() {
   }
 
   try {
-    // 중복 신청 체크
+    // 중복 신청 체크 (pending + accepted 상태 모두 확인)
     const { data: existing } = await sbClient
       .from('tutor_match_requests')
-      .select('id')
+      .select('id, status')
       .eq('requester_id', currentUser.id)
       .eq('tutor_id', tutorId)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'accepted'])
       .maybeSingle();
 
     if (existing) {
-      showToast('이미 신청한 선생님입니다. 답변을 기다려주세요.', '⚠️');
+      const msg = existing.status === 'pending'
+        ? '이미 신청한 선생님입니다. 답변을 기다려주세요.'
+        : '이미 매칭된 선생님입니다.';
+      showToast(msg, '⚠️');
       return;
     }
 
