@@ -831,6 +831,11 @@ function renderReport(student, sessions, examSession, examQuestions, examData, n
   document.getElementById('report-date').textContent =
     `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 기준`;
 
+  // PDF 파일명용 document.title 설정
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const safeName = (student.name || '학생').replace(/\s+/g, '_');
+  document.title = `${safeName}_학생성적리포트_${dateStr}`;
+
   // 기본 정보
   document.getElementById('info-name').textContent = student.name || '-';
   document.getElementById('info-school').textContent = student.school || '-';
