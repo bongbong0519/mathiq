@@ -10894,7 +10894,7 @@ const SMS_SECTION_TEMPLATES = {
     icon: '📊',
     title: '성적 통보',
     content: `- 시험: {시험이름}
-- 점수: {점수}점
+- 점수: {점수표시}
 - 정답: {정답수}/{총문제수}`
   },
   attendance: {
@@ -11228,23 +11228,31 @@ function buildSmsContent(student) {
       if (!exam) {
         sectionContent = sectionContent
           .replace(/\{시험이름\}/g, '(시험 선택 필요)')
-          .replace(/\{점수\}/g, '-')
+          .replace(/\{점수표시\}/g, '-')
           .replace(/\{정답수\}/g, '-')
           .replace(/\{총문제수\}/g, '-');
       } else if (!session) {
+        // 미응시: "점" 붙이지 않음
         sectionContent = sectionContent
           .replace(/\{시험이름\}/g, exam.title)
-          .replace(/\{점수\}/g, '응시 기록 없음')
+          .replace(/\{점수표시\}/g, '응시 기록 없음')
           .replace(/\{정답수\}/g, '-')
           .replace(/\{총문제수\}/g, '-');
       } else {
+        // 응시함: 점수와 정답 수 계산
         const answers = session.answers || {};
-        const totalQ = Object.keys(answers).length || '-';
+        const totalQ = Object.keys(answers).length;
+        const score = session.score;
+        // 정답 수 계산: 점수가 100점 만점이고 문제당 동일 배점 가정
+        let correctCount = '-';
+        if (score != null && totalQ > 0) {
+          correctCount = Math.round(score * totalQ / 100);
+        }
         sectionContent = sectionContent
           .replace(/\{시험이름\}/g, exam.title)
-          .replace(/\{점수\}/g, session.score != null ? session.score : '-')
-          .replace(/\{정답수\}/g, '-')
-          .replace(/\{총문제수\}/g, totalQ);
+          .replace(/\{점수표시\}/g, score != null ? `${score}점` : '-')
+          .replace(/\{정답수\}/g, correctCount)
+          .replace(/\{총문제수\}/g, totalQ || '-');
       }
     } else if (type === 'attendance') {
       sectionContent = sectionContent
