@@ -11872,44 +11872,49 @@ function _fileToBase64(file) {
 // ════════════════════════════════════════════════════════
 const _CLAUDE_EXTRACT_PROMPT = `당신은 수학 문제지에서 문제를 추출하는 전문가입니다.
 
+[중요: 환각 방지]
+- 텍스트를 확실히 읽을 수 없으면 해당 문제는 추출하지 마세요.
+- 절대 추측하거나 지어내지 마세요. 불확실하면 건너뛰세요.
+- 의미 없는 글자 조합이나 깨진 텍스트는 추출 금지.
+
+[제외 대상 — 추출하지 말 것]
+- "정답", "해설", "풀이", "답", "[참고]" 등이 있는 해설/답지 페이지
+- 목차, 안내문, 주의사항 페이지
+- 이미 풀이가 적힌 문제 (학생 필기 등)
+
 [추출 규칙]
-1. 모든 문제를 빠짐없이 번호 순서대로 추출한다.
-   - q_num: 문제 번호 (정수, 예: 1, 2, ... 22, 23, ...)
+1. 문제만 추출 (해설/답지 제외)
+   - q_num: 문제 번호 (정수)
 
 2. content에 반드시 포함:
-   - 문제 지문 전체 (조건·단서 포함, 절대 생략 금지)
-   - [보기] 블록 전체 (ㄱ. 내용 / ㄴ. 내용 / ㄷ. 내용 모두)
-   - 객관식 선택지 전부: ① 내용  ② 내용  ③ 내용  ④ 내용  ⑤ 내용
+   - 문제 지문 전체 (조건·단서 포함)
+   - [보기] 블록 전체
+   - 객관식 선택지 전부: ① ② ③ ④ ⑤
    content는 이 문제만 보고 풀 수 있을 만큼 완전해야 한다.
 
 3. 수식은 KaTeX 형식으로 변환:
-   - 인라인: $수식$ (예: $x^2 + 3x - 2 = 0$)
-   - 독립/분수/적분 등: $$수식$$ (예: $$\\frac{a}{b} = \\sqrt{c}$$)
-   - 그리스 문자·기호: $\\alpha$, $\\pi$, $\\geq$, $\\in$ 등
+   - 인라인: $수식$
+   - 독립: $$수식$$
 
-4. 그림·도표·그래프·좌표계가 있는 위치:
-   반드시 [그림 참조] 로만 표시한다. 절대 직접 설명하지 않는다. (Gemini가 원본 이미지를 보고 담당)
+4. 그림·도표·그래프: [그림 참조] 로만 표시
 
-5. 정답(answer):
-   - 문서에 정답이 표시된 경우 기재
-   - 객관식: 정답 선택지의 실제 텍스트 내용 (번호만 기재 금지)
-   - 없으면 null
+5. 정답(answer): 문서에 표시된 경우만 기재, 없으면 null
 
-6. question_type: 선택지(①~⑤) 있으면 "객관식" / 빈칸·숫자 답 "단답형" / 풀이 요구 "서술형"
-7. difficulty: 1(매우쉬움)~5(매우어려움)
-8. _page: 그림·도표·그래프가 있는 문제는 해당 그림이 위치한 페이지 번호(1부터 시작 정수). 그림 없으면 null.
+6. question_type: "객관식" / "단답형" / "서술형"
+7. difficulty: 1~5
+8. _page: 그림 있는 문제는 페이지 번호, 없으면 null
 
-9. subject_type (수능/모의고사 선택과목 구분):
-   문서에 다음 헤더/섹션 표시가 있으면 해당 섹션의 모든 문제에 태깅:
-   - "공통" 또는 문제번호 1~22: subject_type = "common"
-   - "확률과 통계" 섹션 헤더 아래: subject_type = "prob_stat"
-   - "미적분" 섹션 헤더 아래: subject_type = "calculus"
-   - "기하" 섹션 헤더 아래: subject_type = "geometry"
-   - 선택과목 구분이 없는 문서: subject_type = null
-   주의: 섹션 헤더를 정확히 확인하고 해당 섹션 아래 문제 모두 같은 subject_type 적용
+9. subject_type (선택과목 구분):
+   [필수] "선택과목:", "확률과 통계", "미적분", "기하" 등 명시적 헤더가 있을 때만 태깅
+   - 헤더 "공통" 또는 1~22번: "common"
+   - 헤더 "확률과 통계" 아래: "prob_stat"
+   - 헤더 "미적분" 아래: "calculus"
+   - 헤더 "기하" 아래: "geometry"
+   - 헤더 없음 또는 불명확: null
+   주의: 단순히 기하 관련 내용이라고 "geometry"로 태깅하지 말 것. 명시적 헤더 필요.
 
-반드시 JSON 배열만 출력, 다른 텍스트 없이:
-[{"q_num":1,"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5,"_page":1또는null,"subject_type":"common|prob_stat|calculus|geometry|null"}]`;
+반드시 JSON 배열만 출력:
+[{"q_num":1,"content":"...","answer":"...또는 null","question_type":"객관식|단답형|서술형","difficulty":1~5,"_page":null,"subject_type":null}]`;
 
 // API 요청 with exponential backoff (429 rate limit 대응)
 async function _fetchWithRetry(url, options, maxRetries = 3) {
@@ -12329,50 +12334,107 @@ function _compareQuestions(q1, q2) {
   };
 }
 
+// 추출 품질 검증 (환각 감지)
+function _validateExtractionQuality(q) {
+  const content = q?.content || '';
+  if (!content || content.length < 10) return { valid: false, issue: 'too_short' };
+
+  // 숫자 비율 체크 (수학 문제는 보통 숫자가 많음)
+  const numbers = content.match(/\d/g) || [];
+  const numberRatio = numbers.length / content.length;
+
+  // 수학 기호 포함 여부
+  const hasMathSymbols = /[\$\^\_\{\}\[\]]/.test(content) || /[①②③④⑤]/.test(content);
+
+  // 한글 비율 체크 (의미 없는 글자 조합 감지)
+  const koreanChars = content.match(/[가-힣]/g) || [];
+  const koreanRatio = koreanChars.length / content.length;
+
+  // 반복 패턴 감지 (환각 특징)
+  const words = content.split(/\s+/);
+  const uniqueWords = new Set(words);
+  const repetitionRatio = words.length > 5 ? uniqueWords.size / words.length : 1;
+
+  // 품질 판정
+  if (content.length < 50 && !hasMathSymbols && numberRatio < 0.05) {
+    return { valid: false, issue: 'low_quality_extraction' };
+  }
+  if (repetitionRatio < 0.3 && words.length > 10) {
+    return { valid: false, issue: 'repetitive_content' };
+  }
+  if (koreanRatio > 0.8 && numberRatio < 0.02 && !hasMathSymbols) {
+    return { valid: false, issue: 'no_math_content' };
+  }
+
+  return { valid: true, issue: null };
+}
+
 function _mergeExtractionResults(claudeResult, geminiResult) {
   const claudeQs = claudeResult.questions || [];
   const geminiQs = geminiResult.questions || [];
 
-  // q_num + subject_type 키로 매핑
-  const claudeMap = new Map();
+  // 1차: (q_num, subject_type) 키로 매핑
+  const claudeFullMap = new Map();
+  const claudeNumMap = new Map(); // q_num만으로 매핑 (2차 폴백용)
   claudeQs.forEach(q => {
-    const key = `${q.q_num || 'x'}_${q.subject_type || 'null'}`;
-    claudeMap.set(key, q);
+    const fullKey = `${q.q_num || 'x'}_${q.subject_type || 'null'}`;
+    const numKey = `${q.q_num || 'x'}`;
+    claudeFullMap.set(fullKey, q);
+    if (!claudeNumMap.has(numKey)) claudeNumMap.set(numKey, q);
   });
 
-  const geminiMap = new Map();
+  const geminiFullMap = new Map();
+  const geminiNumMap = new Map();
   geminiQs.forEach(q => {
-    const key = `${q.q_num || 'x'}_${q.subject_type || 'null'}`;
-    geminiMap.set(key, q);
+    const fullKey = `${q.q_num || 'x'}_${q.subject_type || 'null'}`;
+    const numKey = `${q.q_num || 'x'}`;
+    geminiFullMap.set(fullKey, q);
+    if (!geminiNumMap.has(numKey)) geminiNumMap.set(numKey, q);
   });
 
-  // 모든 문제 번호 수집
-  const allKeys = new Set([...claudeMap.keys(), ...geminiMap.keys()]);
+  // 처리된 q_num 추적
+  const processedNums = new Set();
   const mergedQuestions = [];
   let matchedCount = 0, mismatchCount = 0, singleCount = 0;
 
-  allKeys.forEach(key => {
-    const cq = claudeMap.get(key);
-    const gq = geminiMap.get(key);
+  // 병합 헬퍼 함수
+  function mergeQuestion(cq, gq) {
+    // 품질 검증
+    const cqQuality = cq ? _validateExtractionQuality(cq) : { valid: false };
+    const gqQuality = gq ? _validateExtractionQuality(gq) : { valid: false };
+
+    // 양쪽 모두 품질 불량이면 건너뜀
+    if (cq && gq && !cqQuality.valid && !gqQuality.valid) {
+      console.warn(`[품질 불량] q_num ${cq.q_num || gq.q_num} 양쪽 모두 품질 미달`);
+      return null;
+    }
+
+    // 한쪽만 품질 양호하면 그것만 사용
+    if (cq && gq) {
+      if (!cqQuality.valid && gqQuality.valid) {
+        cq = null; // Claude 결과 무시
+      } else if (cqQuality.valid && !gqQuality.valid) {
+        gq = null; // Gemini 결과 무시
+      }
+    }
 
     if (cq && gq) {
       // 양쪽 모두 추출됨 → 비교
       const comparison = _compareQuestions(cq, gq);
 
       if (comparison.fullMatch) {
-        // 완전 일치 → 자동 승인 (Claude 버전 사용, 더 긴 본문 선택)
         const chosen = (cq.content || '').length >= (gq.content || '').length ? cq : gq;
-        mergedQuestions.push({
+        matchedCount++;
+        return {
           ...chosen,
           _validationStatus: 'approved',
           _dualSource: 'both',
           _matchType: 'full'
-        });
-        matchedCount++;
+        };
       } else {
-        // 불일치 → 검수 필요, 양쪽 결과 저장
         const primary = (cq.content || '').length >= (gq.content || '').length ? cq : gq;
-        mergedQuestions.push({
+        mismatchCount++;
+        return {
           ...primary,
           _validationStatus: 'needs_review',
           _dualSource: 'both',
@@ -12385,21 +12447,65 @@ function _mergeExtractionResults(claudeResult, geminiResult) {
             !comparison.answerMatch ? `정답 불일치 (C:${cq.answer || '없음'} / G:${gq.answer || '없음'})` : null,
             !comparison.typeMatch ? '유형 불일치' : null
           ].filter(Boolean)
-        });
-        mismatchCount++;
+        };
       }
     } else {
       // 한쪽만 추출됨
       const q = cq || gq;
-      mergedQuestions.push({
+      const quality = cq ? cqQuality : gqQuality;
+      singleCount++;
+      return {
         ...q,
         _validationStatus: 'needs_review',
         _dualSource: cq ? 'claude' : 'gemini',
         _matchType: 'single',
-        _validationIssues: [`한쪽 AI만 추출 (${cq ? 'Claude' : 'Gemini'})`]
-      });
-      singleCount++;
+        _validationIssues: [
+          `한쪽 AI만 추출 (${cq ? 'Claude' : 'Gemini'})`,
+          quality.issue ? quality.issue : null
+        ].filter(Boolean)
+      };
     }
+  }
+
+  // 1차: (q_num, subject_type) 완전 일치 매칭
+  const allFullKeys = new Set([...claudeFullMap.keys(), ...geminiFullMap.keys()]);
+  allFullKeys.forEach(key => {
+    const cq = claudeFullMap.get(key);
+    const gq = geminiFullMap.get(key);
+    const qNum = (cq || gq)?.q_num;
+
+    if (cq && gq) {
+      // 완전 키 일치 → 병합
+      const merged = mergeQuestion(cq, gq);
+      if (merged) mergedQuestions.push(merged);
+      if (qNum) processedNums.add(String(qNum));
+    }
+  });
+
+  // 2차: q_num만으로 매칭 (1차에서 처리 안 된 것들)
+  const allNumKeys = new Set([...claudeNumMap.keys(), ...geminiNumMap.keys()]);
+  allNumKeys.forEach(numKey => {
+    if (processedNums.has(numKey)) return; // 이미 처리됨
+
+    const cq = claudeNumMap.get(numKey);
+    const gq = geminiNumMap.get(numKey);
+
+    // 양쪽 subject_type이 다르더라도 q_num 같으면 병합
+    const merged = mergeQuestion(cq, gq);
+    if (merged) {
+      // subject_type 불일치 경고 추가
+      if (cq && gq && cq.subject_type !== gq.subject_type) {
+        merged._validationIssues = merged._validationIssues || [];
+        merged._validationIssues.push(`선택과목 불일치 (C:${cq.subject_type || 'null'} / G:${gq.subject_type || 'null'})`);
+        if (merged._validationStatus === 'approved') {
+          merged._validationStatus = 'needs_review';
+          matchedCount--;
+          mismatchCount++;
+        }
+      }
+      mergedQuestions.push(merged);
+    }
+    processedNums.add(numKey);
   });
 
   // q_num 순 정렬
