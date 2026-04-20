@@ -2083,6 +2083,10 @@
         <div class="nav-item" onclick="showView('tutee-register')">
           <span class="icon">📋</span> 과외 구인 등록
         </div>
+        <div class="nav-item" onclick="showView('parent-requests')">
+          <span class="icon">📨</span> 내 매칭 신청
+          <span id="match-badge-student" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--green);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">메시지</div>
@@ -2123,6 +2127,10 @@
         </div>
         <div class="nav-item" onclick="showView('tutee-register')">
           <span class="icon">📋</span> 과외 구인 등록
+        </div>
+        <div class="nav-item" onclick="showView('parent-requests')">
+          <span class="icon">📨</span> 내 매칭 신청
+          <span id="match-badge-parent" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--green);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
         </div>
       </div>
       <div class="nav-section">
@@ -3288,6 +3296,30 @@
           <div id="tutor-detail-content"></div>
         </div>
       </div>
+      <!-- 매칭 신청 모달 -->
+      <div id="match-request-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;align-items:center;justify-content:center">
+        <div style="background:var(--bg);border-radius:var(--radius);padding:28px;max-width:440px;width:90%;position:relative;box-shadow:var(--shadow)">
+          <button onclick="closeMatchRequestModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+          <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">📨 매칭 신청</div>
+          <div style="font-size:13px;color:var(--text3);margin-bottom:16px">선생님: <span id="mr-tutor-name" style="font-weight:600;color:var(--text)"></span></div>
+          <input type="hidden" id="mr-tutor-id">
+          <div style="margin-bottom:16px">
+            <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">신청 메시지 <span style="color:var(--text3);font-weight:400">(10~500자)</span></label>
+            <textarea id="mr-message" class="form-input" style="width:100%;min-height:120px;resize:vertical" placeholder="자녀 학년, 원하는 수업 방식, 요일/시간 등을 적어주세요.&#10;선생님이 수락 여부 결정에 참고합니다."></textarea>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:right"><span id="mr-char-count">0</span>/500자</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-bottom:18px;font-size:12px;color:var(--text2);line-height:1.7">
+            <div style="font-weight:700;color:var(--text);margin-bottom:6px">ℹ️ 안내</div>
+            • 매칭 신청은 <strong style="color:var(--accent)">무료</strong>입니다<br>
+            • 선생님이 수락하면 양쪽 연락처가 공개됩니다<br>
+            • 매칭 성사 신고 시 <strong style="color:var(--accent)">500P 지급</strong>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-ghost" style="flex:1" onclick="closeMatchRequestModal()">취소</button>
+            <button class="btn btn-primary" style="flex:1" onclick="submitMatchRequest()">📨 신청 보내기</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ══ VIEW: TUTEE REGISTER (학생/학부모 - 과외 구인 등록) ══ -->
@@ -3324,6 +3356,26 @@
       </div>
       <!-- 콘텐츠 영역 -->
       <div id="tutor-requests-wrap">
+        <div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: PARENT REQUESTS (학부모/학생 내 매칭 신청) ══ -->
+    <div id="view-parent-requests" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">내 매칭 신청</h2>
+          <p class="page-sub">선생님에게 보낸 매칭 신청 현황을 확인합니다</p>
+        </div>
+      </div>
+      <!-- 탭 -->
+      <div class="tab-nav" style="margin-bottom:20px">
+        <button class="tab-btn active" id="prTabPending" onclick="switchParentRequestsTab('pending')">대기 중</button>
+        <button class="tab-btn" id="prTabAccepted" onclick="switchParentRequestsTab('accepted')">수락된 매칭</button>
+        <button class="tab-btn" id="prTabRejected" onclick="switchParentRequestsTab('rejected')">거절된 신청</button>
+      </div>
+      <!-- 콘텐츠 영역 -->
+      <div id="parent-requests-wrap">
         <div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>
       </div>
     </div>
@@ -5272,6 +5324,10 @@ function showApp() {
       if (currentProfile && ['teacher', 'expert'].includes(currentProfile.role)) {
         updateMatchBadge().catch(() => {});
       }
+      // 학부모/학생인 경우 매칭 뱃지 업데이트
+      if (currentProfile && ['student', 'parent'].includes(currentProfile.role)) {
+        updateParentMatchBadge().catch(() => {});
+      }
     }
   }, 300);
 }
@@ -5588,6 +5644,7 @@ function showView(viewId) {
         if (viewId === 'tutor-search')   loadTutorSearch().catch(() => {});
         if (viewId === 'tutee-register') loadTuteeRegister().catch(() => {});
         if (viewId === 'tutor-requests') loadTutorRequests().catch(() => {});
+        if (viewId === 'parent-requests') loadParentRequests().catch(() => {});
         if (viewId === 'sms')            loadSmsView();
         if (viewId === 'messages')         loadMessagesView().catch(() => {});
         if (viewId === 'question-bank')    loadQuestionBankView().catch(() => {});
@@ -10255,9 +10312,13 @@ function openTutorDetail(id) {
     </div>
     ${t.experience ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">경력</div><div style="font-size:13px;color:var(--text)">${t.experience}</div></div>` : ''}
     ${t.intro ? `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">자기소개</div><div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${t.intro}</div></div>` : ''}
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:13px;color:var(--text2)">
-      문의는 운영자를 통해 연락처를 안내받으세요.<br>
-      <a href="#" onclick="openLpPage('contact');closeTutorDetail()" style="color:var(--accent);font-weight:600">문의하기 →</a>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <button class="btn btn-primary" style="width:100%;font-size:14px;padding:12px" onclick="openMatchRequestModal('${t.user_id}','${(prof.name || '선생님').replace(/'/g, "\\'")}')">
+        📨 매칭 신청하기
+      </button>
+      <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:10px">
+        매칭 신청은 무료입니다. 선생님이 수락하면 연락처가 공개됩니다.
+      </div>
     </div>`;
 
   panel.style.display = 'flex';
@@ -10658,6 +10719,405 @@ async function updateMatchBadge() {
   } else {
     badge.style.display = 'none';
   }
+}
+
+// ═══════════════════════════════════════
+//  학부모/학생 매칭 신청 관리
+// ═══════════════════════════════════════
+
+let _prCurrentTab = 'pending'; // 'pending' | 'accepted' | 'rejected'
+
+// ── 매칭 신청 모달 ──
+function openMatchRequestModal(tutorId, tutorName) {
+  if (!currentUser) {
+    showToast('로그인이 필요합니다', '⚠️');
+    return;
+  }
+  document.getElementById('mr-tutor-id').value = tutorId;
+  document.getElementById('mr-tutor-name').textContent = tutorName;
+  document.getElementById('mr-message').value = '';
+  document.getElementById('mr-char-count').textContent = '0';
+  document.getElementById('match-request-modal').style.display = 'flex';
+
+  // 글자 수 카운터 이벤트
+  const textarea = document.getElementById('mr-message');
+  textarea.oninput = () => {
+    document.getElementById('mr-char-count').textContent = textarea.value.length;
+  };
+}
+
+function closeMatchRequestModal() {
+  document.getElementById('match-request-modal').style.display = 'none';
+}
+
+async function submitMatchRequest() {
+  if (!sbClient || !currentUser) return;
+
+  const tutorId = document.getElementById('mr-tutor-id').value;
+  const message = document.getElementById('mr-message').value.trim();
+
+  // 유효성 검사
+  if (message.length < 10) {
+    showToast('메시지는 최소 10자 이상 작성해주세요', '⚠️');
+    return;
+  }
+  if (message.length > 500) {
+    showToast('메시지는 500자 이하로 작성해주세요', '⚠️');
+    return;
+  }
+
+  // 본인에게 신청 방지
+  if (tutorId === currentUser.id) {
+    showToast('본인에게 신청할 수 없습니다', '⚠️');
+    return;
+  }
+
+  try {
+    // 중복 신청 체크
+    const { data: existing } = await sbClient
+      .from('tutor_match_requests')
+      .select('id')
+      .eq('requester_id', currentUser.id)
+      .eq('tutor_id', tutorId)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (existing) {
+      showToast('이미 신청한 선생님입니다. 답변을 기다려주세요.', '⚠️');
+      return;
+    }
+
+    // 신청 저장
+    const { error } = await sbClient.from('tutor_match_requests').insert({
+      requester_id: currentUser.id,
+      tutor_id: tutorId,
+      message: message,
+      status: 'pending'
+    });
+
+    if (error) throw error;
+
+    showToast('✅ 매칭 신청 완료! 선생님 답변을 기다려주세요.', '✅');
+    closeMatchRequestModal();
+    closeTutorDetail();
+
+  } catch (err) {
+    showToast('신청 실패: ' + err.message, '❌');
+  }
+}
+
+// ── 학부모/학생 매칭 신청 화면 ──
+function switchParentRequestsTab(tab) {
+  _prCurrentTab = tab;
+  ['pending', 'accepted', 'rejected'].forEach(t => {
+    const btn = document.getElementById('prTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  loadParentRequests();
+}
+
+async function loadParentRequests() {
+  if (!sbClient || !currentUser) return;
+  const wrap = document.getElementById('parent-requests-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  if (_prCurrentTab === 'pending') {
+    await loadParentPendingRequests(wrap);
+  } else if (_prCurrentTab === 'accepted') {
+    await loadParentAcceptedMatches(wrap);
+  } else {
+    await loadParentRejectedRequests(wrap);
+  }
+}
+
+async function loadParentPendingRequests(wrap) {
+  const { data: requests, error } = await sbClient
+    .from('tutor_match_requests')
+    .select('*')
+    .eq('requester_id', currentUser.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  if (!requests?.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">📭</div>
+      <div class="empty-state-text">대기 중인 신청이 없습니다</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:8px">
+        <a href="#" onclick="showView('tutor-search')" style="color:var(--accent);font-weight:600">선생님 찾기 →</a>에서 매칭을 신청해보세요
+      </div>
+    </div>`;
+    return;
+  }
+
+  // 선생님 프로필 조회
+  const tutorIds = requests.map(r => r.tutor_id);
+  const { data: profiles } = await sbClient.from('profiles').select('id, name').in('id', tutorIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  // 선생님 tutor_profiles 조회
+  const { data: tutorProfiles } = await sbClient.from('tutor_profiles').select('*').in('user_id', tutorIds);
+  const tutorMap = {};
+  (tutorProfiles || []).forEach(t => { tutorMap[t.user_id] = t; });
+
+  wrap.innerHTML = `<div style="display:grid;gap:16px">` +
+    requests.map(req => {
+      const p = profileMap[req.tutor_id] || {};
+      const tutor = tutorMap[req.tutor_id] || {};
+      const reqDate = req.created_at ? new Date(req.created_at).toLocaleString('ko-KR') : '—';
+      const subjectArr = Array.isArray(tutor.subject) ? tutor.subject : (tutor.subject ? [tutor.subject] : []);
+      const regionArr = Array.isArray(tutor.region) ? tutor.region : (tutor.region ? [tutor.region] : []);
+
+      return `<div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          ${avatarHtml(tutor.photo_url, p.name, 44, false)}
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${p.name || '선생님'}</div>
+            <div style="font-size:12px;color:var(--text3)">신청일: ${reqDate}</div>
+          </div>
+          <span style="padding:5px 10px;background:rgba(246,173,85,0.15);border-radius:20px;font-size:12px;font-weight:700;color:var(--yellow)">⏳ 답변 대기</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+          <span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${subjectArr.join(', ') || '—'}</span>
+          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${regionArr.join(', ') || '지역 미기재'}</span>
+          <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${tutor.hourly_rate ? tutor.hourly_rate.toLocaleString() + '원/시간' : '요금 협의'}</span>
+        </div>
+        ${req.message ? `<div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;border-left:3px solid var(--accent)">
+          <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">💬 내 신청 메시지</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.6">${req.message}</div>
+        </div>` : ''}
+        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="cancelMatchRequest('${req.id}')">✗ 신청 취소</button>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+async function loadParentAcceptedMatches(wrap) {
+  const { data: matches, error } = await sbClient
+    .from('tutor_matches')
+    .select('*')
+    .eq('requester_id', currentUser.id)
+    .order('confirmed_at', { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  if (!matches?.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">🤝</div>
+      <div class="empty-state-text">수락된 매칭이 없습니다</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:8px">선생님이 신청을 수락하면 여기에 표시됩니다</div>
+    </div>`;
+    return;
+  }
+
+  // 선생님 프로필 조회
+  const tutorIds = matches.map(m => m.tutor_id);
+  const { data: profiles } = await sbClient.from('profiles').select('id, name, email, phone').in('id', tutorIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  // 선생님 tutor_profiles 조회
+  const { data: tutorProfiles } = await sbClient.from('tutor_profiles').select('*').in('user_id', tutorIds);
+  const tutorMap = {};
+  (tutorProfiles || []).forEach(t => { tutorMap[t.user_id] = t; });
+
+  wrap.innerHTML = `<div style="display:grid;gap:16px">` +
+    matches.map(m => {
+      const p = profileMap[m.tutor_id] || {};
+      const tutor = tutorMap[m.tutor_id] || {};
+      const confirmDate = m.confirmed_at ? new Date(m.confirmed_at).toLocaleString('ko-KR') : '—';
+      const subjectArr = Array.isArray(tutor.subject) ? tutor.subject : (tutor.subject ? [tutor.subject] : []);
+      const regionArr = Array.isArray(tutor.region) ? tutor.region : (tutor.region ? [tutor.region] : []);
+
+      return `<div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          ${avatarHtml(tutor.photo_url, p.name, 44, false)}
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${p.name || '선생님'}</div>
+            <div style="font-size:12px;color:var(--text3)">수락일: ${confirmDate}</div>
+          </div>
+          ${m.reward_claimed
+            ? `<span style="padding:5px 10px;background:rgba(99,179,237,0.15);border-radius:20px;font-size:12px;font-weight:700;color:#3182ce">✅ 매칭 성사</span>`
+            : `<span style="padding:5px 10px;background:rgba(62,207,142,0.15);border-radius:20px;font-size:12px;font-weight:700;color:var(--green)">🤝 수락됨</span>`}
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;border:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📞 선생님 연락처</div>
+          <div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;font-size:13px;align-items:center">
+            <span style="color:var(--text3)">이름</span>
+            <span style="font-weight:600;color:var(--text)">${p.name || '—'}</span>
+            <span></span>
+            <span style="color:var(--text3)">전화번호</span>
+            <span style="font-weight:600;color:var(--accent)">${p.phone || '미등록'}</span>
+            ${p.phone ? `<button class="btn btn-ghost btn-xs" onclick="copyToClipboard('${p.phone}')">복사</button>` : '<span></span>'}
+            <span style="color:var(--text3)">이메일</span>
+            <span style="font-weight:600;color:var(--accent)">${p.email || '—'}</span>
+            ${p.email ? `<button class="btn btn-ghost btn-xs" onclick="copyToClipboard('${p.email}')">복사</button>` : '<span></span>'}
+          </div>
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">💼 과외 정보</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <span style="padding:3px 9px;background:rgba(255,107,107,0.1);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${subjectArr.join(', ') || '—'}</span>
+            <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${regionArr.join(', ') || '—'}</span>
+            <span style="padding:3px 9px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--text2)">${tutor.hourly_rate ? tutor.hourly_rate.toLocaleString() + '원/시간' : '협의'}</span>
+          </div>
+        </div>
+        ${m.reward_claimed
+          ? `<div style="background:rgba(99,179,237,0.1);border-radius:var(--radius-sm);padding:12px;text-align:center;font-size:13px;color:#3182ce;font-weight:600">
+              ✅ 매칭 성사 완료 (${m.reward_claimed_at ? new Date(m.reward_claimed_at).toLocaleDateString('ko-KR') : ''})
+            </div>`
+          : `<button class="btn btn-primary" style="width:100%" onclick="reportMatchSuccess('${m.id}')">
+              🎉 매칭 성사 신고 → <span style="font-weight:800">500P 받기</span>
+            </button>`}
+      </div>`;
+    }).join('') + '</div>';
+}
+
+async function loadParentRejectedRequests(wrap) {
+  const { data: requests, error } = await sbClient
+    .from('tutor_match_requests')
+    .select('*')
+    .eq('requester_id', currentUser.id)
+    .in('status', ['rejected', 'cancelled'])
+    .order('responded_at', { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  if (!requests?.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-text">거절/취소된 신청이 없습니다</div>
+    </div>`;
+    return;
+  }
+
+  // 선생님 프로필 조회
+  const tutorIds = requests.map(r => r.tutor_id);
+  const { data: profiles } = await sbClient.from('profiles').select('id, name').in('id', tutorIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  wrap.innerHTML = `<div style="display:grid;gap:12px">` +
+    requests.map(req => {
+      const p = profileMap[req.tutor_id] || {};
+      const reqDate = req.created_at ? new Date(req.created_at).toLocaleDateString('ko-KR') : '—';
+      const statusLabel = req.status === 'cancelled' ? '취소됨' : '거절됨';
+      const statusColor = req.status === 'cancelled' ? 'var(--text3)' : 'var(--red)';
+
+      return `<div class="card" style="padding:16px;display:flex;align-items:center;gap:12px;opacity:0.7">
+        ${avatarHtml(null, p.name, 36, false)}
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${p.name || '선생님'}</div>
+          <div style="font-size:12px;color:var(--text3)">신청일: ${reqDate}</div>
+        </div>
+        <span style="padding:4px 10px;background:var(--bg3);border-radius:20px;font-size:11px;color:${statusColor}">${statusLabel}</span>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+async function cancelMatchRequest(requestId) {
+  const ok = confirm('매칭 신청을 취소하시겠습니까?');
+  if (!ok) return;
+
+  try {
+    const { error } = await sbClient
+      .from('tutor_match_requests')
+      .update({ status: 'cancelled', responded_at: new Date().toISOString() })
+      .eq('id', requestId)
+      .eq('requester_id', currentUser.id);
+
+    if (error) throw error;
+
+    showToast('신청이 취소되었습니다', '✅');
+    loadParentRequests();
+
+  } catch (err) {
+    showToast('취소 실패: ' + err.message, '❌');
+  }
+}
+
+async function reportMatchSuccess(matchId) {
+  const ok = confirm('매칭 성사를 신고하시겠습니까?\n\n• 500P가 지급됩니다.\n• 신고 후에는 취소할 수 없습니다.');
+  if (!ok) return;
+
+  try {
+    // 1. 매칭 기록 업데이트
+    const { error: updateError } = await sbClient
+      .from('tutor_matches')
+      .update({
+        reward_claimed: true,
+        reward_claimed_at: new Date().toISOString()
+      })
+      .eq('id', matchId)
+      .eq('requester_id', currentUser.id);
+
+    if (updateError) throw updateError;
+
+    // 2. 500P 리워드 지급 (add_points RPC)
+    const { error: rpcError } = await sbClient.rpc('add_points', {
+      p_user_id: currentUser.id,
+      p_amount: 500,
+      p_reason: '매칭 성사 신고 리워드'
+    });
+
+    if (rpcError) {
+      console.error('포인트 지급 실패:', rpcError);
+      // 포인트 지급 실패해도 성사 신고는 완료된 상태
+    } else {
+      // 프로필 잔액 UI 업데이트
+      if (currentProfile) {
+        currentProfile.point_balance = (currentProfile.point_balance || 0) + 500;
+        updateBalanceDisplay(currentProfile.point_balance, currentProfile.cash_balance);
+      }
+    }
+
+    showToast('🎉 매칭 성사 신고 완료! 500P가 지급되었습니다.', '✅');
+    loadParentRequests();
+
+  } catch (err) {
+    showToast('신고 실패: ' + err.message, '❌');
+  }
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('복사되었습니다', '✅');
+  }).catch(() => {
+    showToast('복사 실패', '❌');
+  });
+}
+
+async function updateParentMatchBadge() {
+  if (!sbClient || !currentUser) return;
+
+  // 수락된 매칭 중 아직 성사 신고 안 한 것 개수
+  const { count, error } = await sbClient
+    .from('tutor_matches')
+    .select('*', { count: 'exact', head: true })
+    .eq('requester_id', currentUser.id)
+    .eq('reward_claimed', false);
+
+  ['match-badge-student', 'match-badge-parent'].forEach(id => {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    if (!error && count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  });
 }
 
 // ═══════════════════════════════════════
