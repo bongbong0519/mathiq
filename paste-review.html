@@ -18,6 +18,7 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
 
   <style>
     /* ==============================================
@@ -728,9 +729,8 @@
        SCRIPT
        ============================================== -->
   <script>
-    // ======== 설정 (봉쌤이 기존 index.html에서 복붙) ========
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';       // ← 기존 MathIQ index.html에서 복붙
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';  // ← 기존 MathIQ index.html에서 복붙
+    // ======== 설정 (config.js에서 로드) ========
+    // SUPABASE_URL, SUPABASE_KEY는 config.js에서 정의됨
     const EXTRACT_API = '/api/extract-page';             // Vercel Function 엔드포인트
 
     // 태그 옵션 (수능/기출 중심, 필요시 수정)
@@ -770,7 +770,7 @@
     ];
 
     // ======== Supabase 클라이언트 ========
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ======== 전역 상태 ========
     const state = {
@@ -794,15 +794,14 @@
         return false;
       }
 
-      // 운영자 권한 체크: users 테이블 또는 profiles 테이블 (기존 MathIQ 스키마에 맞춰 조정 필요)
-      // ★★ 기존 MathIQ에서 운영자 체크하는 방식과 동일하게 수정해주세요 ★★
+      // 운영자 권한 체크 (profiles 테이블)
       const { data: profile, error } = await sb
-        .from('users')  // 또는 'profiles', 실제 테이블명으로 변경
+        .from('profiles')
         .select('role, email, name')
         .eq('id', session.user.id)
         .single();
 
-      if (error || !profile || (profile.role !== 'admin' && profile.role !== '운영자')) {
+      if (error || !profile || (profile.role !== 'admin' && profile.role !== 'staff')) {
         $('authGateTitle').textContent = '접근 권한이 없습니다';
         $('authGateDesc').textContent = '운영자 계정으로만 사용할 수 있습니다.';
         return false;
