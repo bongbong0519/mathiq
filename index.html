@@ -1909,6 +1909,10 @@
         <div class="nav-item" onclick="showView('student-search')">
           <span class="icon">🔎</span> 학생 찾기
         </div>
+        <div class="nav-item" id="nav-tutor-requests" onclick="showView('tutor-requests')">
+          <span class="icon">📨</span> 매칭 관리
+          <span id="match-badge-teacher" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">메시지</div>
@@ -3301,6 +3305,26 @@
         <div id="tutee-register-wrap" style="padding:8px 0">
           <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: TUTOR REQUESTS (선생님 매칭 관리) ══ -->
+    <div id="view-tutor-requests" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">매칭 관리</h2>
+          <p class="page-sub">학부모로부터 받은 과외 매칭 신청을 관리합니다</p>
+        </div>
+      </div>
+      <!-- 탭 -->
+      <div class="tab-nav" style="margin-bottom:20px">
+        <button class="tab-btn active" id="trTabPending" onclick="switchTutorRequestsTab('pending')">받은 신청</button>
+        <button class="tab-btn" id="trTabAccepted" onclick="switchTutorRequestsTab('accepted')">수락한 매칭</button>
+        <button class="tab-btn" id="trTabRejected" onclick="switchTutorRequestsTab('rejected')">거절한 신청</button>
+      </div>
+      <!-- 콘텐츠 영역 -->
+      <div id="tutor-requests-wrap">
+        <div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>
       </div>
     </div>
 
@@ -5244,6 +5268,10 @@ function showApp() {
       loadStudents();
       checkUnreadMessages().catch(() => {});
       checkQbPendingBadge().catch(() => {});
+      // 선생님인 경우 매칭 뱃지 업데이트
+      if (currentProfile && ['teacher', 'expert'].includes(currentProfile.role)) {
+        updateMatchBadge().catch(() => {});
+      }
     }
   }, 300);
 }
@@ -5559,6 +5587,7 @@ function showView(viewId) {
         if (viewId === 'student-exams')  loadStudentExams().catch(() => {});
         if (viewId === 'tutor-search')   loadTutorSearch().catch(() => {});
         if (viewId === 'tutee-register') loadTuteeRegister().catch(() => {});
+        if (viewId === 'tutor-requests') loadTutorRequests().catch(() => {});
         if (viewId === 'sms')            loadSmsView();
         if (viewId === 'messages')         loadMessagesView().catch(() => {});
         if (viewId === 'question-bank')    loadQuestionBankView().catch(() => {});
@@ -10317,6 +10346,318 @@ async function toggleTuteeActive() {
   await sbClient.from('tutee_profiles').upsert({ user_id: currentUser.id, is_active: next }, { onConflict: 'user_id' });
   showToast(next ? '구인이 활성화되었습니다' : '구인이 비활성화되었습니다', next ? '✅' : '⏸️');
   loadTuteeRegister();
+}
+
+// ═══════════════════════════════════════
+//  선생님 매칭 관리
+// ═══════════════════════════════════════
+
+let _trCurrentTab = 'pending'; // 'pending' | 'accepted' | 'rejected'
+
+function switchTutorRequestsTab(tab) {
+  _trCurrentTab = tab;
+  ['pending', 'accepted', 'rejected'].forEach(t => {
+    const btn = document.getElementById('trTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  loadTutorRequests();
+}
+
+async function loadTutorRequests() {
+  if (!sbClient || !currentUser) return;
+  const wrap = document.getElementById('tutor-requests-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  if (_trCurrentTab === 'pending') {
+    await loadPendingRequests(wrap);
+  } else if (_trCurrentTab === 'accepted') {
+    await loadAcceptedMatches(wrap);
+  } else {
+    await loadRejectedRequests(wrap);
+  }
+}
+
+async function loadPendingRequests(wrap) {
+  // 받은 신청 목록 (pending)
+  const { data: requests, error } = await sbClient
+    .from('tutor_match_requests')
+    .select('*')
+    .eq('tutor_id', currentUser.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  if (!requests?.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">📭</div>
+      <div class="empty-state-text">받은 매칭 신청이 없습니다</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:8px">학부모가 매칭을 신청하면 여기에 표시됩니다</div>
+    </div>`;
+    return;
+  }
+
+  // 요청자 프로필 조회
+  const requesterIds = requests.map(r => r.requester_id);
+  const { data: profiles } = await sbClient.from('profiles').select('id, name, email, phone').in('id', requesterIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  // 요청자의 tutee_profiles 조회
+  const { data: tuteeProfiles } = await sbClient.from('tutee_profiles').select('*').in('user_id', requesterIds);
+  const tuteeMap = {};
+  (tuteeProfiles || []).forEach(t => { tuteeMap[t.user_id] = t; });
+
+  // 현재 포인트 잔액 조회
+  const { data: myProfile } = await sbClient.from('profiles').select('point_balance').eq('id', currentUser.id).single();
+  const myBalance = myProfile?.point_balance ?? 0;
+
+  wrap.innerHTML = `<div style="display:grid;gap:16px">` +
+    requests.map(req => {
+      const p = profileMap[req.requester_id] || {};
+      const tutee = tuteeMap[req.requester_id] || {};
+      const reqDate = req.created_at ? new Date(req.created_at).toLocaleString('ko-KR') : '—';
+      const subjectArr = Array.isArray(tutee.subject) ? tutee.subject : (tutee.subject ? [tutee.subject] : []);
+      const regionArr = Array.isArray(tutee.region) ? tutee.region : (tutee.region ? [tutee.region] : []);
+      const canAfford = myBalance >= 500;
+
+      return `<div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          ${avatarHtml(null, p.name, 44, false)}
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${p.name || '학부모'}</div>
+            <div style="font-size:12px;color:var(--text3)">요청일: ${reqDate}</div>
+          </div>
+        </div>
+        ${req.message ? `<div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;border-left:3px solid var(--accent)">
+          <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:4px">💬 신청 메시지</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.6">${req.message}</div>
+        </div>` : ''}
+        <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📋 학부모 구인 정보</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px">
+            <span style="color:var(--text3)">과목</span>
+            <span style="font-weight:600;color:var(--accent)">${subjectArr.join(', ') || '미기재'}</span>
+            <span style="color:var(--text3)">지역</span>
+            <span style="font-weight:600;color:var(--text)">${regionArr.join(', ') || '미기재'}</span>
+            <span style="color:var(--text3)">희망 요금</span>
+            <span style="font-weight:600;color:var(--text)">${tutee.desired_rate ? tutee.desired_rate.toLocaleString() + '원/시간' : '협의'}</span>
+            <span style="color:var(--text3)">학년</span>
+            <span style="font-weight:600;color:var(--text)">${tutee.grade || '미기재'}</span>
+          </div>
+          ${tutee.intro ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)">${tutee.intro}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" style="flex:1" onclick="acceptMatch('${req.id}','${req.requester_id}')" ${!canAfford ? 'disabled title="포인트 부족"' : ''}>
+            ✓ 수락 <span style="font-size:11px;opacity:0.8">(500P 차감)</span>
+          </button>
+          <button class="btn btn-ghost" style="flex:1" onclick="rejectMatch('${req.id}')">✗ 거절</button>
+        </div>
+        ${!canAfford ? `<div style="font-size:11px;color:var(--red);margin-top:8px;text-align:center">현재 잔액: ${myBalance.toLocaleString()}P — 포인트가 부족합니다</div>` : ''}
+      </div>`;
+    }).join('') + '</div>';
+}
+
+async function loadAcceptedMatches(wrap) {
+  // 수락한 매칭 목록
+  const { data: matches, error } = await sbClient
+    .from('tutor_matches')
+    .select('*')
+    .eq('tutor_id', currentUser.id)
+    .order('confirmed_at', { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  if (!matches?.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">🤝</div>
+      <div class="empty-state-text">수락한 매칭이 없습니다</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:8px">매칭을 수락하면 여기에 표시됩니다</div>
+    </div>`;
+    return;
+  }
+
+  // 요청자 프로필 조회
+  const requesterIds = matches.map(m => m.requester_id);
+  const { data: profiles } = await sbClient.from('profiles').select('id, name, email, phone').in('id', requesterIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  wrap.innerHTML = `<div style="display:grid;gap:16px">` +
+    matches.map(m => {
+      const p = profileMap[m.requester_id] || {};
+      const confirmDate = m.confirmed_at ? new Date(m.confirmed_at).toLocaleString('ko-KR') : '—';
+      const rewardDate = m.reward_claimed_at ? new Date(m.reward_claimed_at).toLocaleString('ko-KR') : null;
+
+      return `<div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          ${avatarHtml(null, p.name, 44, false)}
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${p.name || '학부모'}</div>
+            <div style="font-size:12px;color:var(--text3)">수락일: ${confirmDate}</div>
+          </div>
+          ${m.reward_claimed
+            ? `<span style="padding:5px 10px;background:rgba(62,207,142,0.1);border-radius:20px;font-size:12px;font-weight:700;color:var(--green)">✅ 매칭 성사 확인</span>`
+            : `<span style="padding:5px 10px;background:var(--bg3);border-radius:20px;font-size:12px;font-weight:600;color:var(--text3)">⏳ 성사 신고 대기</span>`}
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📞 학부모 연락처</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px">
+            <span style="color:var(--text3)">이름</span>
+            <span style="font-weight:600;color:var(--text)">${p.name || '—'}</span>
+            <span style="color:var(--text3)">이메일</span>
+            <span style="font-weight:600;color:var(--accent)">${p.email || '—'}</span>
+            <span style="color:var(--text3)">전화번호</span>
+            <span style="font-weight:600;color:var(--accent)">${p.phone || '미등록'}</span>
+          </div>
+        </div>
+        ${m.reward_claimed && rewardDate ? `<div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:right">성사 신고일: ${rewardDate}</div>` : ''}
+      </div>`;
+    }).join('') + '</div>';
+}
+
+async function loadRejectedRequests(wrap) {
+  // 거절한 신청 목록
+  const { data: requests, error } = await sbClient
+    .from('tutor_match_requests')
+    .select('*')
+    .eq('tutor_id', currentUser.id)
+    .eq('status', 'rejected')
+    .order('responded_at', { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  if (!requests?.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">🚫</div>
+      <div class="empty-state-text">거절한 신청이 없습니다</div>
+    </div>`;
+    return;
+  }
+
+  // 요청자 프로필 조회
+  const requesterIds = requests.map(r => r.requester_id);
+  const { data: profiles } = await sbClient.from('profiles').select('id, name').in('id', requesterIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  wrap.innerHTML = `<div style="display:grid;gap:12px">` +
+    requests.map(req => {
+      const p = profileMap[req.requester_id] || {};
+      const reqDate = req.created_at ? new Date(req.created_at).toLocaleDateString('ko-KR') : '—';
+      const rejDate = req.responded_at ? new Date(req.responded_at).toLocaleDateString('ko-KR') : '—';
+
+      return `<div class="card" style="padding:16px;display:flex;align-items:center;gap:12px;opacity:0.7">
+        ${avatarHtml(null, p.name, 36, false)}
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${p.name || '학부모'}</div>
+          <div style="font-size:12px;color:var(--text3)">신청: ${reqDate} → 거절: ${rejDate}</div>
+        </div>
+        <span style="padding:4px 10px;background:var(--bg3);border-radius:20px;font-size:11px;color:var(--text3)">거절됨</span>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+async function acceptMatch(requestId, requesterId) {
+  const ok = confirm('매칭을 수락하시겠습니까?\n\n• 500 파이포인트가 차감됩니다.\n• 학부모에게 연락처가 공개됩니다.\n• 학부모 연락처도 확인 가능해집니다.');
+  if (!ok) return;
+
+  try {
+    // 1. 포인트 잔액 체크
+    const { data: profile } = await sbClient.from('profiles').select('point_balance').eq('id', currentUser.id).single();
+    if (!profile || profile.point_balance < 500) {
+      showToast('포인트가 부족합니다. (현재: ' + (profile?.point_balance || 0) + 'P)', '⚠️');
+      return;
+    }
+
+    // 2. 포인트 차감 (기존 deduct_points RPC 사용)
+    const { error: rpcErr } = await sbClient.rpc('deduct_points', { amount: 500 });
+    if (rpcErr) {
+      showToast('포인트 차감 실패: ' + rpcErr.message, '❌');
+      return;
+    }
+
+    // 3. 매칭 요청 상태 업데이트
+    const { error: updateErr } = await sbClient
+      .from('tutor_match_requests')
+      .update({ status: 'accepted', responded_at: new Date().toISOString() })
+      .eq('id', requestId);
+    if (updateErr) throw updateErr;
+
+    // 4. tutor_matches 레코드 생성
+    const { error: insertErr } = await sbClient
+      .from('tutor_matches')
+      .insert({
+        request_id: requestId,
+        tutor_id: currentUser.id,
+        requester_id: requesterId
+      });
+    if (insertErr) throw insertErr;
+
+    // 5. 프로필 잔액 UI 업데이트
+    if (currentProfile) {
+      currentProfile.point_balance = (currentProfile.point_balance || 0) - 500;
+      updateBalanceDisplay(currentProfile.point_balance, currentProfile.cash_balance);
+    }
+
+    showToast('✅ 매칭 수락 완료! 500P가 차감되었습니다.', '✅');
+    updateMatchBadge();
+    loadTutorRequests();
+
+  } catch (err) {
+    showToast('오류: ' + err.message, '❌');
+  }
+}
+
+async function rejectMatch(requestId) {
+  const ok = confirm('매칭 신청을 거절하시겠습니까?\n\n포인트 차감은 없습니다.');
+  if (!ok) return;
+
+  try {
+    const { error } = await sbClient
+      .from('tutor_match_requests')
+      .update({ status: 'rejected', responded_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (error) throw error;
+
+    showToast('신청을 거절했습니다', '🚫');
+    updateMatchBadge();
+    loadTutorRequests();
+
+  } catch (err) {
+    showToast('오류: ' + err.message, '❌');
+  }
+}
+
+async function updateMatchBadge() {
+  if (!sbClient || !currentUser) return;
+
+  const { count, error } = await sbClient
+    .from('tutor_match_requests')
+    .select('*', { count: 'exact', head: true })
+    .eq('tutor_id', currentUser.id)
+    .eq('status', 'pending');
+
+  const badge = document.getElementById('match-badge-teacher');
+  if (!badge) return;
+
+  if (!error && count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════
