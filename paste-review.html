@@ -957,20 +957,17 @@
     const GENERATE_SOLUTION_API = '/api/generate-solution'; // AI 해설 생성/수정
 
     // 태그 옵션 (수능/기출 중심, 필요시 수정)
-    // 학년-학기 옵션 (수능/모평 등 시험 출처는 나중에 exam_source 필드로 분리 예정)
+    // 순수 학년-학기만 (시험 출처는 별도 exam_source 필드로 분리 예정)
     const GRADE_OPTIONS = [
-      { value: '', label: '학년-학기' },
+      { value: '', label: '학년-학기 선택' },
       { value: '고1-1', label: '고1-1' },
       { value: '고1-2', label: '고1-2' },
       { value: '고2-1', label: '고2-1' },
       { value: '고2-2', label: '고2-2' },
       { value: '고3-1', label: '고3-1' },
       { value: '고3-2', label: '고3-2' },
-      { value: '수능', label: '수능 (고3)' },
-      { value: '모평-6월', label: '6월 모평 (고3)' },
-      { value: '모평-9월', label: '9월 모평 (고3)' },
-      { value: '학평', label: '학력평가' },
-      // 경찰대, 사관학교는 시험 출처이므로 제거 (단원 필드에 직접 입력)
+      { value: '중학교', label: '중학교' },
+      { value: '초등학교', label: '초등학교' },
     ];
     const DOMAIN_OPTIONS = [
       { value: '', label: '영역' },
@@ -1797,18 +1794,23 @@
         // 본문 (선택지 포함된 전체 텍스트)
         const fullText = p.question_text || '';
 
-        // 학년/학기 파싱
+        // 학년/학기 및 학교급 파싱
+        let schoolLevel = '고등학교';
         let grade = null;
         let semester = null;
         const gs = p._gradeSemester || '';
-        const gsMatch = gs.match(/고(\d)-(\d)/);
-        if (gsMatch) {
-          grade = parseInt(gsMatch[1]);
-          semester = parseInt(gsMatch[2]);
-        } else if (gs.includes('수능') || gs.includes('모평')) {
-          // 수능/모평은 고3 기준
-          grade = 3;
-          semester = gs.includes('6월') ? 1 : 2;
+
+        if (gs === '중학교') {
+          schoolLevel = '중학교';
+        } else if (gs === '초등학교') {
+          schoolLevel = '초등학교';
+        } else {
+          // "고1-1" 형식 파싱
+          const gsMatch = gs.match(/고(\d)-(\d)/);
+          if (gsMatch) {
+            grade = parseInt(gsMatch[1]);
+            semester = parseInt(gsMatch[2]);
+          }
         }
 
         // 그림 설명이 있으면 본문 끝에 추가
@@ -1823,12 +1825,12 @@
           content: contentWithFigure,
           answer: p._answer || null,
           solution: p._solutionLatex || null,
-          school_level: '고등학교',
+          school_level: schoolLevel,
           grade: grade,
           semester: semester,
           area: p._domain || null,
           unit: p._unit || null,
-          sub_unit: p._gradeSemester || null,  // 수능/모평 등 특수 시험 정보
+          sub_unit: null,  // 나중에 exam_source로 분리 예정
           question_type: p._subjectType || '객관식',
           difficulty: parseInt(p.points) || 3,  // 배점을 난이도로 임시 매핑
           status: 'approved',
