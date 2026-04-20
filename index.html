@@ -10879,39 +10879,41 @@ async function submitProfile() {
 let smsState = {
   students: [],
   exams: [],
+  examSessions: {},  // examId -> { studentId -> session }
   selectedStudents: new Set(),
-  messageType: 'grade',
+  selectedTypes: new Set(['grade']),  // 다중 선택 가능
   selectedExamId: null,
   includeReportUrl: true,
-  currentTab: 'compose' // 'compose' | 'history'
+  customMessage: '',
+  currentTab: 'compose'
 };
 
-const SMS_TEMPLATES = {
-  grade: `[파이데이아솔루션]
-{학생이름} 학생의 {시험이름} 성적을 알려드립니다.
-
+// 섹션별 템플릿 (다중 선택 시 이어붙임)
+const SMS_SECTION_TEMPLATES = {
+  grade: {
+    icon: '📊',
+    title: '성적 통보',
+    content: `- 시험: {시험이름}
 - 점수: {점수}점
-- 정답: {정답수}/{총문제수}
-{리포트URL}
-문의: 선생님께 직접 연락 주세요.`,
-
-  attendance: `[파이데이아솔루션]
-{학생이름} 학생의 {날짜} 수업 참석 상태를 알려드립니다.
-
-- 상태: {출결상태}
-- 수업명: {수업명}
-
-문의: 선생님께 직접 연락 주세요.`,
-
-  homework: `[파이데이아솔루션]
-{학생이름} 학생의 숙제 현황을 알려드립니다.
-
-- 미완료 과제: {과제명}
-- 마감일: {마감일}
-
-문의: 선생님께 직접 연락 주세요.`,
-
-  custom: ''
+- 정답: {정답수}/{총문제수}`
+  },
+  attendance: {
+    icon: '📋',
+    title: '출결 통보',
+    content: `- 수업: {수업명}
+- 상태: {출결상태}`
+  },
+  homework: {
+    icon: '📚',
+    title: '숙제 현황',
+    content: `- 미완료: {과제명}
+- 마감일: {마감일}`
+  },
+  custom: {
+    icon: '✏️',
+    title: '추가 안내',
+    content: '{자유메시지}'
+  }
 };
 
 async function loadSmsView() {
@@ -10942,6 +10944,10 @@ async function loadSmsView() {
   smsState.students = students || [];
   smsState.exams = exams || [];
   smsState.selectedStudents = new Set();
+  smsState.selectedTypes = new Set(['grade']);  // 기본: 성적 통보
+  smsState.selectedExamId = null;
+  smsState.examSessions = {};
+  smsState.customMessage = '';
 
   wrap.innerHTML = `
     <!-- 탭 -->
@@ -10982,18 +10988,18 @@ async function loadSmsView() {
             </div>
           </div>
 
-          <!-- 메시지 유형 -->
+          <!-- 메시지 유형 (체크박스 - 다중 선택) -->
           <div class="card">
-            <div class="card-title">📝 메시지 유형</div>
+            <div class="card-title">📝 메시지 유형 <span style="font-size:11px;font-weight:400;color:var(--text3)">(복수 선택 가능)</span></div>
             <div style="display:flex;flex-direction:column;gap:8px">
               ${[
-                { value: 'grade', label: '성적 통보', icon: '📊' },
-                { value: 'attendance', label: '출결 통보', icon: '📋' },
-                { value: 'homework', label: '숙제 미완료 알림', icon: '📚' },
-                { value: 'custom', label: '자유 작성', icon: '✏️' }
+                { value: 'grade', label: '성적 통보', icon: '📊', checked: true },
+                { value: 'attendance', label: '출결 통보', icon: '📋', checked: false },
+                { value: 'homework', label: '숙제 미완료 알림', icon: '📚', checked: false },
+                { value: 'custom', label: '자유 작성', icon: '✏️', checked: false }
               ].map(t => `
-                <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer" onclick="smsSetType('${t.value}')">
-                  <input type="radio" name="sms-type" value="${t.value}" ${t.value === 'grade' ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)">
+                <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s" id="sms-type-label-${t.value}">
+                  <input type="checkbox" name="sms-type" value="${t.value}" ${t.checked ? 'checked' : ''} onchange="smsToggleType('${t.value}')" style="width:16px;height:16px;accent-color:var(--accent)">
                   <span style="font-size:14px">${t.icon}</span>
                   <span style="font-size:13px;font-weight:500;color:var(--text)">${t.label}</span>
                 </label>
@@ -11002,11 +11008,12 @@ async function loadSmsView() {
 
             <!-- 성적 통보 시 시험 선택 -->
             <div id="sms-exam-select-wrap" style="margin-top:14px">
-              <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">시험 선택</div>
+              <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">시험 선택 <span style="color:var(--red)">*</span></div>
               <select id="sms-exam-select" onchange="smsSetExam(this.value)" class="form-input" style="width:100%">
                 <option value="">시험을 선택하세요</option>
                 ${smsState.exams.map(e => `<option value="${e.id}">${escHtml(e.title)} (${e.exam_date || '-'})</option>`).join('')}
               </select>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">성적 통보 선택 시 시험을 반드시 선택하세요</div>
             </div>
 
             <!-- 리포트 URL 포함 옵션 -->
@@ -11016,22 +11023,26 @@ async function loadSmsView() {
                 <span style="font-size:13px;color:var(--text2)">학생별 성적 리포트 링크 포함</span>
               </label>
             </div>
+
+            <!-- 자유 작성 영역 -->
+            <div id="sms-custom-wrap" style="margin-top:14px;display:none">
+              <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">자유 작성 내용</div>
+              <textarea id="sms-custom-message" oninput="smsState.customMessage = this.value; smsUpdatePreview()" placeholder="추가로 전달할 내용을 입력하세요..." style="width:100%;min-height:80px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;line-height:1.6;resize:vertical;font-family:inherit;color:var(--text)"></textarea>
+            </div>
           </div>
         </div>
 
-        <!-- 오른쪽: 메시지 내용 + 미리보기 -->
+        <!-- 오른쪽: 미리보기 + 발송 -->
         <div style="display:flex;flex-direction:column;gap:16px">
-          <!-- 메시지 내용 -->
-          <div class="card">
-            <div class="card-title">💬 메시지 내용</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">
-              변수: <span style="background:rgba(246,173,85,0.2);padding:1px 4px;border-radius:3px;color:var(--yellow)">{학생이름}</span>
-              <span style="background:rgba(246,173,85,0.2);padding:1px 4px;border-radius:3px;color:var(--yellow)">{시험이름}</span>
-              <span style="background:rgba(246,173,85,0.2);padding:1px 4px;border-radius:3px;color:var(--yellow)">{점수}</span> 등
-            </div>
-            <textarea id="sms-message-content" oninput="smsUpdatePreview()" style="width:100%;min-height:180px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;resize:vertical;font-family:inherit;color:var(--text)">${SMS_TEMPLATES.grade}</textarea>
-            <div style="text-align:right;font-size:11px;color:var(--text3);margin-top:4px">
-              <span id="sms-char-count">0</span>자 (90자 초과 시 장문)
+          <!-- 글자 수 표시 -->
+          <div class="card" style="padding:14px 18px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px;color:var(--text2)">예상 문자 길이</span>
+              <div id="sms-char-display" style="display:flex;align-items:center;gap:8px">
+                <span id="sms-char-count" style="font-size:18px;font-weight:700;font-family:'Space Mono',monospace;color:var(--green)">0</span>
+                <span style="font-size:12px;color:var(--text3)">자</span>
+                <span id="sms-char-badge" style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(62,207,142,0.1);color:var(--green)">단문</span>
+              </div>
             </div>
           </div>
 
@@ -11107,16 +11118,52 @@ function smsToggleStudent(studentId) {
   smsUpdateUI();
 }
 
-function smsSetType(type) {
-  smsState.messageType = type;
-  document.getElementById('sms-message-content').value = SMS_TEMPLATES[type] || '';
-  document.getElementById('sms-exam-select-wrap').style.display = type === 'grade' ? 'block' : 'none';
-  document.getElementById('sms-report-option').style.display = type === 'grade' ? 'block' : 'none';
+function smsToggleType(type) {
+  if (smsState.selectedTypes.has(type)) {
+    smsState.selectedTypes.delete(type);
+  } else {
+    smsState.selectedTypes.add(type);
+  }
+
+  // UI 업데이트
+  const hasGrade = smsState.selectedTypes.has('grade');
+  const hasCustom = smsState.selectedTypes.has('custom');
+
+  document.getElementById('sms-exam-select-wrap').style.display = hasGrade ? 'block' : 'none';
+  document.getElementById('sms-report-option').style.display = hasGrade ? 'block' : 'none';
+  document.getElementById('sms-custom-wrap').style.display = hasCustom ? 'block' : 'none';
+
+  // 레이블 스타일 업데이트
+  ['grade', 'attendance', 'homework', 'custom'].forEach(t => {
+    const label = document.getElementById(`sms-type-label-${t}`);
+    if (label) {
+      label.style.borderColor = smsState.selectedTypes.has(t) ? 'var(--accent)' : 'var(--border)';
+      label.style.background = smsState.selectedTypes.has(t) ? 'rgba(255,107,107,0.05)' : 'var(--bg3)';
+    }
+  });
+
   smsUpdatePreview();
 }
 
 function smsSetExam(examId) {
   smsState.selectedExamId = examId || null;
+  // 시험 선택 시 해당 시험의 세션 데이터 로드
+  if (examId) {
+    loadExamSessions(examId);
+  }
+  smsUpdatePreview();
+}
+
+async function loadExamSessions(examId) {
+  const { data: sessions } = await sbClient
+    .from('exam_sessions')
+    .select('*')
+    .eq('exam_id', examId);
+
+  smsState.examSessions[examId] = {};
+  (sessions || []).forEach(s => {
+    smsState.examSessions[examId][s.student_id] = s;
+  });
   smsUpdatePreview();
 }
 
@@ -11124,61 +11171,157 @@ function smsUpdateUI() {
   const count = smsState.selectedStudents.size;
   document.getElementById('sms-selected-count').textContent = count;
   const btn = document.getElementById('sms-send-btn');
-  const hasPhone = [...smsState.selectedStudents].some(id => {
-    const s = smsState.students.find(st => st.id === id);
-    return s?.parent_phone;
-  });
-  btn.disabled = count === 0;
-  btn.style.opacity = count > 0 ? '1' : '0.5';
+  btn.disabled = count === 0 || smsState.selectedTypes.size === 0;
+  btn.style.opacity = (count > 0 && smsState.selectedTypes.size > 0) ? '1' : '0.5';
   btn.textContent = `📲 예약 발송 (${count}명)`;
   smsUpdatePreview();
 }
 
 function smsUpdatePreview() {
-  const content = document.getElementById('sms-message-content')?.value || '';
-  document.getElementById('sms-char-count').textContent = content.length;
-
   const previewEl = document.getElementById('sms-preview-content');
   if (!previewEl) return;
 
   const firstId = [...smsState.selectedStudents][0];
   const student = smsState.students.find(s => s.id === firstId);
 
-  if (!student) {
-    previewEl.textContent = '학생을 선택하면 미리보기가 표시됩니다.';
+  if (smsState.selectedTypes.size === 0) {
+    previewEl.textContent = '메시지 유형을 1개 이상 선택하세요.';
+    updateCharCount(0);
     return;
   }
 
-  const exam = smsState.exams.find(e => e.id === smsState.selectedExamId);
-  let preview = content
-    .replace(/\{학생이름\}/g, student.name || '학생')
-    .replace(/\{시험이름\}/g, exam?.title || '시험')
-    .replace(/\{점수\}/g, '85')
-    .replace(/\{정답수\}/g, '17')
-    .replace(/\{총문제수\}/g, '20')
-    .replace(/\{백분위\}/g, '15')
-    .replace(/\{날짜\}/g, new Date().toLocaleDateString('ko-KR'))
-    .replace(/\{출결상태\}/g, '출석')
-    .replace(/\{수업명\}/g, '수학')
-    .replace(/\{과제명\}/g, '단원평가 준비')
-    .replace(/\{마감일\}/g, '2026-04-25')
-    .replace(/\{진행률\}/g, '60');
-
-  if (smsState.includeReportUrl && smsState.messageType === 'grade') {
-    preview = preview.replace(/\{리포트URL\}/g, `- 자세한 내용: https://mathiq-psi.vercel.app/student-report.html?student_id=${student.id}\n`);
-  } else {
-    preview = preview.replace(/\{리포트URL\}\n?/g, '');
+  if (!student) {
+    previewEl.textContent = '학생을 선택하면 미리보기가 표시됩니다.';
+    updateCharCount(0);
+    return;
   }
 
-  previewEl.textContent = preview;
+  // 메시지 조합
+  const content = buildSmsContent(student);
+  previewEl.textContent = content;
+  updateCharCount(content.length);
+}
+
+function buildSmsContent(student) {
+  const types = [...smsState.selectedTypes];
+  const exam = smsState.exams.find(e => e.id === smsState.selectedExamId);
+  const session = smsState.selectedExamId && smsState.examSessions[smsState.selectedExamId]
+    ? smsState.examSessions[smsState.selectedExamId][student.id]
+    : null;
+
+  let sections = [];
+
+  // 헤더
+  let header = `[파이데이아솔루션]\n${student.name || '학생'} 학생에 대한 알림입니다.`;
+
+  // 각 유형별 섹션 추가
+  types.forEach(type => {
+    if (type === 'custom') return; // custom은 마지막에 처리
+
+    const tmpl = SMS_SECTION_TEMPLATES[type];
+    if (!tmpl) return;
+
+    let sectionContent = tmpl.content;
+
+    if (type === 'grade') {
+      // 성적 데이터 치환
+      if (!exam) {
+        sectionContent = sectionContent
+          .replace(/\{시험이름\}/g, '(시험 선택 필요)')
+          .replace(/\{점수\}/g, '-')
+          .replace(/\{정답수\}/g, '-')
+          .replace(/\{총문제수\}/g, '-');
+      } else if (!session) {
+        sectionContent = sectionContent
+          .replace(/\{시험이름\}/g, exam.title)
+          .replace(/\{점수\}/g, '응시 기록 없음')
+          .replace(/\{정답수\}/g, '-')
+          .replace(/\{총문제수\}/g, '-');
+      } else {
+        const answers = session.answers || {};
+        const totalQ = Object.keys(answers).length || '-';
+        sectionContent = sectionContent
+          .replace(/\{시험이름\}/g, exam.title)
+          .replace(/\{점수\}/g, session.score != null ? session.score : '-')
+          .replace(/\{정답수\}/g, '-')
+          .replace(/\{총문제수\}/g, totalQ);
+      }
+    } else if (type === 'attendance') {
+      sectionContent = sectionContent
+        .replace(/\{수업명\}/g, '(수업 데이터 연동 예정)')
+        .replace(/\{출결상태\}/g, '-');
+    } else if (type === 'homework') {
+      sectionContent = sectionContent
+        .replace(/\{과제명\}/g, '(숙제 데이터 연동 예정)')
+        .replace(/\{마감일\}/g, '-');
+    }
+
+    sections.push(`${tmpl.icon} ${tmpl.title}\n${sectionContent}`);
+  });
+
+  // 자유 작성 추가
+  if (types.includes('custom') && smsState.customMessage.trim()) {
+    sections.push(`✏️ 추가 안내\n${smsState.customMessage.trim()}`);
+  }
+
+  // 최종 조합
+  let result = header;
+  if (sections.length > 0) {
+    result += '\n\n━━━━━━━━━━━━━━\n' + sections.join('\n━━━━━━━━━━━━━━\n') + '\n━━━━━━━━━━━━━━';
+  }
+
+  // 리포트 URL
+  if (smsState.includeReportUrl && smsState.selectedTypes.has('grade') && smsState.selectedExamId) {
+    result += `\n\n📊 성적 리포트: https://mathiq-psi.vercel.app/student-report.html?student_id=${student.id}&exam_id=${smsState.selectedExamId}`;
+  }
+
+  result += '\n\n문의: 선생님께 직접 연락 주세요.';
+
+  return result;
+}
+
+function updateCharCount(len) {
+  const countEl = document.getElementById('sms-char-count');
+  const badgeEl = document.getElementById('sms-char-badge');
+  if (!countEl || !badgeEl) return;
+
+  countEl.textContent = len;
+
+  if (len > 2000) {
+    countEl.style.color = 'var(--red)';
+    badgeEl.textContent = '초과!';
+    badgeEl.style.background = 'rgba(245,101,101,0.1)';
+    badgeEl.style.color = 'var(--red)';
+  } else if (len > 90) {
+    countEl.style.color = 'var(--yellow)';
+    badgeEl.textContent = '장문';
+    badgeEl.style.background = 'rgba(246,173,85,0.1)';
+    badgeEl.style.color = 'var(--yellow)';
+  } else {
+    countEl.style.color = 'var(--green)';
+    badgeEl.textContent = '단문';
+    badgeEl.style.background = 'rgba(62,207,142,0.1)';
+    badgeEl.style.color = 'var(--green)';
+  }
 }
 
 async function smsSendMessages() {
   const selectedIds = [...smsState.selectedStudents];
-  if (selectedIds.length === 0) return;
+  if (selectedIds.length === 0) {
+    showToast('발송 대상 학생을 선택하세요', '⚠️');
+    return;
+  }
 
-  const content = document.getElementById('sms-message-content')?.value || '';
-  const exam = smsState.exams.find(e => e.id === smsState.selectedExamId);
+  if (smsState.selectedTypes.size === 0) {
+    showToast('메시지 유형을 1개 이상 선택하세요', '⚠️');
+    return;
+  }
+
+  // 성적 통보 선택했는데 시험 미선택
+  if (smsState.selectedTypes.has('grade') && !smsState.selectedExamId) {
+    showToast('성적 통보를 위해 시험을 선택하세요', '⚠️');
+    return;
+  }
 
   // 발송 대상 중 번호 있는 학생만 필터
   const targets = selectedIds.map(id => smsState.students.find(s => s.id === id)).filter(s => s?.parent_phone);
@@ -11195,36 +11338,20 @@ async function smsSendMessages() {
 
   if (!confirm(msg)) return;
 
+  // 선택된 유형들 JSON 문자열로
+  const typesJson = JSON.stringify([...smsState.selectedTypes]);
+
   // DB에 저장
   const records = targets.map(s => {
-    let finalContent = content
-      .replace(/\{학생이름\}/g, s.name || '학생')
-      .replace(/\{시험이름\}/g, exam?.title || '시험')
-      .replace(/\{점수\}/g, '-')
-      .replace(/\{정답수\}/g, '-')
-      .replace(/\{총문제수\}/g, '-')
-      .replace(/\{백분위\}/g, '-')
-      .replace(/\{날짜\}/g, new Date().toLocaleDateString('ko-KR'))
-      .replace(/\{출결상태\}/g, '-')
-      .replace(/\{수업명\}/g, '-')
-      .replace(/\{과제명\}/g, '-')
-      .replace(/\{마감일\}/g, '-')
-      .replace(/\{진행률\}/g, '-');
-
-    if (smsState.includeReportUrl && smsState.messageType === 'grade') {
-      finalContent = finalContent.replace(/\{리포트URL\}/g, `- 자세한 내용: https://mathiq-psi.vercel.app/student-report.html?student_id=${s.id}\n`);
-    } else {
-      finalContent = finalContent.replace(/\{리포트URL\}\n?/g, '');
-    }
-
+    const finalContent = buildSmsContent(s);
     return {
       sender_id: currentUser.id,
       student_id: s.id,
       recipient_phone: s.parent_phone,
-      message_type: smsState.messageType,
+      message_type: typesJson,  // JSON 배열 문자열
       message_content: finalContent,
       related_exam_id: smsState.selectedExamId || null,
-      include_report_url: smsState.includeReportUrl && smsState.messageType === 'grade',
+      include_report_url: smsState.includeReportUrl && smsState.selectedTypes.has('grade'),
       status: 'pending'
     };
   });
@@ -11265,7 +11392,17 @@ async function loadSmsHistory() {
   }
 
   const statusLabel = { pending: '🟡 예약됨', sent: '✅ 발송 완료', failed: '❌ 실패' };
-  const typeLabel = { grade: '성적 통보', attendance: '출결 통보', homework: '숙제 알림', custom: '자유 작성' };
+  const typeLabel = { grade: '📊 성적', attendance: '📋 출결', homework: '📚 숙제', custom: '✏️ 자유' };
+
+  function parseTypes(mt) {
+    try {
+      const arr = JSON.parse(mt);
+      if (Array.isArray(arr)) {
+        return arr.map(t => typeLabel[t] || t).join(', ');
+      }
+    } catch (e) {}
+    return typeLabel[mt] || mt;
+  }
 
   wrap.innerHTML = `
     <div class="table-wrap">
@@ -11284,7 +11421,7 @@ async function loadSmsHistory() {
             <tr>
               <td style="font-size:12px;color:var(--text2);white-space:nowrap">${new Date(h.created_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</td>
               <td style="font-weight:600">${h.students?.name || '-'}</td>
-              <td><span class="chip">${typeLabel[h.message_type] || h.message_type}</span></td>
+              <td style="font-size:11px">${parseTypes(h.message_type)}</td>
               <td>${statusLabel[h.status] || h.status}</td>
               <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2)" title="${escHtml(h.message_content)}">${escHtml((h.message_content || '').substring(0, 50))}...</td>
             </tr>
