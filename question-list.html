@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>등록된 문제 목록 · MathIQ</title>
+
+  <!-- Pretendard (한글) + JetBrains Mono (수식 편집기) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+
+  <style>
+    /* ==============================================
+       DESIGN TOKENS (paste-review.html과 동일)
+       ============================================== */
+    :root {
+      --bg-page: #FBFAF7;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #F5F3EE;
+      --bg-code: #FAF8F3;
+      --text-primary: #1A1A1A;
+      --text-secondary: #5C5A55;
+      --text-tertiary: #8B8882;
+      --text-on-accent: #FFFFFF;
+      --border-subtle: #EAE7E0;
+      --border-default: #D8D4CB;
+      --border-focus: #FF6B6B;
+      --accent: #FF6B6B;
+      --accent-hover: #E85555;
+      --accent-soft: #FFE8E8;
+      --success: #2E8B6F;
+      --success-soft: #E0F2EB;
+      --warning: #C68617;
+      --warning-soft: #FAF0DD;
+      --danger: #C0392B;
+      --danger-soft: #FBE4E0;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    /* ==============================================
+       RESET + BASE
+       ============================================== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-y: scroll;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    input, textarea, select { font-family: inherit; }
+
+    /* ==============================================
+       HEADER
+       ============================================== */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      gap: 16px;
+    }
+    .header__logo {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+    .header__logo .brand { color: var(--accent); }
+    .header__divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-default);
+    }
+    .header__title {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .header__spacer { flex: 1; }
+    .header__user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .header__badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .header__btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .header__btn:hover {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+    }
+
+    /* ==============================================
+       AUTH GATE
+       ============================================== */
+    .auth-gate {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-page);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .auth-gate__title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .auth-gate__desc {
+      color: var(--text-secondary);
+    }
+
+    /* ==============================================
+       MAIN CONTAINER
+       ============================================== */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 32px 80px;
+    }
+
+    /* ==============================================
+       STATS DASHBOARD
+       ============================================== */
+    .stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      flex: 1;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-card__label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .stat-card__value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary);
+    }
+    .stat-card__sub {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* ==============================================
+       FILTER BAR
+       ============================================== */
+    .filter-bar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .filter-bar__search {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+    .filter-bar__search:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    .filter-bar__select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      background: var(--bg-surface);
+      min-width: 100px;
+    }
+    .filter-bar__btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+    }
+    .filter-bar__btn--primary {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    .filter-bar__btn--primary:hover { background: var(--accent-hover); }
+    .filter-bar__btn--secondary {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+    }
+    .filter-bar__btn--secondary:hover {
+      background: var(--border-default);
+    }
+
+    /* ==============================================
+       QUESTION CARDS
+       ============================================== */
+    .question-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .q-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s;
+    }
+    .q-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    .q-card--editing {
+      border-color: var(--accent);
+    }
+
+    .q-card__header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--bg-code);
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+    }
+    .q-card__id {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+    }
+    .q-card__meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .q-card__badges {
+      display: flex;
+      gap: 6px;
+    }
+    .q-card__badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .q-card__badge--approved {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+    .q-card__badge--pending {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+    .q-card__spacer { flex: 1; }
+    .q-card__toggle {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      padding: 4px 8px;
+    }
+    .q-card__actions {
+      display: flex;
+      gap: 6px;
+    }
+    .q-card__action {
+      padding: 4px 10px;
+      font-size: 11px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .q-card__action--edit {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+    }
+    .q-card__action--edit:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .q-card__action--delete {
+      background: var(--bg-subtle);
+      color: var(--text-tertiary);
+    }
+    .q-card__action--delete:hover {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .q-card__body {
+      padding: 16px 20px;
+      display: none;
+    }
+    .q-card--expanded .q-card__body {
+      display: block;
+    }
+    .q-card__content {
+      font-size: 14px;
+      line-height: 1.8;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--bg-code);
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+    }
+    .q-card__footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding-top: 12px;
+      border-top: 1px dashed var(--border-subtle);
+    }
+    .q-card__footer-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .q-card__footer-label {
+      color: var(--text-tertiary);
+    }
+
+    /* ---- 해설 영역 ---- */
+    .q-card__solution {
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--success-soft);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--success);
+    }
+    .q-card__solution-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--success);
+      margin-bottom: 8px;
+    }
+    .q-card__solution-content {
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    /* ---- 편집 모드 ---- */
+    .q-card__edit-form {
+      display: none;
+      padding: 16px 20px;
+    }
+    .q-card--editing .q-card__edit-form {
+      display: block;
+    }
+    .q-card--editing .q-card__body {
+      display: none;
+    }
+    .edit-field {
+      margin-bottom: 12px;
+    }
+    .edit-field__label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .edit-field__input,
+    .edit-field__textarea,
+    .edit-field__select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+    .edit-field__textarea {
+      min-height: 120px;
+      font-family: 'JetBrains Mono', monospace;
+      resize: vertical;
+    }
+    .edit-field__input:focus,
+    .edit-field__textarea:focus,
+    .edit-field__select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    .edit-field__row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .edit-actions__btn {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+    }
+    .edit-actions__btn--save {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    .edit-actions__btn--save:hover { background: var(--accent-hover); }
+    .edit-actions__btn--cancel {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+    }
+
+    /* ==============================================
+       PAGINATION
+       ============================================== */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+      padding: 16px;
+    }
+    .pagination__info {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination__btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .pagination__btn:hover:not(:disabled) {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+    }
+    .pagination__btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ==============================================
+       LOADING / TOAST / EMPTY
+       ============================================== */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2.5px solid var(--border-default);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      padding: 12px 20px;
+      background: var(--text-primary);
+      color: var(--bg-surface);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.25s;
+    }
+    .toast--visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast--success { background: var(--success); }
+    .toast--error { background: var(--danger); }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .empty-state__icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+    .empty-state__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    /* ==============================================
+       CONFIRM MODAL
+       ============================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay--visible {
+      display: flex;
+    }
+    .modal {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal__title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .modal__desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+    .modal__actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .modal__btn {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+    }
+    .modal__btn--danger {
+      background: var(--danger);
+      color: var(--text-on-accent);
+    }
+    .modal__btn--cancel {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <!-- 인증 게이트 -->
+  <div id="authGate" class="auth-gate">
+    <div class="spinner"></div>
+    <div id="authGateTitle" class="auth-gate__title">인증 확인 중...</div>
+    <div id="authGateDesc" class="auth-gate__desc"></div>
+  </div>
+
+  <!-- 앱 -->
+  <div id="app" style="display:none">
+    <!-- 헤더 -->
+    <header class="header">
+      <div class="header__logo">
+        <span class="brand">MathIQ</span>
+      </div>
+      <div class="header__divider"></div>
+      <span class="header__title">등록된 문제 목록</span>
+      <div class="header__spacer"></div>
+      <div class="header__user">
+        <span class="header__badge">운영자</span>
+        <span id="userInfo">-</span>
+      </div>
+      <a href="/" class="header__btn">← 메인</a>
+      <a href="/paste-review.html" class="header__btn">+ 문제 등록</a>
+    </header>
+
+    <!-- 메인 -->
+    <main class="main">
+      <!-- 통계 대시보드 -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-card__label">총 등록 문제</div>
+          <div class="stat-card__value" id="statTotal">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">오늘 등록</div>
+          <div class="stat-card__value" id="statToday">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">검수 대기</div>
+          <div class="stat-card__value" id="statPending">-</div>
+          <div class="stat-card__sub">status = pending</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">승인 완료</div>
+          <div class="stat-card__value" id="statApproved">-</div>
+        </div>
+      </div>
+
+      <!-- 필터 바 -->
+      <div class="filter-bar">
+        <input type="text" id="searchInput" class="filter-bar__search" placeholder="문제 내용 검색..." />
+        <select id="filterGrade" class="filter-bar__select">
+          <option value="">전체 학년</option>
+          <option value="1">고1</option>
+          <option value="2">고2</option>
+          <option value="3">고3</option>
+        </select>
+        <select id="filterArea" class="filter-bar__select">
+          <option value="">전체 영역</option>
+        </select>
+        <select id="filterStatus" class="filter-bar__select">
+          <option value="">전체 상태</option>
+          <option value="approved">승인됨</option>
+          <option value="pending">대기중</option>
+        </select>
+        <select id="filterSort" class="filter-bar__select">
+          <option value="newest">최신순</option>
+          <option value="oldest">오래된순</option>
+        </select>
+        <button class="filter-bar__btn filter-bar__btn--primary" onclick="applyFilters()">검색</button>
+        <button class="filter-bar__btn filter-bar__btn--secondary" onclick="resetFilters()">초기화</button>
+      </div>
+
+      <!-- 문제 리스트 -->
+      <div id="loadingState" class="loading" style="display:none">
+        <div class="spinner"></div>
+        <span>문제 목록을 불러오는 중...</span>
+      </div>
+
+      <div id="emptyState" class="empty-state" style="display:none">
+        <div class="empty-state__icon">📭</div>
+        <div class="empty-state__title">등록된 문제가 없습니다</div>
+        <p>paste-review.html에서 문제를 등록해주세요.</p>
+      </div>
+
+      <div id="questionList" class="question-list"></div>
+
+      <!-- 페이지네이션 -->
+      <div id="pagination" class="pagination" style="display:none">
+        <button class="pagination__btn" id="prevBtn" onclick="prevPage()">← 이전</button>
+        <span class="pagination__info" id="pageInfo">1 / 1</span>
+        <button class="pagination__btn" id="nextBtn" onclick="nextPage()">다음 →</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- 삭제 확인 모달 -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal__title">문제 삭제</div>
+      <div class="modal__desc">정말 이 문제를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</div>
+      <div class="modal__actions">
+        <button class="modal__btn modal__btn--cancel" onclick="closeDeleteModal()">취소</button>
+        <button class="modal__btn modal__btn--danger" onclick="confirmDelete()">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ======== 설정 ========
+    const PAGE_SIZE = 20;
+    const AREA_OPTIONS = [
+      '공통수학1', '공통수학2', '대수', '미적분I', '미적분II',
+      '확률과통계', '기하', '수학', '수학I', '수학II', '미적분'
+    ];
+
+    // ======== Supabase 클라이언트 ========
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ======== 상태 ========
+    const state = {
+      currentUser: null,
+      questions: [],
+      totalCount: 0,
+      currentPage: 1,
+      filters: {
+        search: '',
+        grade: '',
+        area: '',
+        status: '',
+        sort: 'newest'
+      },
+      deleteTargetId: null,
+      editingId: null
+    };
+
+    // ======== DOM ========
+    const $ = (id) => document.getElementById(id);
+
+    // ======== 초기화 ========
+    (async () => {
+      // 영역 옵션 채우기
+      const areaSelect = $('filterArea');
+      AREA_OPTIONS.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        areaSelect.appendChild(opt);
+      });
+
+      const ok = await checkAuth();
+      if (!ok) return;
+
+      await loadStats();
+      await loadQuestions();
+    })();
+
+    // ======== 인증 체크 ========
+    async function checkAuth() {
+      $('authGate').style.display = 'flex';
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        $('authGateTitle').textContent = '로그인이 필요합니다';
+        $('authGateDesc').textContent = '이 페이지는 MathIQ 운영자만 접근할 수 있습니다.';
+        return false;
+      }
+
+      const { data: profile, error } = await sb
+        .from('profiles')
+        .select('role, email, name')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error || !profile || (profile.role !== 'admin' && profile.role !== 'staff')) {
+        $('authGateTitle').textContent = '접근 권한이 없습니다';
+        $('authGateDesc').textContent = '운영자 계정으로만 사용할 수 있습니다.';
+        return false;
+      }
+
+      state.currentUser = { ...session.user, profile };
+      $('userInfo').textContent = profile.name || profile.email || session.user.email;
+
+      $('authGate').style.display = 'none';
+      $('app').style.display = 'block';
+      return true;
+    }
+
+    // ======== 통계 로드 ========
+    async function loadStats() {
+      try {
+        // 총 개수
+        const { count: total } = await sb
+          .from('questions')
+          .select('id', { count: 'exact', head: true });
+
+        // 오늘 등록
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const { count: todayCount } = await sb
+          .from('questions')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', today.toISOString());
+
+        // pending
+        const { count: pending } = await sb
+          .from('questions')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending');
+
+        // approved
+        const { count: approved } = await sb
+          .from('questions')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'approved');
+
+        $('statTotal').textContent = total || 0;
+        $('statToday').textContent = todayCount || 0;
+        $('statPending').textContent = pending || 0;
+        $('statApproved').textContent = approved || 0;
+      } catch (err) {
+        console.error('Stats error:', err);
+      }
+    }
+
+    // ======== 문제 로드 ========
+    async function loadQuestions() {
+      $('loadingState').style.display = 'flex';
+      $('questionList').innerHTML = '';
+      $('emptyState').style.display = 'none';
+      $('pagination').style.display = 'none';
+
+      try {
+        let query = sb
+          .from('questions')
+          .select('*', { count: 'exact' });
+
+        // 필터 적용
+        if (state.filters.search) {
+          query = query.ilike('content', `%${state.filters.search}%`);
+        }
+        if (state.filters.grade) {
+          query = query.eq('grade', parseInt(state.filters.grade));
+        }
+        if (state.filters.area) {
+          query = query.eq('area', state.filters.area);
+        }
+        if (state.filters.status) {
+          query = query.eq('status', state.filters.status);
+        }
+
+        // 정렬
+        if (state.filters.sort === 'oldest') {
+          query = query.order('created_at', { ascending: true });
+        } else {
+          query = query.order('created_at', { ascending: false });
+        }
+
+        // 페이지네이션
+        const from = (state.currentPage - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
+
+        if (error) throw error;
+
+        state.questions = data || [];
+        state.totalCount = count || 0;
+
+        $('loadingState').style.display = 'none';
+
+        if (state.questions.length === 0) {
+          $('emptyState').style.display = 'block';
+          return;
+        }
+
+        renderQuestions();
+        renderPagination();
+
+      } catch (err) {
+        console.error('Load error:', err);
+        $('loadingState').style.display = 'none';
+        showToast(`로드 실패: ${err.message}`, 'error');
+      }
+    }
+
+    // ======== 문제 렌더링 ========
+    function renderQuestions() {
+      const list = $('questionList');
+      list.innerHTML = '';
+
+      state.questions.forEach(q => {
+        const card = document.createElement('div');
+        card.className = 'q-card' + (state.editingId === q.id ? ' q-card--editing' : '');
+        card.dataset.id = q.id;
+
+        const gradeStr = q.grade ? `고${q.grade}` : '';
+        const semesterStr = q.semester ? `-${q.semester}` : '';
+        const gradeFull = gradeStr + semesterStr;
+        const statusClass = q.status === 'approved' ? 'approved' : 'pending';
+        const statusLabel = q.status === 'approved' ? '승인됨' : '대기중';
+        const timeAgo = getTimeAgo(q.created_at);
+
+        card.innerHTML = `
+          <div class="q-card__header" onclick="toggleCard(${q.id})">
+            <span class="q-card__id">#${q.id}</span>
+            <span class="q-card__meta">${gradeFull || '-'} | ${q.area || '-'} | ${q.unit || '-'}</span>
+            <div class="q-card__badges">
+              <span class="q-card__badge q-card__badge--${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="q-card__spacer"></div>
+            <span class="q-card__toggle">▼ 펼치기</span>
+            <div class="q-card__actions" onclick="event.stopPropagation()">
+              <button class="q-card__action q-card__action--edit" onclick="startEdit(${q.id})">수정</button>
+              <button class="q-card__action q-card__action--delete" onclick="openDeleteModal(${q.id})">삭제</button>
+            </div>
+          </div>
+
+          <div class="q-card__body">
+            <div class="q-card__content" data-preview="${q.id}">${escapeHtml(q.content || '')}</div>
+            ${q.solution ? `
+              <div class="q-card__solution">
+                <div class="q-card__solution-title">해설</div>
+                <div class="q-card__solution-content" data-solution="${q.id}">${escapeHtml(q.solution || '')}</div>
+              </div>
+            ` : ''}
+            <div class="q-card__footer">
+              <div class="q-card__footer-item">
+                <span class="q-card__footer-label">답:</span>
+                <strong>${q.answer || '-'}</strong>
+              </div>
+              <div class="q-card__footer-item">
+                <span class="q-card__footer-label">유형:</span>
+                ${q.question_type || '-'}
+              </div>
+              <div class="q-card__footer-item">
+                <span class="q-card__footer-label">난이도:</span>
+                ${q.difficulty || '-'}
+              </div>
+              <div class="q-card__footer-item">
+                <span class="q-card__footer-label">등록:</span>
+                ${timeAgo}
+              </div>
+            </div>
+          </div>
+
+          <div class="q-card__edit-form">
+            ${renderEditForm(q)}
+          </div>
+        `;
+
+        list.appendChild(card);
+
+        // KaTeX 렌더링
+        setTimeout(() => {
+          renderMath(card.querySelector(`[data-preview="${q.id}"]`));
+          if (q.solution) {
+            renderMath(card.querySelector(`[data-solution="${q.id}"]`));
+          }
+        }, 0);
+      });
+    }
+
+    function renderEditForm(q) {
+      return `
+        <div class="edit-field">
+          <label class="edit-field__label">문제 본문 (LaTeX)</label>
+          <textarea class="edit-field__textarea" data-edit-content="${q.id}">${escapeHtml(q.content || '')}</textarea>
+        </div>
+        <div class="edit-field">
+          <label class="edit-field__label">해설 (LaTeX)</label>
+          <textarea class="edit-field__textarea" data-edit-solution="${q.id}">${escapeHtml(q.solution || '')}</textarea>
+        </div>
+        <div class="edit-field__row">
+          <div class="edit-field">
+            <label class="edit-field__label">답</label>
+            <input type="text" class="edit-field__input" data-edit-answer="${q.id}" value="${escapeHtml(q.answer || '')}" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-field__label">학년</label>
+            <select class="edit-field__select" data-edit-grade="${q.id}">
+              <option value="">선택</option>
+              <option value="1" ${q.grade === 1 ? 'selected' : ''}>고1</option>
+              <option value="2" ${q.grade === 2 ? 'selected' : ''}>고2</option>
+              <option value="3" ${q.grade === 3 ? 'selected' : ''}>고3</option>
+            </select>
+          </div>
+          <div class="edit-field">
+            <label class="edit-field__label">영역</label>
+            <select class="edit-field__select" data-edit-area="${q.id}">
+              <option value="">선택</option>
+              ${AREA_OPTIONS.map(a => `<option value="${a}" ${q.area === a ? 'selected' : ''}>${a}</option>`).join('')}
+            </select>
+          </div>
+          <div class="edit-field">
+            <label class="edit-field__label">단원</label>
+            <input type="text" class="edit-field__input" data-edit-unit="${q.id}" value="${escapeHtml(q.unit || '')}" />
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="edit-actions__btn edit-actions__btn--save" onclick="saveEdit(${q.id})">저장</button>
+          <button class="edit-actions__btn edit-actions__btn--cancel" onclick="cancelEdit(${q.id})">취소</button>
+        </div>
+      `;
+    }
+
+    // ======== 페이지네이션 렌더링 ========
+    function renderPagination() {
+      const totalPages = Math.ceil(state.totalCount / PAGE_SIZE);
+      if (totalPages <= 1) {
+        $('pagination').style.display = 'none';
+        return;
+      }
+
+      $('pagination').style.display = 'flex';
+      $('pageInfo').textContent = `${state.currentPage} / ${totalPages} (총 ${state.totalCount}개)`;
+      $('prevBtn').disabled = state.currentPage <= 1;
+      $('nextBtn').disabled = state.currentPage >= totalPages;
+    }
+
+    function prevPage() {
+      if (state.currentPage > 1) {
+        state.currentPage--;
+        loadQuestions();
+      }
+    }
+
+    function nextPage() {
+      const totalPages = Math.ceil(state.totalCount / PAGE_SIZE);
+      if (state.currentPage < totalPages) {
+        state.currentPage++;
+        loadQuestions();
+      }
+    }
+
+    // ======== 필터 ========
+    function applyFilters() {
+      state.filters.search = $('searchInput').value.trim();
+      state.filters.grade = $('filterGrade').value;
+      state.filters.area = $('filterArea').value;
+      state.filters.status = $('filterStatus').value;
+      state.filters.sort = $('filterSort').value;
+      state.currentPage = 1;
+      loadQuestions();
+    }
+
+    function resetFilters() {
+      $('searchInput').value = '';
+      $('filterGrade').value = '';
+      $('filterArea').value = '';
+      $('filterStatus').value = '';
+      $('filterSort').value = 'newest';
+      state.filters = { search: '', grade: '', area: '', status: '', sort: 'newest' };
+      state.currentPage = 1;
+      loadQuestions();
+    }
+
+    // ======== 카드 토글 ========
+    function toggleCard(id) {
+      const card = document.querySelector(`.q-card[data-id="${id}"]`);
+      if (!card) return;
+      card.classList.toggle('q-card--expanded');
+      const toggle = card.querySelector('.q-card__toggle');
+      if (toggle) {
+        toggle.textContent = card.classList.contains('q-card--expanded') ? '▲ 접기' : '▼ 펼치기';
+      }
+    }
+
+    // ======== 수정 ========
+    function startEdit(id) {
+      state.editingId = id;
+      renderQuestions();
+    }
+
+    function cancelEdit(id) {
+      state.editingId = null;
+      renderQuestions();
+    }
+
+    async function saveEdit(id) {
+      const content = document.querySelector(`[data-edit-content="${id}"]`)?.value || '';
+      const solution = document.querySelector(`[data-edit-solution="${id}"]`)?.value || '';
+      const answer = document.querySelector(`[data-edit-answer="${id}"]`)?.value || '';
+      const grade = document.querySelector(`[data-edit-grade="${id}"]`)?.value || null;
+      const area = document.querySelector(`[data-edit-area="${id}"]`)?.value || null;
+      const unit = document.querySelector(`[data-edit-unit="${id}"]`)?.value || '';
+
+      try {
+        const { error } = await sb
+          .from('questions')
+          .update({
+            content,
+            solution,
+            answer,
+            grade: grade ? parseInt(grade) : null,
+            area,
+            unit
+          })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        state.editingId = null;
+        showToast('수정 완료', 'success');
+        loadQuestions();
+        loadStats();
+
+      } catch (err) {
+        console.error('Save error:', err);
+        showToast(`수정 실패: ${err.message}`, 'error');
+      }
+    }
+
+    // ======== 삭제 ========
+    function openDeleteModal(id) {
+      state.deleteTargetId = id;
+      $('deleteModal').classList.add('modal-overlay--visible');
+    }
+
+    function closeDeleteModal() {
+      state.deleteTargetId = null;
+      $('deleteModal').classList.remove('modal-overlay--visible');
+    }
+
+    async function confirmDelete() {
+      if (!state.deleteTargetId) return;
+
+      try {
+        const { error } = await sb
+          .from('questions')
+          .delete()
+          .eq('id', state.deleteTargetId);
+
+        if (error) throw error;
+
+        closeDeleteModal();
+        showToast('삭제 완료', 'success');
+        loadQuestions();
+        loadStats();
+
+      } catch (err) {
+        console.error('Delete error:', err);
+        showToast(`삭제 실패: ${err.message}`, 'error');
+      }
+    }
+
+    // ======== 유틸 ========
+    function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg, type = '') {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast toast--visible' + (type ? ` toast--${type}` : '');
+      setTimeout(() => { t.className = 'toast'; }, 2800);
+    }
+
+    function getTimeAgo(dateStr) {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = Math.floor((now - date) / 1000);
+
+      if (diff < 60) return '방금 전';
+      if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+      if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+      return date.toLocaleDateString('ko-KR');
+    }
+
+    function renderMath(el) {
+      if (!el || !window.renderMathInElement) return;
+      try {
+        window.renderMathInElement(el, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+          ],
+          throwOnError: false,
+          errorColor: '#C0392B',
+        });
+      } catch (e) { console.warn('KaTeX error:', e); }
+    }
+
+    // 전역 노출
+    window.toggleCard = toggleCard;
+    window.startEdit = startEdit;
+    window.cancelEdit = cancelEdit;
+    window.saveEdit = saveEdit;
+    window.openDeleteModal = openDeleteModal;
+    window.closeDeleteModal = closeDeleteModal;
+    window.confirmDelete = confirmDelete;
+    window.applyFilters = applyFilters;
+    window.resetFilters = resetFilters;
+    window.prevPage = prevPage;
+    window.nextPage = nextPage;
+  </script>
+</body>
+</html>
