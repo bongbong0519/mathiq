@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MathIQ 페이지 검수 · Paideia Solution</title>
+
+  <!-- Pretendard (한글) + JetBrains Mono (수식 편집기) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* ==============================================
+       DESIGN TOKENS
+       ============================================== */
+    :root {
+      /* 배경 - 크림톤 베이스 (장시간 작업 피로 저감) */
+      --bg-page: #FBFAF7;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #F5F3EE;
+      --bg-code: #FAF8F3;
+
+      /* 텍스트 */
+      --text-primary: #1A1A1A;
+      --text-secondary: #5C5A55;
+      --text-tertiary: #8B8882;
+      --text-on-accent: #FFFFFF;
+
+      /* 테두리 */
+      --border-subtle: #EAE7E0;
+      --border-default: #D8D4CB;
+      --border-focus: #FF6B6B;
+
+      /* 브랜드 (MathIQ 코랄핑크) */
+      --accent: #FF6B6B;
+      --accent-hover: #E85555;
+      --accent-soft: #FFE8E8;
+
+      /* 상태 */
+      --success: #2E8B6F;
+      --success-soft: #E0F2EB;
+      --warning: #C68617;
+      --warning-soft: #FAF0DD;
+      --danger: #C0392B;
+      --danger-soft: #FBE4E0;
+
+      /* 그림자 */
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+
+      /* 간격 */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    /* ==============================================
+       RESET + BASE
+       ============================================== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-y: scroll;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    input, textarea, select { font-family: inherit; }
+
+    /* ==============================================
+       HEADER
+       ============================================== */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      gap: 24px;
+    }
+    .header__logo {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+    .header__logo .brand { color: var(--accent); }
+    .header__divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-default);
+    }
+    .header__title {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .header__spacer { flex: 1; }
+    .header__stat {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .header__user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .header__badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .header__btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+    }
+    .header__btn:hover {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+    }
+
+    /* ==============================================
+       EMPTY STATE (붙여넣기 대기)
+       ============================================== */
+    .empty {
+      max-width: 720px;
+      margin: 80px auto;
+      padding: 64px 32px;
+      text-align: center;
+    }
+    .empty__icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+      opacity: 0.4;
+    }
+    .empty__title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .empty__desc {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+    .empty__kbd {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-sm);
+    }
+    .empty__kbd kbd {
+      padding: 2px 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .empty__hint {
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ==============================================
+       MAIN LAYOUT (2컬럼)
+       ============================================== */
+    .main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px 32px 80px;
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* ---- 왼쪽: 원본 이미지 ---- */
+    .image-panel {
+      position: sticky;
+      top: 84px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .image-panel__header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .image-panel__body {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      background: var(--bg-subtle);
+    }
+    .image-panel__img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .image-panel__reset {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .image-panel__reset:hover { color: var(--danger); }
+
+    /* ---- 오른쪽: 카드 리스트 ---- */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .cards__header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 0 4px 4px;
+    }
+    .cards__count {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .cards__label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .cards__bulk {
+      margin-left: auto;
+      font-size: 12px;
+      padding: 6px 12px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .cards__bulk:hover {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    .cards__bulk:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ==============================================
+       PROBLEM CARD
+       ============================================== */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .card:focus-within {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-default);
+    }
+    .card--approved {
+      opacity: 0.5;
+      background: var(--success-soft);
+      border-color: var(--success);
+    }
+    .card--saving { opacity: 0.7; pointer-events: none; }
+
+    .card__head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-code);
+    }
+    .card__qnum {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--accent);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge--points {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+    }
+    .badge--type {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+    }
+    .badge--conf-high { background: var(--success-soft); color: var(--success); }
+    .badge--conf-medium { background: var(--warning-soft); color: var(--warning); }
+    .badge--conf-low { background: var(--danger-soft); color: var(--danger); }
+
+    .card__actions {
+      margin-left: auto;
+      display: flex;
+      gap: 6px;
+    }
+    .card__action-btn {
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .card__action-btn:hover {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+    }
+    .card__action-btn--danger:hover {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .card__body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: 200px;
+    }
+    .card__col {
+      padding: 16px 20px;
+    }
+    .card__col--editor {
+      border-right: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+    .card__col--preview {
+      background: var(--bg-code);
+    }
+    .card__col-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .card__textarea {
+      width: 100%;
+      min-height: 160px;
+      padding: 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+    .card__textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .card__preview {
+      min-height: 160px;
+      padding: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      line-height: 1.9;
+      overflow-x: auto;
+    }
+    .card__preview .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border-subtle);
+    }
+    .card__preview .figure-note {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: var(--warning-soft);
+      border-left: 3px solid var(--warning);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* ---- 카드 하단: 메타데이터 + 저장 ---- */
+    .card__meta {
+      padding: 14px 20px;
+      background: var(--bg-code);
+      border-top: 1px solid var(--border-subtle);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field__label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+    }
+    .field__select, .field__input {
+      padding: 6px 8px;
+      font-size: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      min-width: 0;
+    }
+    .field__select:focus, .field__input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .card__save {
+      padding: 8px 18px;
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .card__save:hover { background: var(--accent-hover); }
+    .card__save:disabled {
+      background: var(--success);
+      cursor: default;
+    }
+
+    /* ---- 답 + 그림 설명 ---- */
+    .card__footer {
+      padding: 12px 20px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .card__answer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card__answer-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      letter-spacing: 0.05em;
+    }
+    .card__answer-input {
+      width: 60px;
+      padding: 4px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+    }
+    .card__figure-textarea {
+      flex: 1;
+      min-height: 36px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.5;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      resize: vertical;
+      color: var(--text-secondary);
+    }
+
+    /* ==============================================
+       LOADING / TOAST
+       ============================================== */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 80px 20px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2.5px solid var(--border-default);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      padding: 12px 20px;
+      background: var(--text-primary);
+      color: var(--bg-surface);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.25s;
+      max-width: 400px;
+    }
+    .toast--visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast--success { background: var(--success); }
+    .toast--error { background: var(--danger); }
+
+    /* ==============================================
+       PASTE ZONE (떠있는 상태)
+       ============================================== */
+    .paste-zone-floating {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 90;
+      padding: 10px 18px;
+      background: var(--bg-surface);
+      border: 1px dashed var(--border-default);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .paste-zone-floating kbd {
+      padding: 2px 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    /* AUTH GATE */
+    .auth-gate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 40px;
+    }
+    .auth-gate h2 { font-size: 22px; margin-bottom: 12px; }
+    .auth-gate p { color: var(--text-secondary); margin-bottom: 24px; }
+    .auth-gate a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ==============================================
+       AUTH GATE (접근 권한 체크 중)
+       ============================================== -->
+  <div id="authGate" class="auth-gate" style="display:none">
+    <div>
+      <h2 id="authGateTitle">확인 중...</h2>
+      <p id="authGateDesc">잠시만 기다려주세요.</p>
+      <p><a href="/">← 메인으로 돌아가기</a></p>
+    </div>
+  </div>
+
+  <!-- ==============================================
+       MAIN APP
+       ============================================== -->
+  <div id="app" style="display:none">
+    <header class="header">
+      <div class="header__logo">
+        <span class="brand">Math</span>IQ
+      </div>
+      <div class="header__divider"></div>
+      <div class="header__title">페이지 검수</div>
+      <span class="header__badge">운영자</span>
+
+      <div class="header__spacer"></div>
+
+      <div class="header__stat" id="statCount">0 문제 대기 · 0 승인</div>
+      <div class="header__user" id="userInfo">—</div>
+      <a href="/" class="header__btn">← 메인</a>
+    </header>
+
+    <!-- 빈 상태 -->
+    <div id="emptyState" class="empty">
+      <div class="empty__icon">📋</div>
+      <h1 class="empty__title">페이지를 붙여넣어 주세요</h1>
+      <p class="empty__desc">
+        Windows 캡처 도구로 시험지 페이지를 캡처한 뒤,<br/>
+        이 화면에서 바로 붙여넣기 하세요. AI가 자동으로 문제를 추출합니다.
+      </p>
+      <div class="empty__kbd">
+        <kbd>Ctrl</kbd> + <kbd>V</kbd>
+        <span style="color: var(--text-tertiary); margin: 0 4px;">또는</span>
+        이미지 파일을 여기로 드래그
+      </div>
+      <div class="empty__hint">
+        💡 캡처 단축키: <strong>Win + Shift + S</strong> · 캡처 후 자동으로 클립보드에 저장됩니다
+      </div>
+    </div>
+
+    <!-- 로딩 -->
+    <div id="loadingState" class="loading" style="display:none">
+      <div class="spinner"></div>
+      <span>Claude Opus 4.7이 페이지를 분석 중입니다… (최대 30초)</span>
+    </div>
+
+    <!-- 메인 (이미지 + 카드 리스트) -->
+    <main id="mainLayout" class="main" style="display:none">
+      <aside class="image-panel">
+        <div class="image-panel__header">
+          <span>원본 이미지</span>
+          <button class="image-panel__reset" onclick="resetAll()">초기화</button>
+        </div>
+        <div class="image-panel__body">
+          <img id="sourceImage" class="image-panel__img" alt="업로드된 페이지" />
+        </div>
+      </aside>
+
+      <section>
+        <div class="cards__header">
+          <span class="cards__count" id="cardsCount">0</span>
+          <span class="cards__label">개의 문제가 추출되었습니다</span>
+          <button class="cards__bulk" id="bulkApproveBtn" onclick="bulkApprove()">
+            모두 일괄 승인
+          </button>
+        </div>
+        <div id="cardsList" class="cards"></div>
+      </section>
+    </main>
+
+    <!-- 떠있는 붙여넣기 힌트 -->
+    <div id="pasteZoneFloating" class="paste-zone-floating" style="display:none">
+      <kbd>Ctrl</kbd><kbd>V</kbd>로 다음 페이지 추가 가능
+    </div>
+  </div>
+
+  <!-- 토스트 -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ==============================================
+       SCRIPT
+       ============================================== -->
+  <script>
+    // ======== 설정 (봉쌤이 기존 index.html에서 복붙) ========
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';       // ← 기존 MathIQ index.html에서 복붙
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';  // ← 기존 MathIQ index.html에서 복붙
+    const EXTRACT_API = '/api/extract-page';             // Vercel Function 엔드포인트
+
+    // 태그 옵션 (수능/기출 중심, 필요시 수정)
+    const GRADE_OPTIONS = [
+      { value: '', label: '학년-학기' },
+      { value: '고1-1', label: '고1-1' },
+      { value: '고1-2', label: '고1-2' },
+      { value: '고2-1', label: '고2-1' },
+      { value: '고2-2', label: '고2-2' },
+      { value: '고3-1', label: '고3-1' },
+      { value: '고3-2', label: '고3-2' },
+      { value: '수능', label: '수능' },
+      { value: '모평-6월', label: '6월 모평' },
+      { value: '모평-9월', label: '9월 모평' },
+      { value: '학평', label: '학력평가' },
+      { value: '사관학교', label: '사관학교' },
+      { value: '경찰대', label: '경찰대' },
+    ];
+    const DOMAIN_OPTIONS = [
+      { value: '', label: '영역' },
+      { value: '공통수학1', label: '공통수학1' },
+      { value: '공통수학2', label: '공통수학2' },
+      { value: '대수', label: '대수' },
+      { value: '미적분I', label: '미적분I' },
+      { value: '미적분II', label: '미적분II' },
+      { value: '확률과통계', label: '확률과통계' },
+      { value: '기하', label: '기하' },
+      { value: '수학', label: '수학(구)' },
+      { value: '수학I', label: '수학I(구)' },
+      { value: '수학II', label: '수학II(구)' },
+      { value: '미적분', label: '미적분(구)' },
+    ];
+    const SUBJECT_TYPE_OPTIONS = [
+      { value: '객관식', label: '객관식' },
+      { value: '주관식', label: '주관식' },
+      { value: '서답형', label: '서답형' },
+    ];
+
+    // ======== Supabase 클라이언트 ========
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ======== 전역 상태 ========
+    const state = {
+      currentUser: null,
+      currentImageDataUrl: null,    // 현재 업로드된 페이지 이미지 (base64 data URL)
+      problems: [],                 // [{ id, q_num, question_text, ..., _approved: false }]
+      approvedCount: 0,
+    };
+
+    // ======== DOM ========
+    const $ = (id) => document.getElementById(id);
+
+    // ======== 인증 체크 ========
+    async function checkAuth() {
+      $('authGate').style.display = 'flex';
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        $('authGateTitle').textContent = '로그인이 필요합니다';
+        $('authGateDesc').textContent = '이 페이지는 MathIQ 운영자만 접근할 수 있습니다.';
+        return false;
+      }
+
+      // 운영자 권한 체크: users 테이블 또는 profiles 테이블 (기존 MathIQ 스키마에 맞춰 조정 필요)
+      // ★★ 기존 MathIQ에서 운영자 체크하는 방식과 동일하게 수정해주세요 ★★
+      const { data: profile, error } = await sb
+        .from('users')  // 또는 'profiles', 실제 테이블명으로 변경
+        .select('role, email, name')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error || !profile || (profile.role !== 'admin' && profile.role !== '운영자')) {
+        $('authGateTitle').textContent = '접근 권한이 없습니다';
+        $('authGateDesc').textContent = '운영자 계정으로만 사용할 수 있습니다.';
+        return false;
+      }
+
+      state.currentUser = { ...session.user, profile };
+      $('userInfo').textContent = profile.name || profile.email || session.user.email;
+
+      $('authGate').style.display = 'none';
+      $('app').style.display = 'block';
+      return true;
+    }
+
+    // ======== 붙여넣기 핸들러 ========
+    document.addEventListener('paste', async (e) => {
+      if (!state.currentUser) return;
+
+      const items = e.clipboardData?.items || [];
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const blob = item.getAsFile();
+          await handleImageBlob(blob);
+          return;
+        }
+      }
+    });
+
+    // 드래그 앤 드롭 지원
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    document.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      if (!state.currentUser) return;
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.type.startsWith('image/')) {
+        await handleImageBlob(file);
+      }
+    });
+
+    async function handleImageBlob(blob) {
+      // 1. Base64 변환
+      const dataUrl = await blobToDataUrl(blob);
+      state.currentImageDataUrl = dataUrl;
+
+      // 2. UI 전환: 로딩
+      $('emptyState').style.display = 'none';
+      $('mainLayout').style.display = 'none';
+      $('loadingState').style.display = 'flex';
+      $('sourceImage').src = dataUrl;
+
+      // 3. Claude API 호출
+      try {
+        const resp = await fetch(EXTRACT_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: dataUrl,
+            mediaType: blob.type || 'image/png',
+          }),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `API 오류 (${resp.status})`);
+        }
+
+        const { problems } = await resp.json();
+
+        if (!Array.isArray(problems) || problems.length === 0) {
+          throw new Error('추출된 문제가 없습니다. 이미지를 다시 확인해주세요.');
+        }
+
+        state.problems = problems.map((p, idx) => ({
+          ...p,
+          _localId: `p${Date.now()}_${idx}`,
+          _approved: false,
+          _saving: false,
+          _answer: '',
+          _gradeSemester: '',
+          _domain: '',
+          _unit: '',
+          _subjectType: p.subject_type || '객관식',
+        }));
+
+        renderCards();
+        $('loadingState').style.display = 'none';
+        $('mainLayout').style.display = 'grid';
+        $('pasteZoneFloating').style.display = 'flex';
+        showToast(`${state.problems.length}개 문제 추출 완료`, 'success');
+
+      } catch (err) {
+        console.error(err);
+        $('loadingState').style.display = 'none';
+        $('emptyState').style.display = 'block';
+        showToast(`추출 실패: ${err.message}`, 'error');
+      }
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // ======== 카드 렌더링 ========
+    function renderCards() {
+      $('cardsCount').textContent = state.problems.length;
+      const list = $('cardsList');
+      list.innerHTML = '';
+
+      state.problems.forEach((p) => {
+        list.appendChild(renderCard(p));
+      });
+
+      updateStats();
+    }
+
+    function renderCard(p) {
+      const card = document.createElement('article');
+      card.className = 'card' + (p._approved ? ' card--approved' : '') + (p._saving ? ' card--saving' : '');
+      card.dataset.id = p._localId;
+
+      // 신뢰도 뱃지
+      const conf = p.confidence || 'medium';
+      const confLabel = { high: '✓ 정확', medium: '△ 확인', low: '✗ 의심' }[conf];
+
+      // LaTeX 편집기 내용 (본문 + 선택지)
+      const editorValue = buildEditorText(p);
+
+      card.innerHTML = `
+        <div class="card__head">
+          <span class="card__qnum">#${p.q_num || '?'}</span>
+          <span class="badge badge--points">${p.points || '?'}점</span>
+          <span class="badge badge--type">${p._subjectType}</span>
+          <span class="badge badge--conf-${conf}">${confLabel}</span>
+          ${p.has_figure ? '<span class="badge badge--type">🖼 그림</span>' : ''}
+          <div class="card__actions">
+            <button class="card__action-btn" onclick="recompute('${p._localId}')" title="미리보기 재렌더">↻ 새로고침</button>
+            <button class="card__action-btn card__action-btn--danger" onclick="deleteCard('${p._localId}')">삭제</button>
+          </div>
+        </div>
+
+        <div class="card__body">
+          <div class="card__col card__col--editor">
+            <div class="card__col-label">LaTeX 편집기</div>
+            <textarea
+              class="card__textarea"
+              data-id="${p._localId}"
+              oninput="onEdit(this)"
+              spellcheck="false">${escapeHtml(editorValue)}</textarea>
+          </div>
+          <div class="card__col card__col--preview">
+            <div class="card__col-label">KaTeX 미리보기</div>
+            <div class="card__preview" data-preview="${p._localId}"></div>
+          </div>
+        </div>
+
+        <div class="card__footer">
+          <div class="card__answer">
+            <span class="card__answer-label">답</span>
+            <input type="text"
+              class="card__answer-input"
+              value="${escapeHtml(p._answer)}"
+              placeholder="①"
+              onchange="setField('${p._localId}', '_answer', this.value)" />
+          </div>
+          ${p.has_figure ? `
+            <textarea class="card__figure-textarea"
+              placeholder="그림 설명 (자동 추출됨, 필요시 수정)"
+              onchange="setField('${p._localId}', 'figure_description', this.value)">${escapeHtml(p.figure_description || '')}</textarea>
+          ` : ''}
+        </div>
+
+        <div class="card__meta">
+          <div class="field">
+            <label class="field__label">학년-학기</label>
+            <select class="field__select" onchange="setField('${p._localId}', '_gradeSemester', this.value)">
+              ${GRADE_OPTIONS.map(o => `<option value="${o.value}" ${o.value === p._gradeSemester ? 'selected' : ''}>${o.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">영역</label>
+            <select class="field__select" onchange="setField('${p._localId}', '_domain', this.value)">
+              ${DOMAIN_OPTIONS.map(o => `<option value="${o.value}" ${o.value === p._domain ? 'selected' : ''}>${o.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">단원</label>
+            <input type="text" class="field__input"
+              value="${escapeHtml(p._unit)}"
+              placeholder="예: 극한"
+              onchange="setField('${p._localId}', '_unit', this.value)" />
+          </div>
+          <div class="field">
+            <label class="field__label">유형</label>
+            <select class="field__select" onchange="setField('${p._localId}', '_subjectType', this.value)">
+              ${SUBJECT_TYPE_OPTIONS.map(o => `<option value="${o.value}" ${o.value === p._subjectType ? 'selected' : ''}>${o.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">배점</label>
+            <input type="text" class="field__input"
+              value="${escapeHtml(p.points || '')}"
+              placeholder="3"
+              onchange="setField('${p._localId}', 'points', this.value)" />
+          </div>
+          <button class="card__save" onclick="saveCard('${p._localId}')" ${p._approved ? 'disabled' : ''}>
+            ${p._approved ? '✓ 승인됨' : '✓ 승인 및 저장'}
+          </button>
+        </div>
+      `;
+
+      // KaTeX 미리보기 렌더링 (DOM 삽입 후)
+      setTimeout(() => renderPreview(p._localId, editorValue, p), 0);
+
+      return card;
+    }
+
+    // 편집기 초기값 구성: 문제 본문 + 선택지 (한 textarea에 몰아넣고 봉쌤이 자유롭게 편집)
+    function buildEditorText(p) {
+      let txt = p.question_text || '';
+      if (Array.isArray(p.choices) && p.choices.length > 0) {
+        txt += '\n\n' + p.choices.join('    ');
+      }
+      return txt;
+    }
+
+    // ======== 편집 → 미리보기 동기화 ========
+    function onEdit(textarea) {
+      const id = textarea.dataset.id;
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+      p.question_text = textarea.value;  // 통합 저장 (저장 시 본문+선택지 파싱)
+      renderPreview(id, textarea.value, p);
+    }
+
+    function renderPreview(id, latex, p) {
+      const el = document.querySelector(`[data-preview="${id}"]`);
+      if (!el) return;
+
+      const htmlContent = latex
+        .replace(/\n\n/g, '<div class="choices"></div>')
+        .replace(/\n/g, '<br/>');
+
+      el.innerHTML = htmlContent;
+
+      if (p.has_figure) {
+        const note = document.createElement('div');
+        note.className = 'figure-note';
+        note.textContent = '🖼 ' + (p.figure_description || '그림 설명 없음');
+        el.appendChild(note);
+      }
+
+      // KaTeX auto-render
+      if (window.renderMathInElement) {
+        try {
+          window.renderMathInElement(el, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+            ],
+            throwOnError: false,
+            errorColor: '#C0392B',
+          });
+        } catch (e) { console.warn('KaTeX render error:', e); }
+      }
+    }
+
+    function recompute(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+      const ta = document.querySelector(`textarea[data-id="${id}"]`);
+      renderPreview(id, ta.value, p);
+    }
+
+    // ======== 필드 업데이트 ========
+    function setField(id, field, value) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (p) p[field] = value;
+    }
+
+    // ======== 저장 (Supabase questions 테이블) ========
+    async function saveCard(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p || p._approved) return;
+
+      p._saving = true;
+      renderCards(); // 전체 리렌더보다 해당 카드만 업데이트하는 게 이상적이지만 일단 간단히
+
+      try {
+        // 본문과 선택지 분리 시도
+        const fullText = p.question_text || '';
+        const parts = fullText.split(/\n\n+/);
+        const bodyText = parts[0] || fullText;
+        const choicesText = parts.length > 1 ? parts.slice(1).join('\n\n') : '';
+        const choicesArray = choicesText
+          ? choicesText.split(/\s{2,}|\n/).filter(s => s.trim().length > 0)
+          : (p.choices || []);
+
+        // ★★ 기존 MathIQ questions 테이블 스키마에 맞춰 조정 필요 ★★
+        const payload = {
+          question_number: p.q_num,
+          question_text: bodyText.trim(),
+          choices: choicesArray,
+          correct_answer: p._answer || null,
+          points: parseInt(p.points) || null,
+          subject_type: p._subjectType,
+          has_figure: !!p.has_figure,
+          figure_description: p.figure_description || null,
+          school_level: '고등학교',
+          grade_semester: p._gradeSemester || null,
+          domain: p._domain || null,
+          unit: p._unit || null,
+          validation_status: 'approved',
+          extracted_source: 'manual_paste',
+          verified_at: new Date().toISOString(),
+          verified_by: state.currentUser.id,
+        };
+
+        const { data, error } = await sb
+          .from('questions')
+          .insert([payload])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        p._approved = true;
+        p._saving = false;
+        state.approvedCount++;
+        renderCards();
+        showToast(`#${p.q_num} 저장 완료`, 'success');
+
+      } catch (err) {
+        console.error(err);
+        p._saving = false;
+        renderCards();
+        showToast(`저장 실패: ${err.message}`, 'error');
+      }
+    }
+
+    async function bulkApprove() {
+      const unsaved = state.problems.filter((p) => !p._approved);
+      if (unsaved.length === 0) {
+        showToast('이미 모두 승인되었습니다', 'success');
+        return;
+      }
+
+      if (!confirm(`${unsaved.length}개 문제를 일괄 승인하시겠습니까?\n(각 카드의 태그/답이 비어있어도 그대로 저장됩니다)`)) return;
+
+      $('bulkApproveBtn').disabled = true;
+      for (const p of unsaved) {
+        await saveCard(p._localId);
+      }
+      $('bulkApproveBtn').disabled = false;
+    }
+
+    function deleteCard(id) {
+      if (!confirm('이 문제를 삭제할까요? (저장 전에만 작동)')) return;
+      state.problems = state.problems.filter((p) => p._localId !== id);
+      renderCards();
+    }
+
+    function resetAll() {
+      if (!confirm('모든 문제를 초기화하고 처음부터 시작합니다.')) return;
+      state.currentImageDataUrl = null;
+      state.problems = [];
+      state.approvedCount = 0;
+      $('mainLayout').style.display = 'none';
+      $('pasteZoneFloating').style.display = 'none';
+      $('emptyState').style.display = 'block';
+      updateStats();
+    }
+
+    function updateStats() {
+      const approved = state.problems.filter((p) => p._approved).length;
+      const pending = state.problems.length - approved;
+      $('statCount').textContent = `${pending} 문제 대기 · ${approved + state.approvedCount} 승인`;
+    }
+
+    // ======== 유틸 ========
+    function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg, type = '') {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast toast--visible' + (type ? ` toast--${type}` : '');
+      setTimeout(() => {
+        t.className = 'toast';
+      }, 2800);
+    }
+
+    // 전역 노출 (onclick 핸들러용)
+    window.recompute = recompute;
+    window.deleteCard = deleteCard;
+    window.saveCard = saveCard;
+    window.bulkApprove = bulkApprove;
+    window.resetAll = resetAll;
+    window.onEdit = onEdit;
+    window.setField = setField;
+
+    // ======== 초기화 ========
+    (async () => {
+      const ok = await checkAuth();
+      if (!ok) return;
+      // 준비 완료
+    })();
+  </script>
+</body>
+</html>
