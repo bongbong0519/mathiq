@@ -589,8 +589,19 @@
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
+      outline: none;
     }
-    .solution-dropzone:hover,
+    .solution-dropzone:hover {
+      border-color: var(--border-focus);
+      background: var(--bg-subtle);
+    }
+    .solution-dropzone:focus,
+    .solution-dropzone--active {
+      border-color: var(--accent);
+      border-style: solid;
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+    }
     .solution-dropzone--dragover {
       border-color: var(--accent);
       background: var(--accent-soft);
@@ -603,6 +614,21 @@
       font-size: 11px;
       color: var(--text-tertiary);
       margin-top: 4px;
+    }
+    .solution-dropzone__ready {
+      display: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-top: 8px;
+    }
+    .solution-dropzone:focus .solution-dropzone__ready,
+    .solution-dropzone--active .solution-dropzone__ready {
+      display: block;
+    }
+    .solution-dropzone:focus .solution-dropzone__hint,
+    .solution-dropzone--active .solution-dropzone__hint {
+      display: none;
     }
 
     .solution-actions {
@@ -1313,16 +1339,19 @@
       if (p._solutionMode === 'original') {
         return `
           <div class="solution-dropzone"
+            tabindex="0"
             data-dropzone="${p._localId}"
-            onclick="triggerSolutionPaste('${p._localId}')"
+            onclick="activateDropzone(this, '${p._localId}')"
+            onblur="deactivateDropzone(this)"
             ondragover="event.preventDefault(); this.classList.add('solution-dropzone--dragover')"
             ondragleave="this.classList.remove('solution-dropzone--dragover')"
             ondrop="handleSolutionDrop(event, '${p._localId}')">
             ${p._solutionImageData ? `
               <img src="${p._solutionImageData}" style="max-width: 100%; max-height: 200px; border-radius: 4px;" />
             ` : `
-              <div class="solution-dropzone__text">해설 이미지를 여기에 붙여넣거나 드래그</div>
-              <div class="solution-dropzone__hint">클릭해서 파일 선택도 가능</div>
+              <div class="solution-dropzone__text">클릭 후 Ctrl+V로 해설 붙여넣기</div>
+              <div class="solution-dropzone__hint">또는 파일을 드래그해서 놓기</div>
+              <div class="solution-dropzone__ready">✓ 해설 붙여넣기 준비됨 - Ctrl+V</div>
             `}
           </div>
           <div class="solution-actions">
@@ -1400,9 +1429,33 @@
       }
     }
 
-    // ======== 해설 이미지 붙여넣기 처리 ========
-    function triggerSolutionPaste(id) {
-      // 클릭 시 파일 선택 다이얼로그
+    // ======== 해설 드롭존 활성화/비활성화 ========
+    // 전역 상태: 현재 활성화된 드롭존 ID
+    let activeDropzoneId = null;
+
+    function activateDropzone(el, id) {
+      // 이미 이미지가 있으면 파일 선택 다이얼로그
+      const p = state.problems.find((x) => x._localId === id);
+      if (p && p._solutionImageData) {
+        triggerFileSelect(id);
+        return;
+      }
+      // focus 주고 활성화 상태 저장
+      el.focus();
+      activeDropzoneId = id;
+    }
+
+    function deactivateDropzone(el) {
+      // blur 시 활성화 해제 (약간의 지연으로 클릭 이벤트와 충돌 방지)
+      setTimeout(() => {
+        if (document.activeElement !== el) {
+          activeDropzoneId = null;
+        }
+      }, 100);
+    }
+
+    function triggerFileSelect(id) {
+      // 파일 선택 다이얼로그
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
@@ -1640,17 +1693,23 @@
     }
 
     // ======== 해설 이미지 전역 붙여넣기 처리 ========
-    // (문제 추출 중이 아닐 때, 특정 카드의 드롭존에 포커스가 있으면 해설로 처리)
+    // focus 기반: 드롭존이 활성화(focus)된 상태에서만 해설로 처리
     document.addEventListener('paste', async (e) => {
-      // 이미 문제 추출 중이면 기존 로직으로
+      // 이미 문제 추출 중이면 기존 로직으로 넘김
       if ($('loadingState').style.display !== 'none') return;
+
+      // 메인 레이아웃이 안 보이면 (초기 상태) → 문제 추출 로직으로
       if ($('mainLayout').style.display === 'none') return;
 
-      // 활성화된 드롭존 찾기 (마지막 클릭된 것 or 호버된 것)
-      const activeDropzone = document.querySelector('.solution-dropzone:hover, .solution-dropzone:focus');
-      if (!activeDropzone) return;
+      // focus 기반으로 활성화된 드롭존 확인
+      const focusedEl = document.activeElement;
+      const isDropzoneFocused = focusedEl && focusedEl.classList.contains('solution-dropzone');
 
-      const id = activeDropzone.dataset.dropzone;
+      // 드롭존이 focus된 상태가 아니면 → 문제 추출 로직으로 넘김 (return하지 않음)
+      if (!isDropzoneFocused && !activeDropzoneId) return;
+
+      // 드롭존 ID 확인
+      const id = isDropzoneFocused ? focusedEl.dataset.dropzone : activeDropzoneId;
       if (!id) return;
 
       const items = e.clipboardData?.items;
@@ -1659,9 +1718,14 @@
       for (const item of items) {
         if (item.type.startsWith('image/')) {
           e.preventDefault();
+          e.stopPropagation(); // 문제 추출 핸들러로 전파 방지
           const blob = item.getAsFile();
           const dataUrl = await blobToDataUrl(blob);
           setSolutionImage(id, dataUrl);
+          // 이미지 들어갔으니 활성화 해제
+          activeDropzoneId = null;
+          if (isDropzoneFocused) focusedEl.blur();
+          showToast('해설 이미지 추가됨', 'success');
           return;
         }
       }
@@ -1854,7 +1918,9 @@
     window.setField = setField;
     // 해설 관련
     window.setSolutionMode = setSolutionMode;
-    window.triggerSolutionPaste = triggerSolutionPaste;
+    window.activateDropzone = activateDropzone;
+    window.deactivateDropzone = deactivateDropzone;
+    window.triggerFileSelect = triggerFileSelect;
     window.handleSolutionDrop = handleSolutionDrop;
     window.clearSolutionImage = clearSolutionImage;
     window.extractSolution = extractSolution;
