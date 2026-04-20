@@ -957,6 +957,7 @@
     const GENERATE_SOLUTION_API = '/api/generate-solution'; // AI 해설 생성/수정
 
     // 태그 옵션 (수능/기출 중심, 필요시 수정)
+    // 학년-학기 옵션 (수능/모평 등 시험 출처는 나중에 exam_source 필드로 분리 예정)
     const GRADE_OPTIONS = [
       { value: '', label: '학년-학기' },
       { value: '고1-1', label: '고1-1' },
@@ -965,12 +966,11 @@
       { value: '고2-2', label: '고2-2' },
       { value: '고3-1', label: '고3-1' },
       { value: '고3-2', label: '고3-2' },
-      { value: '수능', label: '수능' },
-      { value: '모평-6월', label: '6월 모평' },
-      { value: '모평-9월', label: '9월 모평' },
+      { value: '수능', label: '수능 (고3)' },
+      { value: '모평-6월', label: '6월 모평 (고3)' },
+      { value: '모평-9월', label: '9월 모평 (고3)' },
       { value: '학평', label: '학력평가' },
-      { value: '사관학교', label: '사관학교' },
-      { value: '경찰대', label: '경찰대' },
+      // 경찰대, 사관학교는 시험 출처이므로 제거 (단원 필드에 직접 입력)
     ];
     const DOMAIN_OPTIONS = [
       { value: '', label: '영역' },
@@ -1797,13 +1797,18 @@
         // 본문 (선택지 포함된 전체 텍스트)
         const fullText = p.question_text || '';
 
-        // 학년/학기 파싱 (예: "고2-1" → grade=2, semester=1)
+        // 학년/학기 파싱
         let grade = null;
         let semester = null;
-        const gsMatch = (p._gradeSemester || '').match(/고(\d)-(\d)/);
+        const gs = p._gradeSemester || '';
+        const gsMatch = gs.match(/고(\d)-(\d)/);
         if (gsMatch) {
           grade = parseInt(gsMatch[1]);
           semester = parseInt(gsMatch[2]);
+        } else if (gs.includes('수능') || gs.includes('모평')) {
+          // 수능/모평은 고3 기준
+          grade = 3;
+          semester = gs.includes('6월') ? 1 : 2;
         }
 
         // 그림 설명이 있으면 본문 끝에 추가
