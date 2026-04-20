@@ -1794,16 +1794,16 @@
         // 본문 (선택지 포함된 전체 텍스트)
         const fullText = p.question_text || '';
 
-        // 학년/학기 및 학교급 파싱
-        let schoolLevel = '고등학교';
+        // 학년/학기 및 학교급 파싱 (DB CHECK 제약: 초등/중등/고등)
+        let schoolLevel = '고등';
         let grade = null;
         let semester = null;
         const gs = p._gradeSemester || '';
 
         if (gs === '중학교') {
-          schoolLevel = '중학교';
+          schoolLevel = '중등';
         } else if (gs === '초등학교') {
-          schoolLevel = '초등학교';
+          schoolLevel = '초등';
         } else {
           // "고1-1" 형식 파싱
           const gsMatch = gs.match(/고(\d)-(\d)/);
