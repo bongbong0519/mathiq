@@ -545,6 +545,201 @@
     }
 
     /* ==============================================
+       SOLUTION SECTION (해설 영역)
+       ============================================== */
+    .solution-section {
+      padding: 16px 20px;
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border-subtle);
+    }
+    .solution-section__header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .solution-section__title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+    }
+    .solution-radio-group {
+      display: flex;
+      gap: 16px;
+    }
+    .solution-radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .solution-radio-group input[type="radio"] {
+      accent-color: var(--accent);
+    }
+
+    .solution-dropzone {
+      margin: 12px 0;
+      padding: 24px;
+      border: 2px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .solution-dropzone:hover,
+    .solution-dropzone--dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .solution-dropzone__text {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .solution-dropzone__hint {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .solution-actions {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .solution-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+    }
+    .solution-btn--primary {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    .solution-btn--primary:hover { background: var(--accent-hover); }
+    .solution-btn--primary:disabled {
+      background: var(--border-default);
+      cursor: not-allowed;
+    }
+    .solution-btn--secondary {
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+    .solution-btn--secondary:hover {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+    }
+
+    .solution-editor {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .solution-editor__col {
+      padding: 12px;
+    }
+    .solution-editor__col--editor {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+    }
+    .solution-editor__col--preview {
+      background: var(--bg-code);
+    }
+    .solution-editor__label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .solution-editor__textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      resize: vertical;
+    }
+    .solution-editor__textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    .solution-editor__preview {
+      min-height: 120px;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .solution-modify {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+    .solution-modify__label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .solution-modify__input {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+    .solution-modify__input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .solution-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    .solution-loading .spinner {
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+    }
+
+    .solution-confidence {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+    .solution-confidence--high { background: var(--success-soft); color: var(--success); }
+    .solution-confidence--medium { background: var(--warning-soft); color: var(--warning); }
+    .solution-confidence--low { background: var(--danger-soft); color: var(--danger); }
+
+    /* ==============================================
        LOADING / TOAST
        ============================================== */
     .loading {
@@ -731,7 +926,9 @@
   <script>
     // ======== 설정 (config.js에서 로드) ========
     // SUPABASE_URL, SUPABASE_KEY는 config.js에서 정의됨
-    const EXTRACT_API = '/api/extract-page';             // Vercel Function 엔드포인트
+    const EXTRACT_API = '/api/extract-page';             // 문제 추출 API
+    const EXTRACT_SOLUTION_API = '/api/extract-solution'; // 해설 이미지 → LaTeX 변환
+    const GENERATE_SOLUTION_API = '/api/generate-solution'; // AI 해설 생성/수정
 
     // 태그 옵션 (수능/기출 중심, 필요시 수정)
     const GRADE_OPTIONS = [
@@ -886,6 +1083,14 @@
           _domain: '',
           _unit: '',
           _subjectType: p.subject_type || '객관식',
+          // 해설 관련 상태
+          _solutionMode: 'none',       // 'none' | 'original' → 라디오 선택
+          _solutionLatex: '',          // 해설 LaTeX 텍스트
+          _solutionSource: null,       // 'original' | 'ai_generated' | 'ai_modified'
+          _solutionImageData: null,    // 붙여넣은 해설 이미지 base64
+          _solutionLoading: false,     // 해설 추출/생성 로딩 상태
+          _aiAnswer: '',               // AI가 추정한 답
+          _answerConfidence: '',       // 'high' | 'medium' | 'low'
         }));
 
         renderCards();
@@ -969,6 +1174,7 @@
             <span class="card__answer-label">답</span>
             <input type="text"
               class="card__answer-input"
+              data-answer-id="${p._localId}"
               value="${escapeHtml(p._answer)}"
               placeholder="①"
               onchange="setField('${p._localId}', '_answer', this.value)" />
@@ -978,6 +1184,34 @@
               placeholder="그림 설명 (자동 추출됨, 필요시 수정)"
               onchange="setField('${p._localId}', 'figure_description', this.value)">${escapeHtml(p.figure_description || '')}</textarea>
           ` : ''}
+        </div>
+
+        <!-- ======== 해설 영역 ======== -->
+        <div class="solution-section" data-solution-id="${p._localId}">
+          <div class="solution-section__header">
+            <span class="solution-section__title">해설</span>
+            <div class="solution-radio-group">
+              <label>
+                <input type="radio" name="solution-mode-${p._localId}" value="original"
+                  ${p._solutionMode === 'original' ? 'checked' : ''}
+                  onchange="setSolutionMode('${p._localId}', 'original')" />
+                원본 해설 있음
+              </label>
+              <label>
+                <input type="radio" name="solution-mode-${p._localId}" value="none"
+                  ${p._solutionMode !== 'original' ? 'checked' : ''}
+                  onchange="setSolutionMode('${p._localId}', 'none')" />
+                원본 해설 없음 (AI 작성)
+              </label>
+            </div>
+            ${p._answerConfidence ? `
+              <span class="solution-confidence solution-confidence--${p._answerConfidence}">
+                AI 답 신뢰도: ${p._answerConfidence}
+              </span>
+            ` : ''}
+          </div>
+
+          ${renderSolutionBody(p)}
         </div>
 
         <div class="card__meta">
@@ -1033,6 +1267,405 @@
       }
       return txt;
     }
+
+    // ======== 해설 영역 렌더링 ========
+    function renderSolutionBody(p) {
+      // 로딩 중
+      if (p._solutionLoading) {
+        return `
+          <div class="solution-loading">
+            <div class="spinner"></div>
+            <span>해설 처리 중...</span>
+          </div>
+        `;
+      }
+
+      // 해설이 이미 있는 경우 (추출/생성 완료)
+      if (p._solutionLatex) {
+        return `
+          <div class="solution-editor">
+            <div class="solution-editor__col solution-editor__col--editor">
+              <div class="solution-editor__label">해설 LaTeX</div>
+              <textarea class="solution-editor__textarea"
+                data-solution-latex="${p._localId}"
+                oninput="onSolutionEdit(this)"
+                spellcheck="false">${escapeHtml(p._solutionLatex)}</textarea>
+            </div>
+            <div class="solution-editor__col solution-editor__col--preview">
+              <div class="solution-editor__label">KaTeX 미리보기</div>
+              <div class="solution-editor__preview" data-solution-preview="${p._localId}"></div>
+            </div>
+          </div>
+          <div class="solution-modify">
+            <div class="solution-modify__label">해설 수정 요청 (한국어로 입력)</div>
+            <input type="text" class="solution-modify__input"
+              data-modify-input="${p._localId}"
+              placeholder="예: 중복조합 공식을 더 자세히 설명해줘" />
+            <button class="solution-btn solution-btn--secondary"
+              onclick="requestSolutionModify('${p._localId}')">
+              수정 요청
+            </button>
+          </div>
+        `;
+      }
+
+      // 원본 해설 있음 모드: 드롭존 + 추출 버튼
+      if (p._solutionMode === 'original') {
+        return `
+          <div class="solution-dropzone"
+            data-dropzone="${p._localId}"
+            onclick="triggerSolutionPaste('${p._localId}')"
+            ondragover="event.preventDefault(); this.classList.add('solution-dropzone--dragover')"
+            ondragleave="this.classList.remove('solution-dropzone--dragover')"
+            ondrop="handleSolutionDrop(event, '${p._localId}')">
+            ${p._solutionImageData ? `
+              <img src="${p._solutionImageData}" style="max-width: 100%; max-height: 200px; border-radius: 4px;" />
+            ` : `
+              <div class="solution-dropzone__text">해설 이미지를 여기에 붙여넣거나 드래그</div>
+              <div class="solution-dropzone__hint">클릭해서 파일 선택도 가능</div>
+            `}
+          </div>
+          <div class="solution-actions">
+            <button class="solution-btn solution-btn--primary"
+              onclick="extractSolution('${p._localId}')"
+              ${!p._solutionImageData ? 'disabled' : ''}>
+              해설 추출
+            </button>
+            ${p._solutionImageData ? `
+              <button class="solution-btn solution-btn--secondary"
+                onclick="clearSolutionImage('${p._localId}')">
+                이미지 제거
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      // 원본 해설 없음 모드: AI 해설 생성 버튼
+      return `
+        <div class="solution-actions">
+          <button class="solution-btn solution-btn--primary"
+            onclick="generateSolution('${p._localId}')">
+            AI 해설 생성
+          </button>
+        </div>
+      `;
+    }
+
+    // ======== 해설 모드 전환 ========
+    function setSolutionMode(id, mode) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+      p._solutionMode = mode;
+      // 해설 데이터 초기화 (모드 바꾸면 기존 해설 제거)
+      if (!p._solutionLatex) {
+        p._solutionImageData = null;
+      }
+      rerenderSolutionSection(id);
+    }
+
+    // ======== 해설 영역만 다시 렌더링 ========
+    function rerenderSolutionSection(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+      const section = document.querySelector(`[data-solution-id="${id}"]`);
+      if (!section) return;
+
+      // 헤더는 유지하고 바디만 업데이트
+      const header = section.querySelector('.solution-section__header');
+      section.innerHTML = '';
+      if (header) section.appendChild(header.cloneNode(true));
+
+      // 라디오 버튼 다시 바인딩
+      const newHeader = section.querySelector('.solution-section__header');
+      if (newHeader) {
+        const radios = newHeader.querySelectorAll('input[type="radio"]');
+        radios.forEach(r => {
+          r.checked = r.value === p._solutionMode || (r.value === 'none' && p._solutionMode !== 'original');
+          r.onchange = () => setSolutionMode(id, r.value);
+        });
+      }
+
+      // 바디 추가
+      const bodyHtml = renderSolutionBody(p);
+      const temp = document.createElement('div');
+      temp.innerHTML = bodyHtml;
+      while (temp.firstChild) {
+        section.appendChild(temp.firstChild);
+      }
+
+      // 해설 미리보기 렌더링
+      if (p._solutionLatex) {
+        setTimeout(() => renderSolutionPreview(id), 0);
+      }
+    }
+
+    // ======== 해설 이미지 붙여넣기 처리 ========
+    function triggerSolutionPaste(id) {
+      // 클릭 시 파일 선택 다이얼로그
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const dataUrl = await blobToDataUrl(file);
+          setSolutionImage(id, dataUrl);
+        }
+      };
+      input.click();
+    }
+
+    function handleSolutionDrop(event, id) {
+      event.preventDefault();
+      event.currentTarget.classList.remove('solution-dropzone--dragover');
+
+      const file = event.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        blobToDataUrl(file).then(dataUrl => setSolutionImage(id, dataUrl));
+      }
+    }
+
+    function setSolutionImage(id, dataUrl) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+      p._solutionImageData = dataUrl;
+      rerenderSolutionSection(id);
+    }
+
+    function clearSolutionImage(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+      p._solutionImageData = null;
+      rerenderSolutionSection(id);
+    }
+
+    // ======== 해설 추출 (이미지 → LaTeX) ========
+    async function extractSolution(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p || !p._solutionImageData) return;
+
+      p._solutionLoading = true;
+      rerenderSolutionSection(id);
+      showToast('해설 추출 중...', '');
+
+      try {
+        const resp = await fetch(EXTRACT_SOLUTION_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: p._solutionImageData,
+            mediaType: 'image/png',
+          }),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `API 오류 (${resp.status})`);
+        }
+
+        const data = await resp.json();
+        p._solutionLatex = data.solution_latex || '';
+        p._solutionSource = 'original';
+        p._aiAnswer = data.extracted_answer || '';
+        p._answerConfidence = data.confidence || 'medium';
+
+        // 추출된 답을 답 입력칸에 자동 반영
+        if (p._aiAnswer && !p._answer) {
+          p._answer = p._aiAnswer;
+          const answerInput = document.querySelector(`[data-answer-id="${id}"]`);
+          if (answerInput) answerInput.value = p._aiAnswer;
+        }
+
+        p._solutionLoading = false;
+        rerenderSolutionSection(id);
+        showToast('해설 추출 완료', 'success');
+
+      } catch (err) {
+        console.error(err);
+        p._solutionLoading = false;
+        rerenderSolutionSection(id);
+        showToast(`해설 추출 실패: ${err.message}`, 'error');
+      }
+    }
+
+    // ======== AI 해설 생성 ========
+    async function generateSolution(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+
+      p._solutionLoading = true;
+      rerenderSolutionSection(id);
+      showToast('AI 해설 생성 중...', '');
+
+      try {
+        const fullText = p.question_text || '';
+        const parts = fullText.split(/\n\n+/);
+        const bodyText = parts[0] || fullText;
+        const choicesText = parts.length > 1 ? parts.slice(1).join('\n\n') : '';
+        const choicesArray = choicesText
+          ? choicesText.split(/\s{2,}|\n/).filter(s => s.trim().length > 0)
+          : (p.choices || []);
+
+        const resp = await fetch(GENERATE_SOLUTION_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question_text: bodyText,
+            choices: choicesArray,
+          }),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `API 오류 (${resp.status})`);
+        }
+
+        const data = await resp.json();
+        p._solutionLatex = data.solution_latex || '';
+        p._solutionSource = 'ai_generated';
+        p._aiAnswer = data.final_answer || '';
+        p._answerConfidence = data.confidence || 'medium';
+
+        // 생성된 답을 답 입력칸에 자동 반영
+        if (p._aiAnswer && !p._answer) {
+          p._answer = p._aiAnswer;
+          const answerInput = document.querySelector(`[data-answer-id="${id}"]`);
+          if (answerInput) answerInput.value = p._aiAnswer;
+        }
+
+        p._solutionLoading = false;
+        rerenderSolutionSection(id);
+        showToast('AI 해설 생성 완료', 'success');
+
+      } catch (err) {
+        console.error(err);
+        p._solutionLoading = false;
+        rerenderSolutionSection(id);
+        showToast(`해설 생성 실패: ${err.message}`, 'error');
+      }
+    }
+
+    // ======== 해설 수정 요청 ========
+    async function requestSolutionModify(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p || !p._solutionLatex) return;
+
+      const input = document.querySelector(`[data-modify-input="${id}"]`);
+      const instruction = input?.value?.trim();
+      if (!instruction) {
+        showToast('수정 요청 내용을 입력해주세요', 'error');
+        return;
+      }
+
+      p._solutionLoading = true;
+      rerenderSolutionSection(id);
+      showToast('해설 수정 중...', '');
+
+      try {
+        const fullText = p.question_text || '';
+        const parts = fullText.split(/\n\n+/);
+        const bodyText = parts[0] || fullText;
+        const choicesText = parts.length > 1 ? parts.slice(1).join('\n\n') : '';
+        const choicesArray = choicesText
+          ? choicesText.split(/\s{2,}|\n/).filter(s => s.trim().length > 0)
+          : (p.choices || []);
+
+        const resp = await fetch(GENERATE_SOLUTION_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question_text: bodyText,
+            choices: choicesArray,
+            original_solution: p._solutionLatex,
+            modify_instruction: instruction,
+          }),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `API 오류 (${resp.status})`);
+        }
+
+        const data = await resp.json();
+        p._solutionLatex = data.solution_latex || p._solutionLatex;
+        p._solutionSource = 'ai_modified';
+        if (data.final_answer) {
+          p._aiAnswer = data.final_answer;
+          p._answerConfidence = data.confidence || 'medium';
+        }
+
+        p._solutionLoading = false;
+        rerenderSolutionSection(id);
+        showToast('해설 수정 완료', 'success');
+
+      } catch (err) {
+        console.error(err);
+        p._solutionLoading = false;
+        rerenderSolutionSection(id);
+        showToast(`해설 수정 실패: ${err.message}`, 'error');
+      }
+    }
+
+    // ======== 해설 편집기 입력 → 미리보기 동기화 ========
+    function onSolutionEdit(textarea) {
+      const id = textarea.dataset.solutionLatex;
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+      p._solutionLatex = textarea.value;
+      renderSolutionPreview(id);
+    }
+
+    function renderSolutionPreview(id) {
+      const p = state.problems.find((x) => x._localId === id);
+      if (!p) return;
+
+      const el = document.querySelector(`[data-solution-preview="${id}"]`);
+      if (!el) return;
+
+      el.innerHTML = (p._solutionLatex || '').replace(/\n/g, '<br/>');
+
+      if (window.renderMathInElement) {
+        try {
+          window.renderMathInElement(el, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+            ],
+            throwOnError: false,
+            errorColor: '#C0392B',
+          });
+        } catch (e) { console.warn('KaTeX render error:', e); }
+      }
+    }
+
+    // ======== 해설 이미지 전역 붙여넣기 처리 ========
+    // (문제 추출 중이 아닐 때, 특정 카드의 드롭존에 포커스가 있으면 해설로 처리)
+    document.addEventListener('paste', async (e) => {
+      // 이미 문제 추출 중이면 기존 로직으로
+      if ($('loadingState').style.display !== 'none') return;
+      if ($('mainLayout').style.display === 'none') return;
+
+      // 활성화된 드롭존 찾기 (마지막 클릭된 것 or 호버된 것)
+      const activeDropzone = document.querySelector('.solution-dropzone:hover, .solution-dropzone:focus');
+      if (!activeDropzone) return;
+
+      const id = activeDropzone.dataset.dropzone;
+      if (!id) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const blob = item.getAsFile();
+          const dataUrl = await blobToDataUrl(blob);
+          setSolutionImage(id, dataUrl);
+          return;
+        }
+      }
+    }, true);
 
     // ======== 편집 → 미리보기 동기화 ========
     function onEdit(textarea) {
@@ -1106,7 +1739,6 @@
           ? choicesText.split(/\s{2,}|\n/).filter(s => s.trim().length > 0)
           : (p.choices || []);
 
-        // ★★ 기존 MathIQ questions 테이블 스키마에 맞춰 조정 필요 ★★
         const payload = {
           question_number: p.q_num,
           question_text: bodyText.trim(),
@@ -1124,6 +1756,12 @@
           extracted_source: 'manual_paste',
           verified_at: new Date().toISOString(),
           verified_by: state.currentUser.id,
+          // 해설 필드 (마이그레이션 후 사용 가능)
+          solution_latex: p._solutionLatex || null,
+          solution_source: p._solutionSource || null,
+          ai_answer: p._aiAnswer || null,
+          answer_confidence: p._answerConfidence || null,
+          solution_verified: false,
         };
 
         const { data, error } = await sb
@@ -1214,6 +1852,15 @@
     window.resetAll = resetAll;
     window.onEdit = onEdit;
     window.setField = setField;
+    // 해설 관련
+    window.setSolutionMode = setSolutionMode;
+    window.triggerSolutionPaste = triggerSolutionPaste;
+    window.handleSolutionDrop = handleSolutionDrop;
+    window.clearSolutionImage = clearSolutionImage;
+    window.extractSolution = extractSolution;
+    window.generateSolution = generateSolution;
+    window.requestSolutionModify = requestSolutionModify;
+    window.onSolutionEdit = onSolutionEdit;
 
     // ======== 초기화 ========
     (async () => {
