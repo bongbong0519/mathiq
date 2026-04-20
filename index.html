@@ -7454,6 +7454,7 @@ async function loadStudents() {
           </div>
           <div style="margin-left:auto;display:flex;gap:6px">
   <button onclick="openAssignExamModal('${s.id}','${s.name}')" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;font-weight:600">📝 시험배정</button>
+  <button onclick="openStudentReport('${s.id}')" style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);color:var(--green);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;font-weight:600">📊 리포트</button>
   <button onclick="deleteStudent('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="삭제">🗑</button>
 </div>
         </div>
@@ -7541,6 +7542,15 @@ async function deleteStudent(id) {
   showToast('삭제되었습니다', '🗑');
   loadStudents();
   loadDashboard();
+}
+
+// ── 학생 리포트 열기 ──
+function openStudentReport(studentId, examId = null) {
+  let url = `student-report.html?student_id=${studentId}`;
+  if (examId) {
+    url += `&exam_id=${examId}`;
+  }
+  window.open(url, '_blank');
 }
 
 // ── 시험 등록 ──
@@ -7685,12 +7695,12 @@ async function loadExamQuestions(examId, title) {
     </div>
     ${!allAssignedStudents.length
       ? '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">배정된 학생이 없습니다</div></div>'
-      : `<div class="table-wrap"><table><thead><tr><th>학생</th><th>상태</th><th>응시 시작</th><th>제출</th><th>점수</th><th>공개</th></tr></thead><tbody>
+      : `<div class="table-wrap"><table><thead><tr><th>학생</th><th>상태</th><th>응시 시작</th><th>제출</th><th>점수</th><th>공개</th><th>리포트</th></tr></thead><tbody>
           ${allAssignedStudents.map(a => {
             const sn = a.students?.name || '—';
             const session = sessionMap[a.student_id];
             if (!session) {
-              return `<tr><td class="font-bold">${sn}</td><td><span class="chip">미응시</span></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+              return `<tr><td class="font-bold">${sn}</td><td><span class="chip">미응시</span></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
             }
             const inProg = !session.submitted_at;
             const submittedAt = session.submitted_at ? new Date(session.submitted_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
@@ -7699,6 +7709,9 @@ async function loadExamQuestions(examId, title) {
             const publishCell = (!inProg && session.score != null && !session.is_score_published)
               ? `<button onclick="publishScore('${session.id}','${examId}','${title.replace(/'/g,"\\'")}'); event.stopPropagation()" class="btn btn-xs" style="background:var(--green);color:#fff;border:none;cursor:pointer;padding:4px 10px;border-radius:6px;font-size:11px">공개</button>`
               : (session.is_score_published ? '<span style="color:var(--green);font-size:12px">공개됨</span>' : '—');
+            const reportCell = (!inProg && session.score != null)
+              ? `<button onclick="openStudentReport('${a.student_id}','${examId}'); event.stopPropagation()" class="btn btn-xs" style="background:rgba(79,142,247,0.1);color:var(--blue);border:1px solid rgba(79,142,247,0.2);cursor:pointer;padding:4px 10px;border-radius:6px;font-size:11px">📊</button>`
+              : '—';
             return `<tr>
               <td class="font-bold">${sn}</td>
               <td><span class="chip ${inProg?'yellow':'green'}">${inProg?'⏳ 응시중':'✅ 제출'}</span></td>
@@ -7706,6 +7719,7 @@ async function loadExamQuestions(examId, title) {
               <td class="text-sm text-muted">${submittedAt}</td>
               <td style="font-weight:700;font-family:'Space Mono',monospace">${scoreCell}</td>
               <td>${publishCell}</td>
+              <td>${reportCell}</td>
             </tr>`;
           }).join('')}
         </tbody></table></div>`
