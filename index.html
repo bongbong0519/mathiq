@@ -16005,7 +16005,7 @@ async function openMaterialShareModal(materialId, materialTitle) {
   const { data: students, error } = await sbClient
     .from('students')
     .select('id, name, grade')
-    .eq('user_id', currentUser.id)
+    .eq('teacher_id', currentUser.id)
     .order('name');
 
   if (error || !students?.length) {
