@@ -15824,7 +15824,7 @@ async function renderTeacherMaterialsList() {
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
           <button class="btn btn-ghost btn-sm" onclick="openMaterialShareModal('${m.id}', '${m.title.replace(/'/g, "\\'")}')">📤 공유</button>
           <button class="btn btn-ghost btn-sm" onclick="previewMaterial('${m.file_url}', '${m.file_type}')">👁 보기</button>
-          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteMaterial('${m.id}', '${m.title.replace(/'/g, "\\'")}')">🗑</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteMaterial('${m.id}', '${m.title.replace(/'/g, "\\'")}')">🗑 삭제</button>
         </div>
       </div>
     </div>`;
@@ -15957,9 +15957,8 @@ async function submitMaterialUpload() {
 
     if (uploadError) throw uploadError;
 
-    // 공개 URL 가져오기
-    const { data: urlData } = sbClient.storage.from('class-materials').getPublicUrl(fileName);
-    const fileUrl = urlData?.publicUrl || fileName;
+    // 비공개 버킷이므로 파일 경로만 저장 (조회 시 signed URL 생성)
+    const fileUrl = fileName;
 
     // 태그 파싱
     const tagsStr = document.getElementById('mu-tags').value.trim();
@@ -16136,10 +16135,20 @@ async function deleteMaterial(materialId, title) {
 }
 
 // ── 자료 미리보기 ──
-function previewMaterial(url, fileType) {
-  if (!url) return;
-  // Storage URL인 경우 signed URL 필요할 수 있음
-  window.open(url, '_blank');
+async function previewMaterial(filePath, fileType) {
+  if (!filePath || !sbClient) return;
+
+  try {
+    // 비공개 버킷이므로 signed URL 생성 (1시간 유효)
+    const { data, error } = await sbClient.storage
+      .from('class-materials')
+      .createSignedUrl(filePath, 3600);
+
+    if (error) throw error;
+    window.open(data.signedUrl, '_blank');
+  } catch (err) {
+    showToast('파일을 열 수 없습니다: ' + err.message, '❌');
+  }
 }
 
 
@@ -16328,27 +16337,50 @@ async function markMaterialViewed(shareId) {
   renderStudentMaterialsList();
 }
 
-async function previewStudentMaterial(shareId, url) {
+async function previewStudentMaterial(shareId, filePath) {
+  if (!sbClient) return;
   await markMaterialViewed(shareId);
-  window.open(url, '_blank');
+
+  try {
+    // 비공개 버킷이므로 signed URL 생성
+    const { data, error } = await sbClient.storage
+      .from('class-materials')
+      .createSignedUrl(filePath, 3600);
+
+    if (error) throw error;
+    window.open(data.signedUrl, '_blank');
+  } catch (err) {
+    showToast('파일을 열 수 없습니다: ' + err.message, '❌');
+  }
 }
 
-async function downloadStudentMaterial(shareId, url, fileName) {
+async function downloadStudentMaterial(shareId, filePath, fileName) {
   if (!sbClient) return;
 
   // 다운로드 시간 기록
   await sbClient.from('material_shares').update({ downloaded_at: new Date().toISOString() }).eq('id', shareId);
 
-  // 다운로드 실행
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  try {
+    // 비공개 버킷이므로 signed URL 생성
+    const { data, error } = await sbClient.storage
+      .from('class-materials')
+      .createSignedUrl(filePath, 3600);
 
-  showToast('다운로드를 시작합니다', '📥');
+    if (error) throw error;
+
+    // 다운로드 실행
+    const a = document.createElement('a');
+    a.href = data.signedUrl;
+    a.download = fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    showToast('다운로드를 시작합니다', '📥');
+  } catch (err) {
+    showToast('다운로드 실패: ' + err.message, '❌');
+  }
 }
 </script>
 
