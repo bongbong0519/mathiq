@@ -798,6 +798,219 @@
   .chip.red { background: rgba(245,101,101,0.1); color: var(--red); border-color: rgba(245,101,101,0.2); }
   .chip.purple { background: rgba(183,148,244,0.1); color: var(--purple); border-color: rgba(183,148,244,0.2); }
 
+  /* ── FEEDBACK BOARD STYLES ── */
+  .fb-category-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    padding: 4px;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .fb-cat-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .fb-cat-tab:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+  .fb-cat-tab.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    font-weight: 600;
+  }
+  .fb-cat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--bg3);
+    font-size: 14px;
+  }
+  .fb-posts-card {
+    padding: 0;
+    overflow: hidden;
+  }
+  .fb-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: var(--text3);
+    font-size: 13px;
+  }
+  .fb-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: fb-spin 0.8s linear infinite;
+  }
+  @keyframes fb-spin {
+    to { transform: rotate(360deg); }
+  }
+  .fb-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+  }
+  .fb-empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+  }
+  .fb-empty-text {
+    font-size: 15px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .fb-empty-sub {
+    font-size: 13px;
+    color: var(--text3);
+    margin-bottom: 20px;
+  }
+  .fb-post-item {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .fb-post-item:hover {
+    background: var(--bg2);
+  }
+  .fb-post-item:last-child {
+    border-bottom: none;
+  }
+  .fb-post-cat-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .fb-post-cat-bug { background: rgba(245,101,101,0.12); }
+  .fb-post-cat-question { background: rgba(99,179,237,0.12); }
+  .fb-post-cat-suggestion { background: rgba(246,173,85,0.12); }
+  .fb-post-cat-notice { background: rgba(62,207,142,0.12); }
+  .fb-post-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .fb-post-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .fb-post-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  .fb-post-title .pinned {
+    color: var(--accent);
+    margin-right: 4px;
+  }
+  .fb-post-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text3);
+    flex-wrap: wrap;
+  }
+  .fb-post-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .fb-post-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .fb-post-votes {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  /* 1:1 문의 채팅 스타일 */
+  .iq-message {
+    display: flex;
+    margin-bottom: 16px;
+  }
+  .iq-message.mine {
+    justify-content: flex-end;
+  }
+  .iq-message-bubble {
+    max-width: 75%;
+    padding: 14px 18px;
+    border-radius: 18px;
+    line-height: 1.5;
+  }
+  .iq-message.mine .iq-message-bubble {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+  }
+  .iq-message.other .iq-message-bubble {
+    background: var(--bg2);
+    color: var(--text);
+    border-bottom-left-radius: 6px;
+  }
+  .iq-message.admin .iq-message-bubble {
+    background: linear-gradient(135deg, rgba(62,207,142,0.15) 0%, rgba(62,207,142,0.08) 100%);
+    border: 1px solid rgba(62,207,142,0.2);
+    color: var(--text);
+    border-bottom-left-radius: 6px;
+  }
+  .iq-message-sender {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    opacity: 0.8;
+  }
+  .iq-message-time {
+    font-size: 10px;
+    margin-top: 6px;
+    opacity: 0.6;
+  }
+
   .divider { height: 1px; background: var(--border); margin: 20px 0; }
   .mb-16 { margin-bottom: 16px; }
   .mb-24 { margin-bottom: 24px; }
@@ -3725,36 +3938,55 @@
           <p class="page-sub">버그 신고, 질문, 건의사항을 남겨주세요</p>
         </div>
         <div class="header-actions">
-          <button class="btn btn-primary btn-sm" onclick="openFeedbackWriteModal()">✏️ 글쓰기</button>
+          <button class="btn btn-primary" onclick="openFeedbackWriteModal()">
+            <span style="margin-right:6px">✏️</span> 글쓰기
+          </button>
         </div>
       </div>
 
-      <!-- 카테고리 탭 -->
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
-        <button class="btn btn-sm fb-tab active" data-cat="all" onclick="filterFeedback('all', this)">전체</button>
-        <button class="btn btn-ghost btn-sm fb-tab" data-cat="bug" onclick="filterFeedback('bug', this)">🐛 버그</button>
-        <button class="btn btn-ghost btn-sm fb-tab" data-cat="question" onclick="filterFeedback('question', this)">❓ 질문</button>
-        <button class="btn btn-ghost btn-sm fb-tab" data-cat="suggestion" onclick="filterFeedback('suggestion', this)">💡 건의</button>
-        <button class="btn btn-ghost btn-sm fb-tab" data-cat="notice" onclick="filterFeedback('notice', this)">📢 공지</button>
+      <!-- 카테고리 탭 (개선) -->
+      <div class="fb-category-tabs">
+        <button class="fb-cat-tab active" data-cat="all" onclick="filterFeedback('all', this)">
+          <span class="fb-cat-icon">📋</span>
+          <span>전체</span>
+        </button>
+        <button class="fb-cat-tab" data-cat="bug" onclick="filterFeedback('bug', this)">
+          <span class="fb-cat-icon" style="background:rgba(245,101,101,0.15);color:var(--red)">🐛</span>
+          <span>버그</span>
+        </button>
+        <button class="fb-cat-tab" data-cat="question" onclick="filterFeedback('question', this)">
+          <span class="fb-cat-icon" style="background:rgba(99,179,237,0.15);color:var(--cyan)">❓</span>
+          <span>질문</span>
+        </button>
+        <button class="fb-cat-tab" data-cat="suggestion" onclick="filterFeedback('suggestion', this)">
+          <span class="fb-cat-icon" style="background:rgba(246,173,85,0.15);color:var(--yellow)">💡</span>
+          <span>건의</span>
+        </button>
+        <button class="fb-cat-tab" data-cat="notice" onclick="filterFeedback('notice', this)">
+          <span class="fb-cat-icon" style="background:rgba(62,207,142,0.15);color:var(--green)">📢</span>
+          <span>공지</span>
+        </button>
       </div>
 
       <!-- 정렬 + 검색 -->
-      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-        <select id="fb-sort" class="input" style="width:auto" onchange="loadFeedbackPosts()">
-          <option value="latest">최신순</option>
-          <option value="votes">추천순</option>
-          <option value="views">조회순</option>
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <select id="fb-sort" class="input" style="width:130px;background:var(--bg);border-radius:var(--radius-sm)" onchange="loadFeedbackPosts()">
+          <option value="latest">🕐 최신순</option>
+          <option value="votes">👍 추천순</option>
+          <option value="views">👁️ 조회순</option>
         </select>
         <div style="flex:1;min-width:200px;position:relative">
-          <input type="text" id="fb-search" class="input" placeholder="검색어 입력..." onkeyup="if(event.key==='Enter')loadFeedbackPosts()">
+          <input type="text" id="fb-search" class="input" placeholder="🔍 검색어를 입력하세요..." style="padding-left:16px" onkeyup="if(event.key==='Enter')loadFeedbackPosts()">
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="loadFeedbackPosts()">🔍 검색</button>
       </div>
 
       <!-- 게시글 목록 -->
-      <div class="card" style="padding:0">
-        <div id="fb-posts-list" style="min-height:200px">
-          <div style="padding:40px;text-align:center;color:var(--text3)">불러오는 중...</div>
+      <div class="card fb-posts-card">
+        <div id="fb-posts-list" style="min-height:280px">
+          <div class="fb-loading">
+            <div class="fb-loading-spinner"></div>
+            <div>불러오는 중...</div>
+          </div>
         </div>
       </div>
 
@@ -4458,91 +4690,159 @@
 
 <!-- ════════════════════ FEEDBACK WRITE MODAL ════════════════════ -->
 <div class="modal-overlay" id="feedbackWriteModal">
-  <div class="modal" style="max-width:600px">
-    <div class="modal-header">
-      <div class="modal-title">✏️ 글쓰기</div>
-      <button class="modal-close" onclick="closeModal('feedbackWriteModal')">✕</button>
+  <div class="modal" style="max-width:580px;border-radius:20px">
+    <div class="modal-header" style="padding:24px 28px 20px;border-bottom:1px solid var(--border)">
+      <div class="modal-title" style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px">
+        <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--bg3);border-radius:10px">✏️</span>
+        글쓰기
+      </div>
+      <button class="modal-close" onclick="closeModal('feedbackWriteModal')" style="width:32px;height:32px;border-radius:8px">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">카테고리</label>
-        <select id="fw-category" class="input" onchange="updateFeedbackForm()">
-          <option value="bug">🐛 버그 신고</option>
-          <option value="question">❓ 질문</option>
-          <option value="suggestion">💡 건의사항</option>
-          <option value="notice" id="fw-notice-opt" style="display:none">📢 공지사항</option>
+    <div class="modal-body" style="padding:24px 28px">
+      <!-- 카테고리 선택 (버튼 그룹) -->
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label" style="font-weight:600;margin-bottom:10px;display:block">카테고리</label>
+        <div class="fw-cat-buttons" style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="fw-cat-btn active" onclick="selectFwCategory('bug')">
+            <input type="radio" name="fw-cat-radio" value="bug" checked style="display:none">
+            <span class="fw-cat-icon" style="background:rgba(245,101,101,0.12)">🐛</span>
+            <span>버그 신고</span>
+          </label>
+          <label class="fw-cat-btn" onclick="selectFwCategory('question')">
+            <input type="radio" name="fw-cat-radio" value="question" style="display:none">
+            <span class="fw-cat-icon" style="background:rgba(99,179,237,0.12)">❓</span>
+            <span>질문</span>
+          </label>
+          <label class="fw-cat-btn" onclick="selectFwCategory('suggestion')">
+            <input type="radio" name="fw-cat-radio" value="suggestion" style="display:none">
+            <span class="fw-cat-icon" style="background:rgba(246,173,85,0.12)">💡</span>
+            <span>건의사항</span>
+          </label>
+          <label class="fw-cat-btn" id="fw-notice-btn" onclick="selectFwCategory('notice')" style="display:none">
+            <input type="radio" name="fw-cat-radio" value="notice" style="display:none">
+            <span class="fw-cat-icon" style="background:rgba(62,207,142,0.12)">📢</span>
+            <span>공지사항</span>
+          </label>
+        </div>
+        <select id="fw-category" style="display:none" onchange="updateFeedbackForm()">
+          <option value="bug">버그 신고</option>
+          <option value="question">질문</option>
+          <option value="suggestion">건의사항</option>
+          <option value="notice" id="fw-notice-opt">공지사항</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label">제목</label>
-        <input type="text" id="fw-title" class="input" placeholder="제목을 입력하세요">
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">제목</label>
+        <input type="text" id="fw-title" class="input" placeholder="제목을 입력하세요" style="padding:14px 16px;font-size:14px;border-radius:12px">
       </div>
       <!-- 버그 전용 필드 -->
       <div id="fw-bug-fields">
-        <div class="form-group">
-          <label class="form-label">어떤 화면에서 발생했나요?</label>
-          <select id="fw-bug-screen" class="input">
-            <option value="">선택...</option>
-            <option value="dashboard">대시보드</option>
-            <option value="students">학생 관리</option>
-            <option value="exams">시험 관리</option>
-            <option value="question-bank">문제은행</option>
-            <option value="tutor-matching">과외매칭</option>
-            <option value="login">로그인/회원가입</option>
-            <option value="other">기타</option>
+        <div class="form-group" style="margin-bottom:20px">
+          <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">어떤 화면에서 발생했나요?</label>
+          <select id="fw-bug-screen" class="input" style="padding:14px 16px;font-size:14px;border-radius:12px">
+            <option value="">화면을 선택하세요</option>
+            <option value="dashboard">📊 대시보드</option>
+            <option value="students">👥 학생 관리</option>
+            <option value="exams">📝 시험 관리</option>
+            <option value="question-bank">🗄️ 문제은행</option>
+            <option value="tutor-matching">🤝 과외매칭</option>
+            <option value="login">🔐 로그인/회원가입</option>
+            <option value="other">📌 기타</option>
           </select>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">내용</label>
-        <textarea id="fw-content" class="input" rows="8" placeholder="내용을 입력하세요"></textarea>
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">내용</label>
+        <textarea id="fw-content" class="input" rows="6" placeholder="상세한 내용을 입력하세요" style="padding:14px 16px;font-size:14px;border-radius:12px;resize:vertical;min-height:140px"></textarea>
       </div>
       <!-- 공지 전용 -->
       <div id="fw-notice-fields" style="display:none">
-        <div class="form-group">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="fw-is-pinned">
-            <span>상단 고정</span>
+        <div class="form-group" style="margin-bottom:0">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 16px;background:var(--bg2);border-radius:12px">
+            <input type="checkbox" id="fw-is-pinned" style="width:18px;height:18px;accent-color:var(--accent)">
+            <span style="font-weight:500">📌 상단에 고정</span>
           </label>
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('feedbackWriteModal')">취소</button>
-      <button class="btn btn-primary" onclick="submitFeedbackPost()">등록</button>
+    <div class="modal-footer" style="padding:20px 28px 24px;border-top:1px solid var(--border);gap:12px">
+      <button class="btn btn-ghost" onclick="closeModal('feedbackWriteModal')" style="padding:12px 24px;border-radius:12px">취소</button>
+      <button class="btn btn-primary" onclick="submitFeedbackPost()" style="padding:12px 28px;border-radius:12px;font-weight:600">등록하기</button>
     </div>
   </div>
 </div>
 
+<style>
+  .fw-cat-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    background: var(--bg);
+  }
+  .fw-cat-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg2);
+  }
+  .fw-cat-btn.active {
+    border-color: var(--accent);
+    background: rgba(255,107,107,0.08);
+    color: var(--text);
+  }
+  .fw-cat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+</style>
+
 <!-- ════════════════════ NEW INQUIRY MODAL ════════════════════ -->
 <div class="modal-overlay" id="newInquiryModal">
-  <div class="modal" style="max-width:500px">
-    <div class="modal-header">
-      <div class="modal-title">🆘 새 문의</div>
-      <button class="modal-close" onclick="closeModal('newInquiryModal')">✕</button>
+  <div class="modal" style="max-width:520px;border-radius:20px">
+    <div class="modal-header" style="padding:24px 28px 20px;border-bottom:1px solid var(--border)">
+      <div class="modal-title" style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px">
+        <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(62,207,142,0.12);border-radius:10px">🆘</span>
+        1:1 문의하기
+      </div>
+      <button class="modal-close" onclick="closeModal('newInquiryModal')" style="width:32px;height:32px;border-radius:8px">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">카테고리</label>
-        <select id="niq-category" class="input">
+    <div class="modal-body" style="padding:24px 28px">
+      <div style="background:var(--bg2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);line-height:1.5">
+        💡 운영팀이 확인 후 빠른 시간 내에 답변드리겠습니다.
+      </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">문의 유형</label>
+        <select id="niq-category" class="input" style="padding:14px 16px;font-size:14px;border-radius:12px">
           <option value="payment">💳 결제/포인트</option>
-          <option value="account">👤 계정</option>
+          <option value="account">👤 계정 관련</option>
           <option value="feature">🛠️ 기능 문의</option>
+          <option value="bug">🐛 오류 신고</option>
           <option value="other">📌 기타</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label">제목</label>
-        <input type="text" id="niq-subject" class="input" placeholder="문의 제목">
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">제목</label>
+        <input type="text" id="niq-subject" class="input" placeholder="문의 제목을 입력하세요" style="padding:14px 16px;font-size:14px;border-radius:12px">
       </div>
       <div class="form-group">
-        <label class="form-label">내용</label>
-        <textarea id="niq-content" class="input" rows="6" placeholder="문의 내용을 상세히 작성해주세요"></textarea>
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">내용</label>
+        <textarea id="niq-content" class="input" rows="5" placeholder="문의 내용을 상세히 작성해주세요" style="padding:14px 16px;font-size:14px;border-radius:12px;resize:vertical;min-height:120px"></textarea>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('newInquiryModal')">취소</button>
-      <button class="btn btn-primary" onclick="submitNewInquiry()">문의 등록</button>
+    <div class="modal-footer" style="padding:20px 28px 24px;border-top:1px solid var(--border);gap:12px">
+      <button class="btn btn-ghost" onclick="closeModal('newInquiryModal')" style="padding:12px 24px;border-radius:12px">취소</button>
+      <button class="btn btn-primary" onclick="submitNewInquiry()" style="padding:12px 28px;border-radius:12px;font-weight:600">문의 보내기</button>
     </div>
   </div>
 </div>
@@ -13148,30 +13448,41 @@ async function loadFeedbackPosts() {
   const { data, error } = await query.range((_fbCurrentPage - 1) * 20, _fbCurrentPage * 20 - 1);
 
   if (error || !data?.length) {
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">게시글이 없습니다</div>';
+    container.innerHTML = `<div class="fb-empty">
+      <div class="fb-empty-icon">📝</div>
+      <div class="fb-empty-text">게시글이 없습니다</div>
+      <div class="fb-empty-sub">첫 번째 글을 작성해보세요!</div>
+      <button class="btn btn-primary" onclick="openFeedbackWriteModal()">✏️ 글쓰기</button>
+    </div>`;
     return;
   }
 
   container.innerHTML = data.map(p => {
-    const catIcon = { bug: '🐛', question: '❓', suggestion: '💡', notice: '📢' }[p.category] || '';
+    const catIcon = { bug: '🐛', question: '❓', suggestion: '💡', notice: '📢' }[p.category] || '📋';
     const catName = { bug: '버그', question: '질문', suggestion: '건의', notice: '공지' }[p.category] || '';
-    const pinned = p.is_pinned ? '<span style="color:var(--accent);margin-right:4px">📌</span>' : '';
-    const resolved = p.is_resolved ? '<span class="chip green" style="margin-left:8px">해결됨</span>' : '';
-    const votes = p.category === 'suggestion' ? `<span style="color:var(--text3);margin-left:8px">👍 ${p.vote_count || 0}</span>` : '';
+    const catClass = { bug: 'bug', question: 'question', suggestion: 'suggestion', notice: 'notice' }[p.category] || '';
+    const pinned = p.is_pinned ? '<span class="pinned">📌</span>' : '';
+    const resolved = p.is_resolved ? '<span class="chip green">해결됨</span>' : '';
     const statusBadge = p.suggestion_status ? getSuggestionStatusBadge(p.suggestion_status) : '';
-    return `<div onclick="openFeedbackDetail('${p.id}')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span class="chip">${catIcon} ${catName}</span>
-        ${statusBadge}
-        ${resolved}
+    const voteCount = p.vote_count || 0;
+    const showVotes = p.category === 'suggestion' && voteCount > 0;
+
+    return `<div class="fb-post-item" onclick="openFeedbackDetail('${p.id}')">
+      <div class="fb-post-cat-icon fb-post-cat-${catClass}">${catIcon}</div>
+      <div class="fb-post-content">
+        <div class="fb-post-badges">
+          <span class="chip">${catName}</span>
+          ${statusBadge}
+          ${resolved}
+        </div>
+        <div class="fb-post-title">${pinned}${escHtml(p.title)}</div>
+        <div class="fb-post-meta">
+          <span>👤 ${p.author?.name || '익명'}</span>
+          <span>🕐 ${getTimeAgo(new Date(p.created_at))}</span>
+          <span>👁️ ${p.view_count || 0}</span>
+        </div>
       </div>
-      <div style="font-size:15px;font-weight:600;color:var(--text)">${pinned}${escHtml(p.title)}</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
-        <span>${p.author?.name || '익명'}</span>
-        <span>${getTimeAgo(new Date(p.created_at))}</span>
-        <span>조회 ${p.view_count || 0}</span>
-        ${votes}
-      </div>
+      ${showVotes ? `<div class="fb-post-stats"><div class="fb-post-votes">👍 ${voteCount}</div></div>` : ''}
     </div>`;
   }).join('');
 }
@@ -13190,13 +13501,8 @@ function getSuggestionStatusBadge(status) {
 function filterFeedback(cat, btn) {
   _fbCurrentCat = cat;
   _fbCurrentPage = 1;
-  document.querySelectorAll('.fb-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.fb-cat-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  btn.className = cat === 'all' ? 'btn btn-sm fb-tab active' : 'btn btn-ghost btn-sm fb-tab active';
-  document.querySelectorAll('.fb-tab').forEach(t => {
-    if (!t.classList.contains('active')) t.className = 'btn btn-ghost btn-sm fb-tab';
-  });
-  document.querySelector('.fb-tab.active').className = 'btn btn-sm fb-tab active';
   loadFeedbackPosts();
 }
 
@@ -13205,10 +13511,24 @@ function openFeedbackWriteModal() {
   document.getElementById('fw-content').value = '';
   document.getElementById('fw-category').value = 'bug';
   document.getElementById('fw-is-pinned').checked = false;
-  const noticeOpt = document.getElementById('fw-notice-opt');
-  if (noticeOpt) noticeOpt.style.display = currentProfile?.role === 'staff' ? '' : 'none';
+
+  // 공지 버튼 표시 (staff만)
+  const noticeBtn = document.getElementById('fw-notice-btn');
+  if (noticeBtn) noticeBtn.style.display = currentProfile?.role === 'staff' ? 'flex' : 'none';
+
+  // 카테고리 버튼 초기화 (버그 선택)
+  document.querySelectorAll('.fw-cat-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.fw-cat-btn').classList.add('active');
+
   updateFeedbackForm();
   document.getElementById('feedbackWriteModal').classList.add('open');
+}
+
+function selectFwCategory(cat) {
+  document.getElementById('fw-category').value = cat;
+  document.querySelectorAll('.fw-cat-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  updateFeedbackForm();
 }
 
 function updateFeedbackForm() {
@@ -13251,7 +13571,8 @@ async function submitFeedbackPost() {
 
   closeModal('feedbackWriteModal');
   showToast('게시글이 등록되었습니다', '✅');
-  loadFeedbackPosts();
+  _fbCurrentCat = 'all'; // 전체 탭으로 이동
+  await loadFeedbackPosts();
 }
 
 async function openFeedbackDetail(postId) {
@@ -13371,7 +13692,8 @@ async function submitComment() {
   }
 
   document.getElementById('fd-comment-input').value = '';
-  loadFeedbackComments(_fbCurrentPost.id);
+  showToast('댓글이 등록되었습니다', '✅');
+  await loadFeedbackComments(_fbCurrentPost.id);
 }
 
 async function toggleVote() {
@@ -13428,19 +13750,31 @@ async function loadInquiries() {
     .order('updated_at', { ascending: false });
 
   if (error || !data?.length) {
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">문의 내역이 없습니다</div>';
+    container.innerHTML = `<div class="fb-empty">
+      <div class="fb-empty-icon">💬</div>
+      <div class="fb-empty-text">문의 내역이 없습니다</div>
+      <div class="fb-empty-sub">궁금한 점이 있으시면 문의해주세요</div>
+      <button class="btn btn-primary" onclick="openNewInquiryModal()">+ 새 문의</button>
+    </div>`;
     return;
   }
 
+  const catIcons = { payment: '💳', account: '👤', feature: '🛠️', bug: '🐛', other: '📌' };
+
   container.innerHTML = data.map(iq => {
     const statusBadge = getInquiryStatusBadge(iq.status);
-    return `<div onclick="openInquiryDetail('${iq.id}')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        ${statusBadge}
-        <span style="font-size:12px;color:var(--text3)">${iq.category || '기타'}</span>
+    const catIcon = catIcons[iq.category] || '📌';
+    const isOpen = iq.status === 'open';
+    return `<div onclick="openInquiryDetail('${iq.id}')" class="fb-post-item" style="${isOpen ? 'background:rgba(246,173,85,0.04)' : ''}">
+      <div style="width:44px;height:44px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${catIcon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          ${statusBadge}
+        </div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">${escHtml(iq.subject)}</div>
+        <div style="font-size:12px;color:var(--text3)">🕐 ${getTimeAgo(new Date(iq.updated_at))}</div>
       </div>
-      <div style="font-size:15px;font-weight:600;color:var(--text)">${escHtml(iq.subject)}</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:4px">${getTimeAgo(new Date(iq.updated_at))}</div>
+      <div style="color:var(--text3);font-size:18px">→</div>
     </div>`;
   }).join('');
 }
@@ -13495,7 +13829,7 @@ async function submitNewInquiry() {
 
   closeModal('newInquiryModal');
   showToast('문의가 등록되었습니다', '✅');
-  loadInquiries();
+  await loadInquiries();
 }
 
 async function openInquiryDetail(inquiryId) {
@@ -13543,22 +13877,26 @@ async function loadInquiryMessages(inquiryId) {
     .order('created_at', { ascending: true });
 
   if (!messages?.length) {
-    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px">메시지가 없습니다</div>';
+    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px">대화 내역이 없습니다</div>';
     return;
   }
 
   container.innerHTML = messages.map(m => {
-    const isMe = m.sender_id === currentUser.id;
+    const isMe = m.sender_id === currentUser.id && !m.is_admin;
     const isAdmin = m.is_admin;
-    return `<div style="display:flex;justify-content:${isMe && !isAdmin ? 'flex-end' : 'flex-start'};margin-bottom:12px">
-      <div style="max-width:80%;padding:12px 16px;border-radius:12px;background:${isAdmin ? 'rgba(62,207,142,0.15)' : isMe ? 'var(--accent)' : 'var(--bg2)'};color:${isMe && !isAdmin ? '#fff' : 'var(--text)'}">
-        <div style="font-size:11px;margin-bottom:4px;opacity:0.7">${isAdmin ? '운영팀' : m.sender?.name || '나'} · ${getTimeAgo(new Date(m.created_at))}</div>
-        <div style="white-space:pre-wrap">${escHtml(m.content)}</div>
+    const bubbleClass = isAdmin ? 'admin' : isMe ? 'mine' : 'other';
+    const senderName = isAdmin ? '🛡️ 운영팀' : (isMe ? '' : (m.sender?.name || '익명'));
+
+    return `<div class="iq-message ${bubbleClass}">
+      <div class="iq-message-bubble">
+        ${senderName ? `<div class="iq-message-sender">${senderName}</div>` : ''}
+        <div style="white-space:pre-wrap;line-height:1.5">${escHtml(m.content)}</div>
+        <div class="iq-message-time">${getTimeAgo(new Date(m.created_at))}</div>
       </div>
     </div>`;
   }).join('');
 
-  container.scrollTop = container.scrollHeight;
+  setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
 }
 
 async function sendInquiryMessage() {
@@ -13582,7 +13920,7 @@ async function sendInquiryMessage() {
   await sbClient.from('inquiries').update({ updated_at: new Date().toISOString() }).eq('id', _iqCurrentInquiry.id);
 
   document.getElementById('iq-msg-input').value = '';
-  loadInquiryMessages(_iqCurrentInquiry.id);
+  await loadInquiryMessages(_iqCurrentInquiry.id);
 }
 
 async function updateInquiryStatus(status) {
@@ -13610,23 +13948,36 @@ async function loadAdminInquiries() {
   const { data, error } = await query;
 
   if (error || !data?.length) {
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">문의가 없습니다</div>';
+    container.innerHTML = `<div class="fb-empty">
+      <div class="fb-empty-icon">📭</div>
+      <div class="fb-empty-text">문의가 없습니다</div>
+      <div class="fb-empty-sub">모든 문의가 처리되었습니다</div>
+    </div>`;
     return;
   }
+
+  const catIcons = { payment: '💳', account: '👤', feature: '🛠️', bug: '🐛', other: '📌' };
 
   container.innerHTML = data.map(iq => {
     const statusBadge = getInquiryStatusBadge(iq.status);
     const isUnanswered = iq.status === 'open';
-    return `<div onclick="openInquiryDetail('${iq.id}')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;background:${isUnanswered ? 'rgba(255,107,107,0.05)' : 'transparent'};transition:background 0.2s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='${isUnanswered ? 'rgba(255,107,107,0.05)' : 'transparent'}'">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        ${statusBadge}
-        <span style="font-size:12px;color:var(--text3)">${iq.category || '기타'}</span>
-        ${isUnanswered ? '<span style="color:var(--red);font-size:11px;font-weight:600">미답변</span>' : ''}
+    const catIcon = catIcons[iq.category] || '📌';
+
+    return `<div onclick="openInquiryDetail('${iq.id}')" class="fb-post-item" style="${isUnanswered ? 'background:rgba(255,107,107,0.04);border-left:3px solid var(--red)' : ''}">
+      <div style="width:44px;height:44px;border-radius:12px;background:${isUnanswered ? 'rgba(255,107,107,0.12)' : 'var(--bg2)'};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${catIcon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+          ${statusBadge}
+          ${isUnanswered ? '<span class="chip red" style="font-weight:700">미답변</span>' : ''}
+        </div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">${escHtml(iq.subject)}</div>
+        <div style="font-size:12px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap">
+          <span>👤 ${iq.author?.name || '익명'}</span>
+          <span>📧 ${iq.author?.email || '-'}</span>
+          <span>🕐 ${getTimeAgo(new Date(iq.updated_at))}</span>
+        </div>
       </div>
-      <div style="font-size:15px;font-weight:600;color:var(--text)">${escHtml(iq.subject)}</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:4px">
-        ${iq.author?.name || '익명'} (${iq.author?.email || '-'}) · ${getTimeAgo(new Date(iq.updated_at))}
-      </div>
+      <div style="color:var(--text3);font-size:18px">→</div>
     </div>`;
   }).join('');
 }
