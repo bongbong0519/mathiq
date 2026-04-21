@@ -1976,7 +1976,8 @@
           unit_id: p._unitId || null,
           sub_unit_id: p._subUnitId || null,
           question_type_id: p._typeId || null,
-          difficulty: p._difficulty || '중',
+          // 난이도 매핑: 하→2, 중→3, 상→4 (기존 스키마 1-5 유지)
+          difficulty: { '하': 2, '중': 3, '상': 4 }[p._difficulty] || 3,
           status: 'approved',
           uploader_id: state.currentUser.id,
           // 해설 관련 새 컬럼 (마이그레이션 후 사용)

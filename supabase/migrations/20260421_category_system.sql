@@ -127,8 +127,9 @@ CREATE POLICY "question_types_staff_all"
 ALTER TABLE public.questions
   ADD COLUMN IF NOT EXISTS unit_id UUID REFERENCES public.units(id),
   ADD COLUMN IF NOT EXISTS sub_unit_id UUID REFERENCES public.sub_units(id),
-  ADD COLUMN IF NOT EXISTS question_type_id UUID REFERENCES public.question_types(id),
-  ADD COLUMN IF NOT EXISTS difficulty TEXT CHECK (difficulty IN ('하','중','상'));
+  ADD COLUMN IF NOT EXISTS question_type_id UUID REFERENCES public.question_types(id);
+-- 주의: difficulty 컬럼은 기존 INTEGER(1-5) 유지. 새 컬럼 추가하지 않음.
+-- paste-review.html에서 '하'→2, '중'→3, '상'→4 로 매핑하여 저장.
 
 CREATE INDEX IF NOT EXISTS idx_questions_unit ON public.questions(unit_id);
 CREATE INDEX IF NOT EXISTS idx_questions_sub_unit ON public.questions(sub_unit_id);
