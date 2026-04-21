@@ -14152,27 +14152,76 @@ async function openInquiryDetail(inquiryId) {
 
   _iqCurrentInquiry = inquiry;
 
+  // staff 답변 여부 확인 (is_admin = true인 메시지가 있는지)
+  const { data: staffReplies } = await sbClient.from('inquiry_messages')
+    .select('id')
+    .eq('inquiry_id', inquiryId)
+    .eq('is_admin', true)
+    .limit(1);
+  const hasStaffReply = staffReplies && staffReplies.length > 0;
+
   document.getElementById('iq-subject').textContent = inquiry.subject;
   document.getElementById('iq-meta').innerHTML = `${getInquiryStatusBadge(inquiry.status)} · ${new Date(inquiry.created_at).toLocaleString('ko-KR')}`;
 
-  // 운영자 상태 변경 버튼
+  // 액션 버튼 (상태 변경 + 삭제)
   const actions = document.getElementById('iq-actions');
-  if (currentProfile?.role === 'staff') {
-    actions.innerHTML = `<select class="input" style="width:auto" onchange="updateInquiryStatus(this.value)">
+  let actionsHtml = '';
+
+  // 삭제 버튼: staff는 항상, 본인 문의는 staff 답변 전까지만
+  const isOwner = inquiry.author_id === currentUser.id;
+  const isStaff = currentProfile?.role === 'staff';
+  const canDelete = isStaff || (isOwner && !hasStaffReply);
+
+  if (canDelete) {
+    actionsHtml += `<button class="btn btn-ghost btn-sm" onclick="deleteInquiry()" style="color:var(--red)">🗑️ 삭제</button>`;
+  }
+
+  // 운영자 상태 변경 드롭다운
+  if (isStaff) {
+    actionsHtml += `<select class="input" style="width:auto;margin-left:8px" onchange="updateInquiryStatus(this.value)">
       <option value="">상태 변경</option>
-      <option value="open">오픈</option>
-      <option value="in_progress">진행중</option>
+      <option value="pending">대기</option>
+      <option value="in_progress">처리중</option>
       <option value="resolved">해결</option>
+      <option value="accepted">채택</option>
+      <option value="rejected">반려</option>
       <option value="closed">종료</option>
     </select>`;
-  } else {
-    actions.innerHTML = '';
   }
+
+  actions.innerHTML = actionsHtml;
 
   // 메시지 로드
   await loadInquiryMessages(inquiryId);
 
   showView('inquiry-detail');
+}
+
+async function deleteInquiry() {
+  if (!_iqCurrentInquiry) return;
+
+  if (!confirm('이 문의를 삭제하시겠습니까?\n삭제된 문의는 복구할 수 없습니다.')) {
+    return;
+  }
+
+  const { error } = await sbClient.from('inquiries')
+    .delete()
+    .eq('id', _iqCurrentInquiry.id);
+
+  if (error) {
+    showToast('삭제 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('문의가 삭제되었습니다', '✅');
+  _iqCurrentInquiry = null;
+
+  // 목록으로 이동
+  if (currentProfile?.role === 'staff') {
+    showView('admin-inquiries');
+  } else {
+    showView('inquiry');
+  }
 }
 
 async function loadInquiryMessages(inquiryId) {
