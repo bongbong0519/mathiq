@@ -105,3 +105,4 @@
 | `DOCS/04-point-system.md` | 포인트 시스템 |
 | `DOCS/05-roadmap.md` | 장기 로드맵 |
 | `DOCS/06-organization-system.md` | 기관 시스템 설계 (구현 예정) |
+| `DOCS/07-tutor-certification.md` | 선생님 인증 시스템 (등급제, 구현 예정) |
