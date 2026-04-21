@@ -5107,6 +5107,10 @@
       </div>
       <div class="form-group" style="margin-bottom:20px">
         <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">제목</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;font-size:13px;color:var(--text2)">
+          <input type="checkbox" id="nw-pinned" style="width:16px;height:16px;cursor:pointer">
+          <span>📌 상단 고정</span>
+        </label>
         <input type="text" id="nw-title" class="notice-input" placeholder="공지 제목을 입력하세요">
       </div>
       <div class="form-group">
@@ -14197,7 +14201,8 @@ async function loadNotices() {
       general: 'rgba(160,174,192,0.12)'
     }[n.category] || 'rgba(62,207,142,0.12)';
 
-    return `<div class="fb-post-item" onclick="openNoticeDetail('${n.id}')">
+    const pinnedStyle = n.is_pinned ? 'background:#FFF9E5;border-left:3px solid var(--accent);' : '';
+    return `<div class="fb-post-item" style="${pinnedStyle}" onclick="openNoticeDetail('${n.id}')">
       <div style="width:44px;height:44px;border-radius:12px;background:${catBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${catInfo.icon}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
@@ -14234,7 +14239,8 @@ async function openNoticeDetail(noticeId) {
   const catInfo = _noticeCatInfo[notice.category] || _noticeCatInfo.general;
   document.getElementById('notice-cat-badge').className = `chip ${catInfo.color}`;
   document.getElementById('notice-cat-badge').textContent = catInfo.name;
-  document.getElementById('notice-title').textContent = notice.title;
+  const pinnedIcon = notice.is_pinned ? '📌 ' : '';
+  document.getElementById('notice-title').textContent = pinnedIcon + notice.title;
   document.getElementById('notice-meta').textContent = `${notice.author?.name || '운영진'} · ${new Date(notice.created_at).toLocaleString('ko-KR')}`;
   document.getElementById('notice-content').textContent = notice.content;
 
@@ -14264,6 +14270,7 @@ function openNoticeWriteModal(noticeId) {
     document.getElementById('nw-title').value = _currentNotice.title;
     document.getElementById('nw-content').value = _currentNotice.content;
     document.getElementById('nw-category').value = _currentNotice.category;
+    document.getElementById('nw-pinned').checked = _currentNotice.is_pinned || false;
     // 카테고리 버튼 활성화
     document.querySelectorAll('.nw-cat-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.querySelector(`.nw-cat-btn input[value="${_currentNotice.category}"]`)?.parentElement;
@@ -14273,6 +14280,7 @@ function openNoticeWriteModal(noticeId) {
     document.getElementById('nw-title').value = '';
     document.getElementById('nw-content').value = '';
     document.getElementById('nw-category').value = 'important';
+    document.getElementById('nw-pinned').checked = false;
     document.querySelectorAll('.nw-cat-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.nw-cat-btn')?.classList.add('active');
   }
@@ -14290,6 +14298,7 @@ async function saveNotice() {
   const title = document.getElementById('nw-title').value.trim();
   const content = document.getElementById('nw-content').value.trim();
   const category = document.getElementById('nw-category').value;
+  const isPinned = document.getElementById('nw-pinned').checked;
   const editId = document.getElementById('nw-edit-id').value;
 
   if (!title || !content) {
@@ -14301,6 +14310,7 @@ async function saveNotice() {
     title,
     content,
     category,
+    is_pinned: isPinned,
     author_id: currentUser.id
   };
 
