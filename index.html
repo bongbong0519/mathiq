@@ -2138,6 +2138,7 @@
         <div class="nav-label">고객센터</div>
         <div class="nav-item" onclick="showView('notices')">
           <span class="icon">📢</span> 공지사항
+          <span class="badge notice-badge" style="display:none"></span>
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -2203,6 +2204,7 @@
         <div class="nav-label">고객센터</div>
         <div class="nav-item" onclick="showView('notices')">
           <span class="icon">📢</span> 공지사항
+          <span class="badge notice-badge" style="display:none"></span>
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -2282,6 +2284,7 @@
         <div class="nav-label">고객센터</div>
         <div class="nav-item" onclick="showView('notices')">
           <span class="icon">📢</span> 공지사항
+          <span class="badge notice-badge" style="display:none"></span>
         </div>
         <div class="nav-item" onclick="showView('admin-inquiries')">
           <span class="icon">📋</span> 문의 처리
@@ -2346,6 +2349,7 @@
         <div class="nav-label">고객센터</div>
         <div class="nav-item" onclick="showView('notices')">
           <span class="icon">📢</span> 공지사항
+          <span class="badge notice-badge" style="display:none"></span>
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -2400,6 +2404,7 @@
         <div class="nav-label">고객센터</div>
         <div class="nav-item" onclick="showView('notices')">
           <span class="icon">📢</span> 공지사항
+          <span class="badge notice-badge" style="display:none"></span>
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -6571,6 +6576,7 @@ function showApp() {
       loadStudents();
       checkUnreadMessages().catch(() => {});
       checkQbPendingBadge().catch(() => {});
+      updateNoticeBadge().catch(() => {});
       // 선생님인 경우 매칭 뱃지 업데이트
       if (currentProfile && ['teacher', 'expert'].includes(currentProfile.role)) {
         updateMatchBadge().catch(() => {});
@@ -14158,6 +14164,39 @@ const _noticeCatInfo = {
   general: { icon: '📝', name: '일반', color: '' }
 };
 
+// 공지 읽음 배지 업데이트
+async function updateNoticeBadge() {
+  const badges = document.querySelectorAll('.notice-badge');
+  if (!badges.length || !currentUser) return;
+
+  try {
+    // 전체 공지 id
+    const { data: allNotices } = await sbClient
+      .from('notices')
+      .select('id');
+
+    // 내가 읽은 공지 id
+    const { data: myReads } = await sbClient
+      .from('notice_reads')
+      .select('notice_id')
+      .eq('user_id', currentUser.id);
+
+    const readIds = new Set((myReads || []).map(r => r.notice_id));
+    const unreadCount = (allNotices || []).filter(n => !readIds.has(n.id)).length;
+
+    badges.forEach(badge => {
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    });
+  } catch (e) {
+    console.warn('배지 갱신 실패:', e);
+  }
+}
+
 async function loadNotices() {
   const container = document.getElementById('notices-list');
   if (!container) return;
@@ -14235,6 +14274,22 @@ async function openNoticeDetail(noticeId) {
   }
 
   _currentNotice = notice;
+
+  // 읽음 처리 (한 번만 기록되면 됨, 중복이면 무시)
+  try {
+    await sbClient
+      .from('notice_reads')
+      .upsert({
+        user_id: currentUser.id,
+        notice_id: noticeId,
+        read_at: new Date().toISOString()
+      }, { onConflict: 'user_id,notice_id', ignoreDuplicates: true });
+  } catch (e) {
+    console.warn('읽음 처리 실패:', e);
+  }
+
+  // 사이드바 배지 즉시 갱신
+  updateNoticeBadge().catch(() => {});
 
   const catInfo = _noticeCatInfo[notice.category] || _noticeCatInfo.general;
   document.getElementById('notice-cat-badge').className = `chip ${catInfo.color}`;
@@ -14342,6 +14397,7 @@ async function saveNotice() {
     document.querySelectorAll('#view-notices .fb-cat-tab').forEach(t => t.classList.remove('active'));
     document.querySelector('#view-notices .fb-cat-tab[data-cat="all"]')?.classList.add('active');
     showView('notices');
+    updateNoticeBadge().catch(() => {});
   }
 }
 
@@ -14360,6 +14416,7 @@ async function deleteNotice(noticeId) {
   showToast('공지가 삭제되었습니다', '✅');
   _currentNotice = null;
   showView('notices');
+  updateNoticeBadge().catch(() => {});
 }
 
 // ── 1:1 INQUIRY (1:1 문의) ──
