@@ -3307,7 +3307,8 @@
             <div style="font-weight:700;color:var(--text);margin-bottom:6px">ℹ️ 안내</div>
             • 매칭 신청은 <strong style="color:var(--accent)">무료</strong>입니다<br>
             • 선생님이 수락하면 양쪽 연락처가 공개됩니다<br>
-            • 매칭 성사 신고 시 <strong style="color:var(--accent)">500P 지급</strong>
+            • 매칭 성사 신고 시 <strong style="color:var(--accent)">500P 지급</strong><br>
+            • 구인 정보가 있으면 선생님이 참고합니다 <a href="#" onclick="closeMatchRequestModal();showView('tutee-register')" style="color:var(--accent);font-weight:600">과외 구인 등록 →</a>
           </div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-ghost" style="flex:1" onclick="closeMatchRequestModal()">취소</button>
@@ -10979,6 +10980,7 @@ async function cancelMatchRequest(requestId) {
     if (error) throw error;
 
     showToast('신청이 취소되었습니다', '✅');
+    updateParentMatchBadge();
     loadParentRequests();
 
   } catch (err) {
