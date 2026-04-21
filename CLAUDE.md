@@ -104,3 +104,4 @@
 | `DOCS/03-tutor-matching.md` | 과외 매칭 시스템 |
 | `DOCS/04-point-system.md` | 포인트 시스템 |
 | `DOCS/05-roadmap.md` | 장기 로드맵 |
+| `DOCS/06-organization-system.md` | 기관 시스템 설계 (구현 예정) |
