@@ -2976,8 +2976,144 @@
 
     <!-- ══ 선생님: 수업 자료 ══ -->
     <div id="view-teacher-materials" class="view" style="display:none">
-      <div class="page-header"><div><h2 class="page-title">수업 자료</h2><p class="page-subtitle">수업에 필요한 자료를 관리합니다</p></div></div>
-      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📁</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">수업 자료 업로드, 학생별 자료 배포 기능이<br>곧 추가될 예정입니다.</div></div></div>
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">📁 수업 자료</h2>
+          <p class="page-subtitle">수업에 필요한 자료를 관리하고 학생에게 공유합니다</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openNewFolderModal()">📂 새 폴더</button>
+          <button class="btn btn-primary btn-sm" onclick="openMaterialUploadModal()">+ 자료 업로드</button>
+        </div>
+      </div>
+      <!-- 검색/필터 -->
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <input type="text" id="tm-search" class="form-input" placeholder="자료 검색..." style="flex:1;min-width:200px" oninput="filterTeacherMaterials()">
+        <select id="tm-folder-filter" class="form-input" style="width:180px" onchange="filterTeacherMaterials()">
+          <option value="">전체 폴더</option>
+        </select>
+      </div>
+      <!-- 폴더+파일 그리드 -->
+      <div style="display:flex;gap:20px;min-height:400px">
+        <!-- 좌측: 폴더 트리 -->
+        <div class="card" style="width:220px;flex-shrink:0;padding:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px">폴더</div>
+          <div id="tm-folder-tree">
+            <div class="tm-folder-item active" data-path="" onclick="selectMaterialFolder('')" style="padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px">
+              <span>📁</span> 전체
+            </div>
+          </div>
+        </div>
+        <!-- 우측: 파일 목록 -->
+        <div style="flex:1">
+          <div id="tm-materials-list" style="display:grid;gap:12px">
+            <div class="empty-state" style="padding:60px"><div class="empty-state-icon">📁</div><div class="empty-state-text">불러오는 중...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 자료 업로드 모달 -->
+    <div id="material-upload-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:var(--radius);padding:28px;max-width:500px;width:90%;position:relative;box-shadow:var(--shadow)">
+        <button onclick="closeMaterialUploadModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px">📤 자료 업로드</div>
+
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">파일 선택 <span style="color:var(--red)">*</span></label>
+          <div id="mu-dropzone" style="border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;transition:all 0.2s" onclick="document.getElementById('mu-file-input').click()">
+            <div style="font-size:32px;margin-bottom:8px">📎</div>
+            <div style="font-size:13px;color:var(--text2)">클릭하거나 파일을 드래그하세요</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF, 이미지, 문서 (최대 50MB)</div>
+          </div>
+          <input type="file" id="mu-file-input" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" onchange="handleMaterialFileSelect(this)">
+          <div id="mu-file-preview" style="display:none;margin-top:12px;padding:12px;background:var(--bg2);border-radius:var(--radius-sm)"></div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">제목 <span style="color:var(--red)">*</span></label>
+          <input type="text" id="mu-title" class="form-input" style="width:100%" placeholder="자료 제목">
+        </div>
+
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">설명</label>
+          <textarea id="mu-description" class="form-input" style="width:100%;min-height:60px;resize:vertical" placeholder="자료에 대한 설명 (선택)"></textarea>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-bottom:16px">
+          <div style="flex:1">
+            <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">폴더</label>
+            <select id="mu-folder" class="form-input" style="width:100%">
+              <option value="">(최상위)</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">또는 새 폴더명</label>
+            <input type="text" id="mu-new-folder" class="form-input" style="width:100%" placeholder="새 폴더 이름">
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">태그 <span style="color:var(--text3);font-weight:400">(쉼표로 구분)</span></label>
+          <input type="text" id="mu-tags" class="form-input" style="width:100%" placeholder="예: 기본, 중요, 시험대비">
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" style="flex:1" onclick="closeMaterialUploadModal()">취소</button>
+          <button class="btn btn-primary" style="flex:1" id="mu-submit-btn" onclick="submitMaterialUpload()">📤 업로드</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 자료 공유 모달 -->
+    <div id="material-share-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:var(--radius);padding:28px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;position:relative;box-shadow:var(--shadow)">
+        <button onclick="closeMaterialShareModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">📤 학생에게 공유</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:20px">선택한 자료: <span id="ms-material-title" style="font-weight:600;color:var(--text)"></span></div>
+        <input type="hidden" id="ms-material-id">
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <label style="font-size:12px;font-weight:700;color:var(--text2)">담당 학생 목록</label>
+            <button class="btn btn-ghost btn-sm" onclick="toggleAllShareStudents()" style="font-size:11px">전체 선택/해제</button>
+          </div>
+          <div id="ms-student-list" style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px">
+            <div class="empty-state" style="padding:20px"><div class="empty-state-text">학생 목록 불러오는 중...</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">선택: <span id="ms-selected-count">0</span>명</div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" style="flex:1" onclick="closeMaterialShareModal()">취소</button>
+          <button class="btn btn-primary" style="flex:1" onclick="submitMaterialShare()">📤 공유하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 새 폴더 모달 -->
+    <div id="new-folder-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:var(--radius);padding:28px;max-width:400px;width:90%;position:relative;box-shadow:var(--shadow)">
+        <button onclick="closeNewFolderModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px">📂 새 폴더</div>
+
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">상위 폴더</label>
+          <select id="nf-parent" class="form-input" style="width:100%">
+            <option value="">(최상위)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">폴더 이름 <span style="color:var(--red)">*</span></label>
+          <input type="text" id="nf-name" class="form-input" style="width:100%" placeholder="예: 지수와 로그">
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" style="flex:1" onclick="closeNewFolderModal()">취소</button>
+          <button class="btn btn-primary" style="flex:1" onclick="createNewFolder()">📂 만들기</button>
+        </div>
+      </div>
     </div>
 
     <!-- ══ 선생님: 학부모 문자 발송 ══ -->
@@ -3045,8 +3181,29 @@
 
     <!-- ══ 학생: 수업 자료 ══ -->
     <div id="view-student-materials" class="view" style="display:none">
-      <div class="page-header"><div><h2 class="page-title">수업 자료</h2><p class="page-subtitle">선생님이 공유한 수업 자료를 확인합니다</p></div></div>
-      <div class="card"><div class="empty-state" style="padding:60px 20px"><div style="font-size:36px;margin-bottom:16px">📁</div><div class="empty-state-text">준비 중인 기능입니다</div><div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">선생님이 공유한 학습 자료, 과제 자료 등을<br>곧 확인하실 수 있습니다.</div></div></div>
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">📁 수업 자료</h2>
+          <p class="page-subtitle">선생님이 공유한 수업 자료를 확인합니다</p>
+        </div>
+      </div>
+      <!-- 탭 -->
+      <div class="tab-nav" style="margin-bottom:20px">
+        <button class="tab-btn active" id="smTabAll" onclick="switchStudentMaterialsTab('all')">전체</button>
+        <button class="tab-btn" id="smTabUnread" onclick="switchStudentMaterialsTab('unread')">안 읽음 <span id="sm-unread-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px"></span></button>
+        <button class="tab-btn" id="smTabRecent" onclick="switchStudentMaterialsTab('recent')">최근 공유</button>
+      </div>
+      <!-- 검색/필터 -->
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <input type="text" id="sm-search" class="form-input" placeholder="자료 검색..." style="flex:1;min-width:200px" oninput="filterStudentMaterials()">
+        <select id="sm-teacher-filter" class="form-input" style="width:150px" onchange="filterStudentMaterials()">
+          <option value="">전체 선생님</option>
+        </select>
+      </div>
+      <!-- 자료 목록 -->
+      <div id="sm-materials-list" style="display:grid;gap:12px">
+        <div class="empty-state" style="padding:60px"><div class="empty-state-icon">📁</div><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
     </div>
 
     <!-- ══ VIEW: BOARD (게시판 공통 — 입시정보/학생/학부모) ══ -->
@@ -5646,6 +5803,8 @@ function showView(viewId) {
         if (viewId === 'question-bank')    loadQuestionBankView().catch(() => {});
         if (viewId === 'question-upload')  loadQuestionUploadView();
         if (viewId === 'admin-question-bank') loadAdminQuestionBankView().catch(() => {});
+        if (viewId === 'teacher-materials') loadTeacherMaterials().catch(() => {});
+        if (viewId === 'student-materials') loadStudentMaterials().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -15501,6 +15660,695 @@ async function submitMsg() {
   if (error) { showToast('전송 실패: ' + error.message, '❌'); return; }
   showToast('쪽지를 보냈습니다 ✅', '✉️');
   closeMsgCompose();
+}
+
+// ═══════════════════════════════════════
+//  선생님 수업 자료 관리
+// ═══════════════════════════════════════
+
+let _tmCurrentFolder = '';
+let _tmMaterials = [];
+let _tmFolders = [];
+let _selectedMaterialFile = null;
+
+async function loadTeacherMaterials() {
+  if (!sbClient || !currentUser) return;
+  const listWrap = document.getElementById('tm-materials-list');
+  if (!listWrap) return;
+  listWrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  // 자료 목록 조회
+  const { data: materials, error } = await sbClient
+    .from('class_materials')
+    .select('*')
+    .eq('teacher_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    listWrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  _tmMaterials = materials || [];
+
+  // 폴더 목록 추출
+  const folderSet = new Set();
+  _tmMaterials.forEach(m => {
+    if (m.folder_path) {
+      const parts = m.folder_path.split('/');
+      let path = '';
+      parts.forEach(p => {
+        path = path ? path + '/' + p : p;
+        folderSet.add(path);
+      });
+    }
+  });
+  _tmFolders = Array.from(folderSet).sort();
+
+  // 폴더 트리 렌더링
+  renderFolderTree();
+  // 폴더 셀렉트 업데이트
+  updateFolderSelects();
+  // 자료 목록 렌더링
+  renderTeacherMaterialsList();
+}
+
+function renderFolderTree() {
+  const treeWrap = document.getElementById('tm-folder-tree');
+  if (!treeWrap) return;
+
+  let html = `<div class="tm-folder-item ${_tmCurrentFolder === '' ? 'active' : ''}" data-path="" onclick="selectMaterialFolder('')" style="padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;background:${_tmCurrentFolder === '' ? 'var(--accent-light)' : 'transparent'}">
+    <span>📁</span> 전체
+  </div>`;
+
+  _tmFolders.forEach(folder => {
+    const depth = folder.split('/').length - 1;
+    const name = folder.split('/').pop();
+    const isActive = _tmCurrentFolder === folder;
+    html += `<div class="tm-folder-item ${isActive ? 'active' : ''}" data-path="${folder}" onclick="selectMaterialFolder('${folder}')" style="padding:8px 12px;padding-left:${12 + depth * 16}px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;background:${isActive ? 'var(--accent-light)' : 'transparent'}">
+      <span>📂</span> ${name}
+    </div>`;
+  });
+
+  treeWrap.innerHTML = html;
+}
+
+function updateFolderSelects() {
+  const selects = ['tm-folder-filter', 'mu-folder', 'nf-parent'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = id === 'tm-folder-filter' ? '<option value="">전체 폴더</option>' : '<option value="">(최상위)</option>';
+    _tmFolders.forEach(f => {
+      sel.innerHTML += `<option value="${f}">${f}</option>`;
+    });
+    sel.value = currentVal;
+  });
+}
+
+function selectMaterialFolder(folder) {
+  _tmCurrentFolder = folder;
+  renderFolderTree();
+  renderTeacherMaterialsList();
+}
+
+function filterTeacherMaterials() {
+  renderTeacherMaterialsList();
+}
+
+async function renderTeacherMaterialsList() {
+  const listWrap = document.getElementById('tm-materials-list');
+  if (!listWrap) return;
+
+  const searchTerm = (document.getElementById('tm-search')?.value || '').toLowerCase();
+  const folderFilter = document.getElementById('tm-folder-filter')?.value || '';
+
+  let filtered = _tmMaterials.filter(m => {
+    // 폴더 필터
+    const effectiveFolder = _tmCurrentFolder || folderFilter;
+    if (effectiveFolder && !m.folder_path?.startsWith(effectiveFolder)) return false;
+    // 검색어
+    if (searchTerm && !m.title.toLowerCase().includes(searchTerm) && !(m.description || '').toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+
+  if (!filtered.length) {
+    listWrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">📁</div>
+      <div class="empty-state-text">자료가 없습니다</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:8px">
+        <a href="#" onclick="openMaterialUploadModal()" style="color:var(--accent);font-weight:600">+ 자료 업로드</a>로 시작하세요
+      </div>
+    </div>`;
+    return;
+  }
+
+  // 공유 현황 조회
+  const materialIds = filtered.map(m => m.id);
+  const { data: shares } = await sbClient
+    .from('material_shares')
+    .select('material_id, viewed_at')
+    .in('material_id', materialIds);
+
+  const shareStats = {};
+  (shares || []).forEach(s => {
+    if (!shareStats[s.material_id]) shareStats[s.material_id] = { total: 0, viewed: 0 };
+    shareStats[s.material_id].total++;
+    if (s.viewed_at) shareStats[s.material_id].viewed++;
+  });
+
+  listWrap.innerHTML = filtered.map(m => {
+    const stats = shareStats[m.id] || { total: 0, viewed: 0 };
+    const fileIcon = getFileIcon(m.file_type);
+    const sizeStr = formatFileSize(m.file_size);
+    const dateStr = new Date(m.created_at).toLocaleDateString('ko-KR');
+    const tagsHtml = (m.tags || []).map(t => `<span style="background:var(--bg2);padding:2px 8px;border-radius:10px;font-size:10px;color:var(--text3)">${t}</span>`).join(' ');
+
+    return `<div class="card" style="padding:16px">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="font-size:32px;flex-shrink:0">${fileIcon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.title}</div>
+          ${m.description ? `<div style="font-size:12px;color:var(--text3);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.description}</div>` : ''}
+          <div style="font-size:11px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap">
+            <span>${dateStr}</span>
+            <span>${sizeStr}</span>
+            ${m.folder_path ? `<span>📂 ${m.folder_path}</span>` : ''}
+          </div>
+          ${tagsHtml ? `<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">${tagsHtml}</div>` : ''}
+          <div style="margin-top:8px;font-size:12px;color:var(--text2)">
+            공유: <strong>${stats.total}</strong>명 | 열람: <strong>${stats.viewed}</strong>명
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" onclick="openMaterialShareModal('${m.id}', '${m.title.replace(/'/g, "\\'")}')">📤 공유</button>
+          <button class="btn btn-ghost btn-sm" onclick="previewMaterial('${m.file_url}', '${m.file_type}')">👁 보기</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteMaterial('${m.id}', '${m.title.replace(/'/g, "\\'")}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getFileIcon(fileType) {
+  if (!fileType) return '📄';
+  if (fileType.includes('pdf')) return '📕';
+  if (fileType.includes('image')) return '🖼️';
+  if (fileType.includes('word') || fileType.includes('document')) return '📘';
+  if (fileType.includes('excel') || fileType.includes('sheet')) return '📗';
+  if (fileType.includes('powerpoint') || fileType.includes('presentation')) return '📙';
+  return '📄';
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ── 업로드 모달 ──
+function openMaterialUploadModal() {
+  _selectedMaterialFile = null;
+  document.getElementById('mu-file-input').value = '';
+  document.getElementById('mu-file-preview').style.display = 'none';
+  document.getElementById('mu-title').value = '';
+  document.getElementById('mu-description').value = '';
+  document.getElementById('mu-folder').value = _tmCurrentFolder || '';
+  document.getElementById('mu-new-folder').value = '';
+  document.getElementById('mu-tags').value = '';
+  document.getElementById('material-upload-modal').style.display = 'flex';
+
+  // 드래그앤드롭 설정
+  const dropzone = document.getElementById('mu-dropzone');
+  dropzone.ondragover = e => { e.preventDefault(); dropzone.style.borderColor = 'var(--accent)'; dropzone.style.background = 'var(--accent-light)'; };
+  dropzone.ondragleave = e => { e.preventDefault(); dropzone.style.borderColor = 'var(--border)'; dropzone.style.background = 'transparent'; };
+  dropzone.ondrop = e => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--border)';
+    dropzone.style.background = 'transparent';
+    if (e.dataTransfer.files.length > 0) {
+      handleMaterialFileSelect({ files: e.dataTransfer.files });
+    }
+  };
+}
+
+function closeMaterialUploadModal() {
+  document.getElementById('material-upload-modal').style.display = 'none';
+  _selectedMaterialFile = null;
+}
+
+function handleMaterialFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // 파일 크기 검사 (50MB)
+  if (file.size > 50 * 1024 * 1024) {
+    showToast('파일 크기가 50MB를 초과합니다', '⚠️');
+    return;
+  }
+
+  // MIME 타입 검사
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain'];
+  if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+    showToast('지원하지 않는 파일 형식입니다', '⚠️');
+    return;
+  }
+
+  _selectedMaterialFile = file;
+
+  // 미리보기
+  const preview = document.getElementById('mu-file-preview');
+  const icon = getFileIcon(file.type);
+  preview.innerHTML = `<div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:24px">${icon}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${file.name}</div>
+      <div style="font-size:11px;color:var(--text3)">${formatFileSize(file.size)}</div>
+    </div>
+    <button onclick="_selectedMaterialFile=null;document.getElementById('mu-file-preview').style.display='none';document.getElementById('mu-file-input').value=''" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--text3)">✕</button>
+  </div>`;
+  preview.style.display = 'block';
+
+  // 제목 자동 설정
+  if (!document.getElementById('mu-title').value) {
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    document.getElementById('mu-title').value = nameWithoutExt;
+  }
+}
+
+async function submitMaterialUpload() {
+  if (!sbClient || !currentUser) return;
+  if (!_selectedMaterialFile) {
+    showToast('파일을 선택해주세요', '⚠️');
+    return;
+  }
+
+  const title = document.getElementById('mu-title').value.trim();
+  if (!title) {
+    showToast('제목을 입력해주세요', '⚠️');
+    return;
+  }
+
+  const btn = document.getElementById('mu-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '업로드 중...';
+
+  try {
+    // 폴더 경로 결정
+    let folderPath = document.getElementById('mu-folder').value;
+    const newFolderName = document.getElementById('mu-new-folder').value.trim();
+    if (newFolderName) {
+      folderPath = folderPath ? folderPath + '/' + newFolderName : newFolderName;
+    }
+
+    // Storage 업로드
+    const fileExt = _selectedMaterialFile.name.split('.').pop();
+    const fileName = `${currentUser.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    const { data: uploadData, error: uploadError } = await sbClient.storage
+      .from('class-materials')
+      .upload(fileName, _selectedMaterialFile);
+
+    if (uploadError) throw uploadError;
+
+    // 공개 URL 가져오기
+    const { data: urlData } = sbClient.storage.from('class-materials').getPublicUrl(fileName);
+    const fileUrl = urlData?.publicUrl || fileName;
+
+    // 태그 파싱
+    const tagsStr = document.getElementById('mu-tags').value.trim();
+    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : null;
+
+    // DB 저장
+    const { error: dbError } = await sbClient.from('class_materials').insert({
+      teacher_id: currentUser.id,
+      title,
+      description: document.getElementById('mu-description').value.trim() || null,
+      file_url: fileUrl,
+      file_name: _selectedMaterialFile.name,
+      file_type: _selectedMaterialFile.type,
+      file_size: _selectedMaterialFile.size,
+      folder_path: folderPath || null,
+      tags
+    });
+
+    if (dbError) throw dbError;
+
+    showToast('자료가 업로드되었습니다', '✅');
+    closeMaterialUploadModal();
+    loadTeacherMaterials();
+
+  } catch (err) {
+    showToast('업로드 실패: ' + err.message, '❌');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 업로드';
+  }
+}
+
+// ── 공유 모달 ──
+async function openMaterialShareModal(materialId, materialTitle) {
+  document.getElementById('ms-material-id').value = materialId;
+  document.getElementById('ms-material-title').textContent = materialTitle;
+  document.getElementById('material-share-modal').style.display = 'flex';
+
+  const listWrap = document.getElementById('ms-student-list');
+  listWrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">불러오는 중...</div>';
+
+  // 담당 학생 목록 조회
+  const { data: students, error } = await sbClient
+    .from('students')
+    .select('id, name, grade')
+    .eq('user_id', currentUser.id)
+    .order('name');
+
+  if (error || !students?.length) {
+    listWrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">담당 학생이 없습니다</div>';
+    return;
+  }
+
+  // 이미 공유된 학생 확인
+  const { data: existingShares } = await sbClient
+    .from('material_shares')
+    .select('student_id')
+    .eq('material_id', materialId);
+
+  const sharedSet = new Set((existingShares || []).map(s => s.student_id));
+
+  listWrap.innerHTML = students.map(s => {
+    const isShared = sharedSet.has(s.id);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px;cursor:pointer;border-radius:var(--radius-sm)" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
+      <input type="checkbox" class="ms-student-checkbox" value="${s.id}" ${isShared ? 'checked disabled' : ''} onchange="updateShareSelectedCount()">
+      <span style="flex:1">${s.name}</span>
+      <span style="font-size:11px;color:var(--text3)">${s.grade || ''}</span>
+      ${isShared ? '<span style="font-size:10px;color:var(--green)">공유됨</span>' : ''}
+    </label>`;
+  }).join('');
+
+  updateShareSelectedCount();
+}
+
+function closeMaterialShareModal() {
+  document.getElementById('material-share-modal').style.display = 'none';
+}
+
+function updateShareSelectedCount() {
+  const checkboxes = document.querySelectorAll('.ms-student-checkbox:not(:disabled)');
+  const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+  document.getElementById('ms-selected-count').textContent = checked;
+}
+
+function toggleAllShareStudents() {
+  const checkboxes = document.querySelectorAll('.ms-student-checkbox:not(:disabled)');
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  checkboxes.forEach(cb => cb.checked = !allChecked);
+  updateShareSelectedCount();
+}
+
+async function submitMaterialShare() {
+  if (!sbClient || !currentUser) return;
+
+  const materialId = document.getElementById('ms-material-id').value;
+  const checkboxes = document.querySelectorAll('.ms-student-checkbox:not(:disabled):checked');
+  const studentIds = Array.from(checkboxes).map(cb => cb.value);
+
+  if (!studentIds.length) {
+    showToast('공유할 학생을 선택해주세요', '⚠️');
+    return;
+  }
+
+  try {
+    const shares = studentIds.map(studentId => ({
+      material_id: materialId,
+      student_id: studentId,
+      shared_by: currentUser.id
+    }));
+
+    const { error } = await sbClient.from('material_shares').insert(shares);
+    if (error) throw error;
+
+    showToast(`${studentIds.length}명에게 자료를 공유했습니다`, '✅');
+    closeMaterialShareModal();
+    renderTeacherMaterialsList();
+
+  } catch (err) {
+    showToast('공유 실패: ' + err.message, '❌');
+  }
+}
+
+// ── 새 폴더 모달 ──
+function openNewFolderModal() {
+  document.getElementById('nf-parent').value = _tmCurrentFolder || '';
+  document.getElementById('nf-name').value = '';
+  document.getElementById('new-folder-modal').style.display = 'flex';
+}
+
+function closeNewFolderModal() {
+  document.getElementById('new-folder-modal').style.display = 'none';
+}
+
+async function createNewFolder() {
+  const parent = document.getElementById('nf-parent').value;
+  const name = document.getElementById('nf-name').value.trim();
+
+  if (!name) {
+    showToast('폴더 이름을 입력해주세요', '⚠️');
+    return;
+  }
+
+  const newPath = parent ? parent + '/' + name : name;
+
+  if (_tmFolders.includes(newPath)) {
+    showToast('이미 존재하는 폴더입니다', '⚠️');
+    return;
+  }
+
+  // 폴더는 자료가 있어야 생성됨 - 빈 자료 생성하지 않고 목록에만 추가
+  _tmFolders.push(newPath);
+  _tmFolders.sort();
+  renderFolderTree();
+  updateFolderSelects();
+  selectMaterialFolder(newPath);
+  closeNewFolderModal();
+  showToast('폴더가 생성되었습니다. 자료를 업로드해주세요.', '📂');
+}
+
+// ── 자료 삭제 ──
+async function deleteMaterial(materialId, title) {
+  const ok = confirm(`"${title}" 자료를 삭제하시겠습니까?\n\n학생 공유도 함께 삭제됩니다.`);
+  if (!ok) return;
+
+  try {
+    const { error } = await sbClient.from('class_materials').delete().eq('id', materialId);
+    if (error) throw error;
+
+    showToast('자료가 삭제되었습니다', '✅');
+    loadTeacherMaterials();
+  } catch (err) {
+    showToast('삭제 실패: ' + err.message, '❌');
+  }
+}
+
+// ── 자료 미리보기 ──
+function previewMaterial(url, fileType) {
+  if (!url) return;
+  // Storage URL인 경우 signed URL 필요할 수 있음
+  window.open(url, '_blank');
+}
+
+
+// ═══════════════════════════════════════
+//  학생 수업 자료 조회
+// ═══════════════════════════════════════
+
+let _smCurrentTab = 'all';
+let _smMaterials = [];
+
+function switchStudentMaterialsTab(tab) {
+  _smCurrentTab = tab;
+  ['all', 'unread', 'recent'].forEach(t => {
+    const btn = document.getElementById('smTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  renderStudentMaterialsList();
+}
+
+async function loadStudentMaterials() {
+  if (!sbClient || !currentUser) return;
+  const listWrap = document.getElementById('sm-materials-list');
+  if (!listWrap) return;
+  listWrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  // 학생 계정으로 연결된 students 레코드 찾기
+  const { data: studentRecords } = await sbClient
+    .from('students')
+    .select('id')
+    .eq('auth_user_id', currentUser.id);
+
+  if (!studentRecords?.length) {
+    listWrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">📁</div>
+      <div class="empty-state-text">공유된 자료가 없습니다</div>
+    </div>`;
+    return;
+  }
+
+  const studentIds = studentRecords.map(s => s.id);
+
+  // 공유된 자료 조회
+  const { data: shares, error } = await sbClient
+    .from('material_shares')
+    .select(`
+      *,
+      material:class_materials(*)
+    `)
+    .in('student_id', studentIds)
+    .order('shared_at', { ascending: false });
+
+  if (error) {
+    listWrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-state-icon">❌</div><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  _smMaterials = (shares || []).filter(s => s.material); // 삭제된 자료 제외
+
+  // 선생님 정보 조회
+  const teacherIds = [...new Set(_smMaterials.map(s => s.material.teacher_id))];
+  if (teacherIds.length) {
+    const { data: teachers } = await sbClient.from('profiles').select('id, name').in('id', teacherIds);
+    const teacherMap = {};
+    (teachers || []).forEach(t => { teacherMap[t.id] = t.name; });
+    _smMaterials.forEach(s => { s.teacherName = teacherMap[s.material.teacher_id] || '선생님'; });
+
+    // 선생님 필터 업데이트
+    const teacherFilter = document.getElementById('sm-teacher-filter');
+    if (teacherFilter) {
+      teacherFilter.innerHTML = '<option value="">전체 선생님</option>';
+      (teachers || []).forEach(t => {
+        teacherFilter.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+      });
+    }
+  }
+
+  // 안 읽음 뱃지 업데이트
+  const unreadCount = _smMaterials.filter(s => !s.viewed_at).length;
+  const badge = document.getElementById('sm-unread-badge');
+  if (badge) {
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  renderStudentMaterialsList();
+}
+
+function filterStudentMaterials() {
+  renderStudentMaterialsList();
+}
+
+function renderStudentMaterialsList() {
+  const listWrap = document.getElementById('sm-materials-list');
+  if (!listWrap) return;
+
+  const searchTerm = (document.getElementById('sm-search')?.value || '').toLowerCase();
+  const teacherFilter = document.getElementById('sm-teacher-filter')?.value || '';
+
+  let filtered = _smMaterials.filter(s => {
+    // 탭 필터
+    if (_smCurrentTab === 'unread' && s.viewed_at) return false;
+    if (_smCurrentTab === 'recent') {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      if (new Date(s.shared_at) < sevenDaysAgo) return false;
+    }
+    // 선생님 필터
+    if (teacherFilter && s.material.teacher_id !== teacherFilter) return false;
+    // 검색어
+    if (searchTerm && !s.material.title.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+
+  if (!filtered.length) {
+    listWrap.innerHTML = `<div class="empty-state" style="padding:60px">
+      <div class="empty-state-icon">📁</div>
+      <div class="empty-state-text">${_smCurrentTab === 'unread' ? '읽지 않은 자료가 없습니다' : '공유된 자료가 없습니다'}</div>
+    </div>`;
+    return;
+  }
+
+  listWrap.innerHTML = filtered.map(s => {
+    const m = s.material;
+    const fileIcon = getFileIcon(m.file_type);
+    const sizeStr = formatFileSize(m.file_size);
+    const sharedAgo = getTimeAgo(s.shared_at);
+    const isNew = !s.viewed_at;
+
+    return `<div class="card" style="padding:16px;${isNew ? 'border-left:3px solid var(--accent)' : ''}" onclick="markMaterialViewed('${s.id}')">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="font-size:32px;flex-shrink:0">${fileIcon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:15px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.title}</span>
+            ${isNew ? '<span style="background:var(--red);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px">NEW</span>' : ''}
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:4px">
+            공유자: <strong>${s.teacherName}</strong> | ${sharedAgo}
+          </div>
+          ${m.description ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${m.description}</div>` : ''}
+          <div style="font-size:11px;color:var(--text3)">${sizeStr}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();previewStudentMaterial('${s.id}', '${m.file_url}')">👁 보기</button>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();downloadStudentMaterial('${s.id}', '${m.file_url}', '${m.file_name.replace(/'/g, "\\'")}')">📥 다운로드</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getTimeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}일 전`;
+  return new Date(dateStr).toLocaleDateString('ko-KR');
+}
+
+async function markMaterialViewed(shareId) {
+  if (!sbClient) return;
+  const share = _smMaterials.find(s => s.id === shareId);
+  if (!share || share.viewed_at) return;
+
+  await sbClient.from('material_shares').update({ viewed_at: new Date().toISOString() }).eq('id', shareId);
+  share.viewed_at = new Date().toISOString();
+
+  // 뱃지 업데이트
+  const unreadCount = _smMaterials.filter(s => !s.viewed_at).length;
+  const badge = document.getElementById('sm-unread-badge');
+  if (badge) {
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  renderStudentMaterialsList();
+}
+
+async function previewStudentMaterial(shareId, url) {
+  await markMaterialViewed(shareId);
+  window.open(url, '_blank');
+}
+
+async function downloadStudentMaterial(shareId, url, fileName) {
+  if (!sbClient) return;
+
+  // 다운로드 시간 기록
+  await sbClient.from('material_shares').update({ downloaded_at: new Date().toISOString() }).eq('id', shareId);
+
+  // 다운로드 실행
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  showToast('다운로드를 시작합니다', '📥');
 }
 </script>
 
