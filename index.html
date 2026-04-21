@@ -2136,8 +2136,8 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">고객센터</div>
-        <div class="nav-item" onclick="showView('feedback')">
-          <span class="icon">💬</span> 게시판
+        <div class="nav-item" onclick="showView('notices')">
+          <span class="icon">📢</span> 공지사항
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -2201,8 +2201,8 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">고객센터</div>
-        <div class="nav-item" onclick="showView('feedback')">
-          <span class="icon">💬</span> 게시판
+        <div class="nav-item" onclick="showView('notices')">
+          <span class="icon">📢</span> 공지사항
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -2280,8 +2280,8 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">고객센터</div>
-        <div class="nav-item" onclick="showView('feedback')">
-          <span class="icon">💬</span> 게시판
+        <div class="nav-item" onclick="showView('notices')">
+          <span class="icon">📢</span> 공지사항
         </div>
         <div class="nav-item" onclick="showView('admin-inquiries')">
           <span class="icon">📋</span> 문의 처리
@@ -2344,8 +2344,8 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">고객센터</div>
-        <div class="nav-item" onclick="showView('feedback')">
-          <span class="icon">💬</span> 게시판
+        <div class="nav-item" onclick="showView('notices')">
+          <span class="icon">📢</span> 공지사항
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -2398,8 +2398,8 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">고객센터</div>
-        <div class="nav-item" onclick="showView('feedback')">
-          <span class="icon">💬</span> 게시판
+        <div class="nav-item" onclick="showView('notices')">
+          <span class="icon">📢</span> 공지사항
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
@@ -4029,6 +4029,37 @@
       </div>
     </div>
 
+    <!-- ══ VIEW: NOTICES (공지사항) ══ -->
+    <div id="view-notices" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">📢 공지사항</h2>
+          <p class="page-sub">MathIQ 소식과 업데이트를 확인하세요</p>
+        </div>
+      </div>
+
+      <!-- 공지 목록 -->
+      <div class="card" style="padding:0">
+        <div id="notices-list" style="min-height:200px">
+          <div style="padding:40px;text-align:center;color:var(--text3)">불러오는 중...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: NOTICE DETAIL (공지 상세) ══ -->
+    <div id="view-notice-detail" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <button class="btn btn-ghost btn-sm" onclick="showView('notices')" style="margin-bottom:8px">← 목록으로</button>
+          <h2 class="page-title" id="notice-title">공지 제목</h2>
+          <p class="page-sub" id="notice-meta">작성자 · 날짜</p>
+        </div>
+      </div>
+      <div class="card">
+        <div id="notice-content" style="white-space:pre-wrap;line-height:1.8;color:var(--text)"></div>
+      </div>
+    </div>
+
     <!-- ══ VIEW: INQUIRY (1:1 문의) ══ -->
     <div id="view-inquiry" class="view" style="display:none">
       <div class="page-header">
@@ -4857,6 +4888,39 @@
     border-radius: 8px;
     font-size: 14px;
   }
+  /* 1:1 문의 카테고리 버튼 (fw-cat-btn과 동일 스타일) */
+  .iq-cat-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    background: var(--bg);
+  }
+  .iq-cat-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg2);
+  }
+  .iq-cat-btn.active {
+    border-color: var(--accent);
+    background: rgba(255,107,107,0.08);
+    color: var(--text);
+  }
+  .iq-cat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
 </style>
 
 <!-- ════════════════════ NEW INQUIRY MODAL ════════════════════ -->
@@ -4875,12 +4939,33 @@
       </div>
       <div class="form-group" style="margin-bottom:20px">
         <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">문의 유형</label>
-        <select id="niq-category" class="input" style="padding:14px 16px;font-size:14px;border-radius:12px">
-          <option value="payment">💳 결제/포인트</option>
-          <option value="account">👤 계정 관련</option>
-          <option value="feature">🛠️ 기능 문의</option>
-          <option value="bug">🐛 오류 신고</option>
-          <option value="other">📌 기타</option>
+        <div class="iq-cat-buttons" style="display:flex;flex-wrap:wrap;gap:10px">
+          <label class="iq-cat-btn active" onclick="selectIqCategory('bug')">
+            <input type="radio" name="iq-cat-radio" value="bug" checked style="display:none">
+            <span class="iq-cat-icon" style="background:rgba(245,101,101,0.12)">🐛</span>
+            <span>버그 신고</span>
+          </label>
+          <label class="iq-cat-btn" onclick="selectIqCategory('question')">
+            <input type="radio" name="iq-cat-radio" value="question" style="display:none">
+            <span class="iq-cat-icon" style="background:rgba(99,179,237,0.12)">❓</span>
+            <span>질문</span>
+          </label>
+          <label class="iq-cat-btn" onclick="selectIqCategory('suggestion')">
+            <input type="radio" name="iq-cat-radio" value="suggestion" style="display:none">
+            <span class="iq-cat-icon" style="background:rgba(246,173,85,0.12)">💡</span>
+            <span>건의사항</span>
+          </label>
+          <label class="iq-cat-btn" onclick="selectIqCategory('etc')">
+            <input type="radio" name="iq-cat-radio" value="etc" style="display:none">
+            <span class="iq-cat-icon" style="background:rgba(160,174,192,0.12)">📌</span>
+            <span>기타</span>
+          </label>
+        </div>
+        <select id="niq-category" style="display:none">
+          <option value="bug">버그 신고</option>
+          <option value="question">질문</option>
+          <option value="suggestion">건의사항</option>
+          <option value="etc">기타</option>
         </select>
       </div>
       <div class="form-group" style="margin-bottom:20px">
@@ -6587,6 +6672,7 @@ function showView(viewId) {
         if (viewId === 'teacher-materials') loadTeacherMaterials().catch(() => {});
         if (viewId === 'student-materials') loadStudentMaterials().catch(() => {});
         if (viewId === 'feedback') loadFeedbackPosts().catch(() => {});
+        if (viewId === 'notices') loadNotices().catch(() => {});
         if (viewId === 'inquiry') loadInquiries().catch(() => {});
         if (viewId === 'admin-inquiries') loadAdminInquiries().catch(() => {});
       }
@@ -13828,6 +13914,68 @@ async function updateSuggestionStatus(status) {
   openFeedbackDetail(_fbCurrentPost.id);
 }
 
+// ── NOTICES (공지사항) ──
+let _currentNotice = null;
+
+async function loadNotices() {
+  const container = document.getElementById('notices-list');
+  if (!container) return;
+
+  const { data, error } = await sbClient.from('feedback_posts')
+    .select('*, author:profiles!feedback_posts_author_id_fkey(id, name)')
+    .eq('category', 'notice')
+    .order('is_pinned', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error || !data?.length) {
+    container.innerHTML = `<div class="fb-empty">
+      <div class="fb-empty-icon">📢</div>
+      <div class="fb-empty-text">공지사항이 없습니다</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = data.map(n => {
+    const pinned = n.is_pinned ? '<span style="color:var(--accent);margin-right:6px">📌</span>' : '';
+    return `<div class="fb-post-item" onclick="openNoticeDetail('${n.id}')">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(62,207,142,0.12);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📢</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">${pinned}${escHtml(n.title)}</div>
+        <div style="font-size:12px;color:var(--text3)">👤 ${n.author?.name || '운영진'} · 🕐 ${getTimeAgo(new Date(n.created_at))}</div>
+      </div>
+      <div style="color:var(--text3);font-size:18px">→</div>
+    </div>`;
+  }).join('');
+}
+
+async function openNoticeDetail(noticeId) {
+  // 조회수 증가
+  try {
+    const { data: cur } = await sbClient.from('feedback_posts').select('view_count').eq('id', noticeId).single();
+    if (cur) {
+      await sbClient.from('feedback_posts').update({ view_count: (cur.view_count || 0) + 1 }).eq('id', noticeId);
+    }
+  } catch (e) {}
+
+  const { data: notice, error } = await sbClient.from('feedback_posts')
+    .select('*, author:profiles!feedback_posts_author_id_fkey(id, name)')
+    .eq('id', noticeId)
+    .single();
+
+  if (error || !notice) {
+    showToast('공지를 불러올 수 없습니다', '❌');
+    return;
+  }
+
+  _currentNotice = notice;
+  document.getElementById('notice-title').textContent = notice.title;
+  document.getElementById('notice-meta').textContent = `${notice.author?.name || '운영진'} · ${new Date(notice.created_at).toLocaleString('ko-KR')}`;
+  document.getElementById('notice-content').textContent = notice.content;
+
+  showView('notice-detail');
+}
+
 // ── 1:1 INQUIRY (1:1 문의) ──
 let _iqCurrentInquiry = null;
 
@@ -13850,7 +13998,7 @@ async function loadInquiries() {
     return;
   }
 
-  const catIcons = { payment: '💳', account: '👤', feature: '🛠️', bug: '🐛', other: '📌' };
+  const catIcons = { bug: '🐛', question: '❓', suggestion: '💡', etc: '📌', payment: '💳', account: '👤', feature: '🛠️', other: '📌' };
 
   container.innerHTML = data.map(iq => {
     const statusBadge = getInquiryStatusBadge(iq.status);
@@ -13872,9 +14020,12 @@ async function loadInquiries() {
 
 function getInquiryStatusBadge(status) {
   const m = {
-    open: ['yellow', '오픈'],
-    in_progress: ['purple', '진행중'],
+    pending: ['yellow', '대기'],
+    open: ['yellow', '대기'],
+    in_progress: ['purple', '처리중'],
     resolved: ['green', '해결'],
+    accepted: ['green', '채택'],
+    rejected: ['red', '반려'],
     closed: ['', '종료']
   }[status];
   return m ? `<span class="chip ${m[0]}">${m[1]}</span>` : '';
@@ -13883,8 +14034,18 @@ function getInquiryStatusBadge(status) {
 function openNewInquiryModal() {
   document.getElementById('niq-subject').value = '';
   document.getElementById('niq-content').value = '';
-  document.getElementById('niq-category').value = 'other';
+  document.getElementById('niq-category').value = 'bug';
+  // 카테고리 버튼 초기화 (버그 선택)
+  document.querySelectorAll('.iq-cat-btn').forEach(b => b.classList.remove('active'));
+  const firstBtn = document.querySelector('.iq-cat-btn');
+  if (firstBtn) firstBtn.classList.add('active');
   document.getElementById('newInquiryModal').classList.add('open');
+}
+
+function selectIqCategory(cat) {
+  document.getElementById('niq-category').value = cat;
+  document.querySelectorAll('.iq-cat-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
 }
 
 async function submitNewInquiry() {
@@ -13902,7 +14063,7 @@ async function submitNewInquiry() {
     author_id: currentUser.id,
     subject,
     category,
-    status: 'open'
+    status: 'pending'
   }).select().single();
 
   if (error) {
@@ -14047,7 +14208,7 @@ async function loadAdminInquiries() {
     return;
   }
 
-  const catIcons = { payment: '💳', account: '👤', feature: '🛠️', bug: '🐛', other: '📌' };
+  const catIcons = { bug: '🐛', question: '❓', suggestion: '💡', etc: '📌', payment: '💳', account: '👤', feature: '🛠️', other: '📌' };
 
   container.innerHTML = data.map(iq => {
     const statusBadge = getInquiryStatusBadge(iq.status);
