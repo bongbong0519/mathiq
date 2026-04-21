@@ -4036,6 +4036,26 @@
           <h2 class="page-title">📢 공지사항</h2>
           <p class="page-sub">MathIQ 소식과 업데이트를 확인하세요</p>
         </div>
+        <div class="header-actions" id="notice-header-actions"></div>
+      </div>
+
+      <!-- 카테고리 필터 탭 -->
+      <div class="fb-category-tabs" style="margin-bottom:16px">
+        <button class="fb-cat-tab active" data-cat="all" onclick="filterNotices('all', this)">
+          <span class="fb-cat-icon">📋</span> 전체
+        </button>
+        <button class="fb-cat-tab" data-cat="important" onclick="filterNotices('important', this)">
+          <span class="fb-cat-icon">🔴</span> 중요
+        </button>
+        <button class="fb-cat-tab" data-cat="update" onclick="filterNotices('update', this)">
+          <span class="fb-cat-icon">🆕</span> 업데이트
+        </button>
+        <button class="fb-cat-tab" data-cat="event" onclick="filterNotices('event', this)">
+          <span class="fb-cat-icon">🎉</span> 이벤트
+        </button>
+        <button class="fb-cat-tab" data-cat="general" onclick="filterNotices('general', this)">
+          <span class="fb-cat-icon">📝</span> 일반
+        </button>
       </div>
 
       <!-- 공지 목록 -->
@@ -4051,9 +4071,13 @@
       <div class="page-header">
         <div>
           <button class="btn btn-ghost btn-sm" onclick="showView('notices')" style="margin-bottom:8px">← 목록으로</button>
-          <h2 class="page-title" id="notice-title">공지 제목</h2>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <span id="notice-cat-badge" class="chip"></span>
+            <h2 class="page-title" id="notice-title" style="margin:0">공지 제목</h2>
+          </div>
           <p class="page-sub" id="notice-meta">작성자 · 날짜</p>
         </div>
+        <div class="header-actions" id="notice-detail-actions"></div>
       </div>
       <div class="card">
         <div id="notice-content" style="white-space:pre-wrap;line-height:1.8;color:var(--text)"></div>
@@ -5038,6 +5062,156 @@
     </div>
   </div>
 </div>
+
+<!-- ════════════════════ NOTICE WRITE MODAL ════════════════════ -->
+<div class="modal-overlay" id="noticeWriteModal">
+  <div class="modal notice-modal">
+    <div class="modal-header" style="padding:24px 28px 20px;border-bottom:1px solid var(--border)">
+      <div class="modal-title" style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px">
+        <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(62,207,142,0.12);border-radius:10px">📢</span>
+        <span id="nw-modal-title">새 공지 작성</span>
+      </div>
+      <button class="modal-close" onclick="closeModal('noticeWriteModal')" style="width:32px;height:32px;border-radius:8px">✕</button>
+    </div>
+    <div class="modal-body" style="padding:24px 28px">
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">카테고리</label>
+        <div class="nw-cat-buttons">
+          <label class="nw-cat-btn active" onclick="selectNwCategory('important')">
+            <input type="radio" name="nw-cat-radio" value="important" checked style="display:none">
+            <span class="nw-cat-icon" style="background:rgba(245,101,101,0.12)">🔴</span>
+            <span>중요</span>
+          </label>
+          <label class="nw-cat-btn" onclick="selectNwCategory('update')">
+            <input type="radio" name="nw-cat-radio" value="update" style="display:none">
+            <span class="nw-cat-icon" style="background:rgba(99,179,237,0.12)">🆕</span>
+            <span>업데이트</span>
+          </label>
+          <label class="nw-cat-btn" onclick="selectNwCategory('event')">
+            <input type="radio" name="nw-cat-radio" value="event" style="display:none">
+            <span class="nw-cat-icon" style="background:rgba(246,173,85,0.12)">🎉</span>
+            <span>이벤트</span>
+          </label>
+          <label class="nw-cat-btn" onclick="selectNwCategory('general')">
+            <input type="radio" name="nw-cat-radio" value="general" style="display:none">
+            <span class="nw-cat-icon" style="background:rgba(160,174,192,0.12)">📝</span>
+            <span>일반</span>
+          </label>
+        </div>
+        <select id="nw-category" style="display:none">
+          <option value="important">중요</option>
+          <option value="update">업데이트</option>
+          <option value="event">이벤트</option>
+          <option value="general">일반</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">제목</label>
+        <input type="text" id="nw-title" class="notice-input" placeholder="공지 제목을 입력하세요">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">내용</label>
+        <textarea id="nw-content" class="notice-textarea" rows="8" placeholder="공지 내용을 상세히 작성해주세요"></textarea>
+      </div>
+      <input type="hidden" id="nw-edit-id" value="">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('noticeWriteModal')" style="padding:12px 24px;border-radius:12px">취소</button>
+      <button class="btn btn-primary" onclick="saveNotice()" style="padding:12px 28px;border-radius:12px;font-weight:600" id="nw-submit-btn">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* 공지사항 모달 전용 스타일 */
+  .notice-modal {
+    max-width: 600px !important;
+    width: 90%;
+    border-radius: 20px;
+  }
+  .notice-modal .modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 28px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .nw-cat-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .nw-cat-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    background: var(--bg);
+    white-space: nowrap;
+  }
+  .nw-cat-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg2);
+  }
+  .nw-cat-btn.active {
+    border-color: var(--accent);
+    background: rgba(255,107,107,0.08);
+    color: var(--text);
+  }
+  .nw-cat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .notice-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    font-size: 14px;
+    border-radius: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .notice-input:focus {
+    border-color: var(--accent);
+  }
+  .notice-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    font-size: 14px;
+    border-radius: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    min-height: 180px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.6;
+  }
+  .notice-textarea:focus {
+    border-color: var(--accent);
+  }
+</style>
 
 <!-- ════════════════════ SHARE MODAL ════════════════════ -->
 <div class="modal-overlay" id="shareModal">
@@ -13971,31 +14145,64 @@ async function updateSuggestionStatus(status) {
 
 // ── NOTICES (공지사항) ──
 let _currentNotice = null;
+let _noticeCurrentCat = 'all';
+
+const _noticeCatInfo = {
+  important: { icon: '🔴', name: '중요', color: 'red' },
+  update: { icon: '🆕', name: '업데이트', color: 'blue' },
+  event: { icon: '🎉', name: '이벤트', color: 'yellow' },
+  general: { icon: '📝', name: '일반', color: '' }
+};
 
 async function loadNotices() {
   const container = document.getElementById('notices-list');
   if (!container) return;
 
-  const { data, error } = await sbClient.from('feedback_posts')
-    .select('*, author:profiles!feedback_posts_author_id_fkey(id, name)')
-    .eq('category', 'notice')
+  // admin이면 "+ 새 공지" 버튼 표시
+  const headerActions = document.getElementById('notice-header-actions');
+  if (headerActions) {
+    headerActions.innerHTML = currentProfile?.role === 'admin'
+      ? '<button class="btn btn-primary btn-sm" onclick="openNoticeWriteModal()">+ 새 공지</button>'
+      : '';
+  }
+
+  let query = sbClient.from('notices')
+    .select('*, author:profiles(id, name)')
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(50);
+
+  if (_noticeCurrentCat !== 'all') {
+    query = query.eq('category', _noticeCurrentCat);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data?.length) {
     container.innerHTML = `<div class="fb-empty">
       <div class="fb-empty-icon">📢</div>
       <div class="fb-empty-text">공지사항이 없습니다</div>
+      <div class="fb-empty-sub">새로운 소식이 등록되면 여기에 표시됩니다</div>
     </div>`;
     return;
   }
 
   container.innerHTML = data.map(n => {
+    const catInfo = _noticeCatInfo[n.category] || _noticeCatInfo.general;
     const pinned = n.is_pinned ? '<span style="color:var(--accent);margin-right:6px">📌</span>' : '';
+    const catBg = {
+      important: 'rgba(245,101,101,0.12)',
+      update: 'rgba(99,179,237,0.12)',
+      event: 'rgba(246,173,85,0.12)',
+      general: 'rgba(160,174,192,0.12)'
+    }[n.category] || 'rgba(62,207,142,0.12)';
+
     return `<div class="fb-post-item" onclick="openNoticeDetail('${n.id}')">
-      <div style="width:44px;height:44px;border-radius:12px;background:rgba(62,207,142,0.12);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📢</div>
+      <div style="width:44px;height:44px;border-radius:12px;background:${catBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${catInfo.icon}</div>
       <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span class="chip ${catInfo.color}">${catInfo.name}</span>
+        </div>
         <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">${pinned}${escHtml(n.title)}</div>
         <div style="font-size:12px;color:var(--text3)">👤 ${n.author?.name || '운영진'} · 🕐 ${getTimeAgo(new Date(n.created_at))}</div>
       </div>
@@ -14004,17 +14211,16 @@ async function loadNotices() {
   }).join('');
 }
 
-async function openNoticeDetail(noticeId) {
-  // 조회수 증가
-  try {
-    const { data: cur } = await sbClient.from('feedback_posts').select('view_count').eq('id', noticeId).single();
-    if (cur) {
-      await sbClient.from('feedback_posts').update({ view_count: (cur.view_count || 0) + 1 }).eq('id', noticeId);
-    }
-  } catch (e) {}
+function filterNotices(cat, btn) {
+  _noticeCurrentCat = cat;
+  document.querySelectorAll('#view-notices .fb-cat-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  loadNotices();
+}
 
-  const { data: notice, error } = await sbClient.from('feedback_posts')
-    .select('*, author:profiles!feedback_posts_author_id_fkey(id, name)')
+async function openNoticeDetail(noticeId) {
+  const { data: notice, error } = await sbClient.from('notices')
+    .select('*, author:profiles(id, name)')
     .eq('id', noticeId)
     .single();
 
@@ -14024,11 +14230,126 @@ async function openNoticeDetail(noticeId) {
   }
 
   _currentNotice = notice;
+
+  const catInfo = _noticeCatInfo[notice.category] || _noticeCatInfo.general;
+  document.getElementById('notice-cat-badge').className = `chip ${catInfo.color}`;
+  document.getElementById('notice-cat-badge').textContent = catInfo.name;
   document.getElementById('notice-title').textContent = notice.title;
   document.getElementById('notice-meta').textContent = `${notice.author?.name || '운영진'} · ${new Date(notice.created_at).toLocaleString('ko-KR')}`;
   document.getElementById('notice-content').textContent = notice.content;
 
+  // admin 버튼 (수정/삭제)
+  const actions = document.getElementById('notice-detail-actions');
+  if (currentProfile?.role === 'admin') {
+    actions.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="openNoticeWriteModal('${notice.id}')" style="margin-right:8px">✏️ 수정</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteNotice('${notice.id}')" style="color:var(--red)">🗑️ 삭제</button>
+    `;
+  } else {
+    actions.innerHTML = '';
+  }
+
   showView('notice-detail');
+}
+
+function openNoticeWriteModal(noticeId) {
+  const isEdit = !!noticeId;
+
+  document.getElementById('nw-modal-title').textContent = isEdit ? '공지 수정' : '새 공지 작성';
+  document.getElementById('nw-submit-btn').textContent = isEdit ? '수정하기' : '등록하기';
+  document.getElementById('nw-edit-id').value = noticeId || '';
+
+  if (isEdit && _currentNotice && _currentNotice.id === noticeId) {
+    // 수정 모드: 기존 데이터 채우기
+    document.getElementById('nw-title').value = _currentNotice.title;
+    document.getElementById('nw-content').value = _currentNotice.content;
+    document.getElementById('nw-category').value = _currentNotice.category;
+    // 카테고리 버튼 활성화
+    document.querySelectorAll('.nw-cat-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.querySelector(`.nw-cat-btn input[value="${_currentNotice.category}"]`)?.parentElement;
+    if (activeBtn) activeBtn.classList.add('active');
+  } else {
+    // 신규 작성
+    document.getElementById('nw-title').value = '';
+    document.getElementById('nw-content').value = '';
+    document.getElementById('nw-category').value = 'important';
+    document.querySelectorAll('.nw-cat-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.nw-cat-btn')?.classList.add('active');
+  }
+
+  document.getElementById('noticeWriteModal').classList.add('open');
+}
+
+function selectNwCategory(cat) {
+  document.getElementById('nw-category').value = cat;
+  document.querySelectorAll('.nw-cat-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+async function saveNotice() {
+  const title = document.getElementById('nw-title').value.trim();
+  const content = document.getElementById('nw-content').value.trim();
+  const category = document.getElementById('nw-category').value;
+  const editId = document.getElementById('nw-edit-id').value;
+
+  if (!title || !content) {
+    showToast('제목과 내용을 입력해주세요', '⚠️');
+    return;
+  }
+
+  const payload = {
+    title,
+    content,
+    category,
+    author_id: currentUser.id
+  };
+
+  let error;
+  if (editId) {
+    // 수정
+    const result = await sbClient.from('notices').update(payload).eq('id', editId);
+    error = result.error;
+  } else {
+    // 신규
+    const result = await sbClient.from('notices').insert(payload);
+    error = result.error;
+  }
+
+  if (error) {
+    showToast('저장 실패: ' + error.message, '❌');
+    return;
+  }
+
+  closeModal('noticeWriteModal');
+  showToast(editId ? '공지가 수정되었습니다' : '공지가 등록되었습니다', '✅');
+
+  if (editId) {
+    // 수정 후 상세 새로고침
+    openNoticeDetail(editId);
+  } else {
+    // 신규 후 목록으로
+    _noticeCurrentCat = 'all';
+    document.querySelectorAll('#view-notices .fb-cat-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('#view-notices .fb-cat-tab[data-cat="all"]')?.classList.add('active');
+    showView('notices');
+  }
+}
+
+async function deleteNotice(noticeId) {
+  if (!confirm('이 공지를 삭제하시겠습니까?\n삭제된 공지는 복구할 수 없습니다.')) {
+    return;
+  }
+
+  const { error } = await sbClient.from('notices').delete().eq('id', noticeId);
+
+  if (error) {
+    showToast('삭제 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('공지가 삭제되었습니다', '✅');
+  _currentNotice = null;
+  showView('notices');
 }
 
 // ── 1:1 INQUIRY (1:1 문의) ──
