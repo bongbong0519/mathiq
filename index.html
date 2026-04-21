@@ -1988,8 +1988,14 @@
     <!-- Admin Nav -->
     <nav id="nav-admin" style="display:none">
       <div class="nav-section">
+        <div class="nav-label">홈</div>
+        <div class="nav-item active" onclick="showView('admin-home')">
+          <span class="icon">📊</span> 홈 대시보드
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">플랫폼 운영</div>
-        <div class="nav-item active" onclick="showView('admin-overview')">
+        <div class="nav-item" onclick="showView('admin-overview')">
           <span class="icon">🏢</span> 운영 현황
         </div>
         <div class="nav-item" onclick="showView('admin-teachers')">
@@ -3530,6 +3536,125 @@
       <!-- 콘텐츠 영역 -->
       <div id="parent-requests-wrap">
         <div class="empty-state" style="padding:60px"><div class="empty-state-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN HOME DASHBOARD (운영자 홈 대시보드) ══ -->
+    <div id="view-admin-home" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">📊 홈 대시보드</h2>
+          <p class="page-sub">MathIQ 플랫폼 전체 현황을 한눈에 파악합니다</p>
+        </div>
+        <div class="header-actions">
+          <span id="ah-last-update" style="font-size:12px;color:var(--text3)"></span>
+          <button class="btn btn-ghost btn-sm" onclick="loadAdminHome()">🔄 새로고침</button>
+        </div>
+      </div>
+
+      <!-- 섹션 1: 핵심 지표 카드 4개 -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px">
+        <div class="card ah-stat-card" onclick="showView('admin-teachers')" style="padding:20px;cursor:pointer;transition:transform 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:8px">👥 전체 사용자</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text)" id="ah-total-users">-</div>
+          <div style="font-size:12px;color:var(--green);margin-top:4px" id="ah-today-users">+0 오늘</div>
+        </div>
+        <div class="card ah-stat-card" onclick="showView('admin-question-bank')" style="padding:20px;cursor:pointer;transition:transform 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:8px">📚 등록 문제</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text)" id="ah-total-questions">-</div>
+          <div style="font-size:12px;color:var(--green);margin-top:4px" id="ah-today-questions">+0 오늘</div>
+        </div>
+        <div class="card ah-stat-card" style="padding:20px;cursor:pointer;transition:transform 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:8px">🤝 매칭 성사</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text)" id="ah-total-matches">-</div>
+          <div style="font-size:12px;color:var(--green);margin-top:4px" id="ah-today-matches">+0 오늘</div>
+        </div>
+        <div class="card ah-stat-card" style="padding:20px;cursor:pointer;transition:transform 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:8px">💰 포인트 발행</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text)" id="ah-total-points">-</div>
+          <div style="font-size:12px;color:var(--accent);margin-top:4px" id="ah-today-points">오늘 0P</div>
+        </div>
+      </div>
+
+      <!-- 섹션 2: 처리 대기 알림 -->
+      <div class="card" style="padding:20px;margin-bottom:24px">
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+          🚨 처리 대기 <span id="ah-pending-total" style="background:var(--red);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;display:none">0</span>
+        </div>
+        <div style="display:grid;gap:12px">
+          <div class="ah-pending-row" onclick="showView('admin-teachers')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-sm);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span>👨‍🏫</span>
+              <span>선생님 승인 대기</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="ah-pending-teachers" style="font-weight:700;color:var(--text)">0</span>명
+              <span style="color:var(--text3)">→</span>
+            </div>
+          </div>
+          <div class="ah-pending-row" onclick="showView('admin-question-bank')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-sm);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span>📝</span>
+              <span>문제 승인 대기</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="ah-pending-questions" style="font-weight:700;color:var(--text)">0</span>개
+              <span style="color:var(--text3)">→</span>
+            </div>
+          </div>
+          <div class="ah-pending-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-sm);opacity:0.6">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span>💬</span>
+              <span>문의/신고</span>
+            </div>
+            <div style="font-size:12px;color:var(--text3)">추후 기능</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 섹션 3+4: 그래프 + 활동 타임라인 -->
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;margin-bottom:24px">
+        <!-- 최근 7일 추이 -->
+        <div class="card" style="padding:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📈 최근 7일 추이</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">신규 가입자</div>
+              <div id="ah-chart-users" style="height:120px;display:flex;align-items:flex-end;gap:6px"></div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">문제 등록</div>
+              <div id="ah-chart-questions" style="height:120px;display:flex;align-items:flex-end;gap:6px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 최근 활동 타임라인 -->
+        <div class="card" style="padding:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">🔔 최근 활동</div>
+          <div id="ah-activity-timeline" style="display:flex;flex-direction:column;gap:12px;max-height:300px;overflow-y:auto">
+            <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 섹션 5: 시스템 상태 -->
+      <div class="card" style="padding:20px">
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">💻 시스템 상태</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--green)">✅</span>
+            <span>서비스 정상</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span>👤</span>
+            <span>활성 사용자 (24시간): <strong id="ah-active-users">-</strong>명</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span>🕐</span>
+            <span>마지막 업데이트: <span id="ah-update-time">-</span></span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -5736,7 +5861,7 @@ function switchRole(role) {
   const roleTagEl = document.getElementById('userRoleTag');
 
   // 이름/아바타는 그대로 유지, 역할 태그만 변경
-  const viewMap = { teacher: 'dashboard', director: 'director-dashboard', admin: 'admin-overview', student: 'student', parent: 'parent-admissions' };
+  const viewMap = { teacher: 'dashboard', director: 'director-dashboard', admin: 'admin-home', student: 'student', parent: 'parent-admissions' };
   const roleTagMap = {
     teacher: currentProfile ? `수학 교사 · ${currentProfile.region || ''}` : '수학 교사',
     director: currentProfile ? `원장 · ${currentProfile.school || ''}` : '원장님',
@@ -5802,6 +5927,7 @@ function showView(viewId) {
         if (viewId === 'messages')         loadMessagesView().catch(() => {});
         if (viewId === 'question-bank')    loadQuestionBankView().catch(() => {});
         if (viewId === 'question-upload')  loadQuestionUploadView();
+        if (viewId === 'admin-home') loadAdminHome().catch(() => {});
         if (viewId === 'admin-question-bank') loadAdminQuestionBankView().catch(() => {});
         if (viewId === 'teacher-materials') loadTeacherMaterials().catch(() => {});
         if (viewId === 'student-materials') loadStudentMaterials().catch(() => {});
@@ -12479,6 +12605,207 @@ async function loadAdminPendingTab() {
       </div></td>
     </tr>`).join('') +
     '</tbody></table></div>';
+}
+
+// ── ADMIN HOME DASHBOARD (운영자 홈 대시보드) ──
+let _adminHomeRefresh = null;
+async function loadAdminHome() {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const day24h = new Date(now.getTime() - 24*60*60*1000).toISOString();
+
+  try {
+    // 1) 핵심 지표 쿼리 (병렬 실행)
+    const [
+      { count: totalUsers },
+      { count: todayUsers },
+      { count: totalQuestions },
+      { count: todayQuestions },
+      { count: totalMatches },
+      { count: todayMatches },
+      { data: pointData },
+      { count: pendingTeachers },
+      { count: pendingQuestions },
+      { count: activeUsers24h }
+    ] = await Promise.all([
+      sbClient.from('profiles').select('*', { count: 'exact', head: true }),
+      sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
+      sbClient.from('questions').select('*', { count: 'exact', head: true }),
+      sbClient.from('questions').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
+      sbClient.from('tutor_matches').select('*', { count: 'exact', head: true }),
+      sbClient.from('tutor_matches').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
+      sbClient.from('profiles').select('point_balance'),
+      sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending').in('role', ['teacher', 'director']),
+      sbClient.from('questions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('last_login', day24h)
+    ]);
+
+    // 포인트 합계 계산
+    const totalPoints = (pointData || []).reduce((sum, p) => sum + (p.point_balance || 0), 0);
+
+    // 2) 핵심 지표 카드 업데이트
+    document.getElementById('ah-total-users').textContent = (totalUsers || 0).toLocaleString();
+    document.getElementById('ah-today-users').textContent = `+${todayUsers || 0} 오늘`;
+    document.getElementById('ah-total-questions').textContent = (totalQuestions || 0).toLocaleString();
+    document.getElementById('ah-today-questions').textContent = `+${todayQuestions || 0} 오늘`;
+    document.getElementById('ah-total-matches').textContent = (totalMatches || 0).toLocaleString();
+    document.getElementById('ah-today-matches').textContent = `+${todayMatches || 0} 오늘`;
+    document.getElementById('ah-total-points').textContent = (totalPoints || 0).toLocaleString() + 'P';
+    document.getElementById('ah-today-points').textContent = '발행 포인트';
+
+    // 3) 처리 대기 업데이트
+    const pTeach = pendingTeachers || 0;
+    const pQuest = pendingQuestions || 0;
+    const pTotal = pTeach + pQuest;
+    document.getElementById('ah-pending-teachers').textContent = pTeach;
+    document.getElementById('ah-pending-questions').textContent = pQuest;
+    const badge = document.getElementById('ah-pending-total');
+    if (pTotal > 0) {
+      badge.textContent = pTotal;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    // 4) 최근 7일 추이 차트 (간단 바 차트)
+    await loadAdminHomeCharts();
+
+    // 5) 활동 타임라인
+    await loadAdminHomeTimeline();
+
+    // 6) 시스템 상태
+    document.getElementById('ah-active-users').textContent = activeUsers24h || 0;
+    const updateStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('ah-update-time').textContent = updateStr;
+    document.getElementById('ah-last-update').textContent = '마지막 갱신: ' + updateStr;
+
+    // 7) 30초 자동 새로고침 설정
+    clearInterval(_adminHomeRefresh);
+    _adminHomeRefresh = setInterval(() => {
+      const view = document.getElementById('view-admin-home');
+      if (view && view.style.display !== 'none') {
+        loadAdminHome().catch(() => {});
+      } else {
+        clearInterval(_adminHomeRefresh);
+      }
+    }, 30000);
+
+  } catch (e) {
+    console.error('loadAdminHome error:', e);
+  }
+}
+
+async function loadAdminHomeCharts() {
+  const now = new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    days.push({
+      label: (d.getMonth()+1) + '/' + d.getDate(),
+      start: new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString(),
+      end: new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString()
+    });
+  }
+
+  // 일별 가입자 수, 문제 등록 수
+  const userCounts = [];
+  const qCounts = [];
+  for (const day of days) {
+    const [{ count: uCnt }, { count: qCnt }] = await Promise.all([
+      sbClient.from('profiles').select('*', { count: 'exact', head: true })
+        .gte('created_at', day.start).lt('created_at', day.end),
+      sbClient.from('questions').select('*', { count: 'exact', head: true })
+        .gte('created_at', day.start).lt('created_at', day.end)
+    ]);
+    userCounts.push(uCnt || 0);
+    qCounts.push(qCnt || 0);
+  }
+
+  // 간단 바 차트 렌더링
+  renderSimpleBarChart('ah-chart-users', days, userCounts, 'var(--accent)');
+  renderSimpleBarChart('ah-chart-questions', days, qCounts, 'var(--green)');
+}
+
+function renderSimpleBarChart(containerId, days, values, color) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const max = Math.max(...values, 1);
+  container.innerHTML = days.map((d, i) => {
+    const h = Math.max(4, (values[i] / max) * 100);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="width:100%;height:${h}px;background:${color};border-radius:4px 4px 0 0;min-height:4px;opacity:${values[i]?1:0.3}"></div>
+      <div style="font-size:10px;color:var(--text3)">${d.label}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text)">${values[i]}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadAdminHomeTimeline() {
+  const container = document.getElementById('ah-activity-timeline');
+  if (!container) return;
+
+  // 최근 활동 10개: 신규 가입, 매칭 성사, 문제 등록
+  const [{ data: users }, { data: matches }, { data: questions }] = await Promise.all([
+    sbClient.from('profiles').select('id, name, role, created_at').order('created_at', { ascending: false }).limit(5),
+    sbClient.from('tutor_matches').select('id, created_at, tutor_id, tutee_id').order('created_at', { ascending: false }).limit(5),
+    sbClient.from('questions').select('id, created_at, source_exam').order('created_at', { ascending: false }).limit(5)
+  ]);
+
+  const items = [];
+  (users || []).forEach(u => items.push({ type: 'user', time: new Date(u.created_at), name: u.name, role: u.role }));
+  (matches || []).forEach(m => items.push({ type: 'match', time: new Date(m.created_at) }));
+  (questions || []).forEach(q => items.push({ type: 'question', time: new Date(q.created_at), source: q.source_exam }));
+
+  items.sort((a, b) => b.time - a.time);
+  const top10 = items.slice(0, 10);
+
+  if (top10.length === 0) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">최근 활동이 없습니다</div>';
+    return;
+  }
+
+  container.innerHTML = top10.map(item => {
+    const ago = getTimeAgo(item.time);
+    if (item.type === 'user') {
+      const roleKo = { teacher:'선생님', director:'원장님', student:'학생', parent:'학부모', staff:'운영진' }[item.role] || item.role;
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:16px">👤</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--text)">${item.name || '이름없음'} (${roleKo}) 가입</div>
+          <div style="font-size:11px;color:var(--text3)">${ago}</div>
+        </div>
+      </div>`;
+    } else if (item.type === 'match') {
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:16px">🤝</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--text)">매칭 성사</div>
+          <div style="font-size:11px;color:var(--text3)">${ago}</div>
+        </div>
+      </div>`;
+    } else {
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:16px">📝</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--text)">문제 등록 ${item.source ? `(${item.source})` : ''}</div>
+          <div style="font-size:11px;color:var(--text3)">${ago}</div>
+        </div>
+      </div>`;
+    }
+  }).join('');
+}
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diff = now - date;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return '방금 전';
+  if (min < 60) return min + '분 전';
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr + '시간 전';
+  const day = Math.floor(hr / 24);
+  return day + '일 전';
 }
 
 async function loadAdminTeachers() {
