@@ -106,3 +106,4 @@
 | `DOCS/05-roadmap.md` | 장기 로드맵 |
 | `DOCS/06-organization-system.md` | 기관 시스템 설계 (구현 예정) |
 | `DOCS/07-tutor-certification.md` | 선생님 인증 시스템 (등급제, 구현 예정) |
+| `DOCS/08-accounting-system.md` | 회계 시스템 (수강료/정산, 구현 예정) |

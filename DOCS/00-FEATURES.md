@@ -23,6 +23,8 @@ MathIQ는 수학 문제은행 + 학생 관리 플랫폼입니다.
 | 매칭 수락/거절 | ❌ | ❌ | ✅ | ❌ | ❌ |
 | 포인트 관리 | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 플랫폼 통계 | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 게시판 (버그/질문/건의) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 1:1 문의 | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -37,6 +39,7 @@ MathIQ는 수학 문제은행 + 학생 관리 플랫폼입니다.
 | [05-roadmap.md](./05-roadmap.md) | 장기 로드맵 | 📋 계획 |
 | [06-organization-system.md](./06-organization-system.md) | 기관 시스템 설계 | 📋 설계만 (구현 예정) |
 | [07-tutor-certification.md](./07-tutor-certification.md) | 선생님 인증 시스템 (등급제) | 📋 설계만 (구현 예정) |
+| [08-accounting-system.md](./08-accounting-system.md) | 회계 시스템 (수강료/정산) | 📋 설계만 (구현 예정) |
 
 ### 완성도 범례
 - ✅ 완료: 배포 완료, 정상 작동

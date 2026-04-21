@@ -1922,6 +1922,15 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">고객센터</div>
+        <div class="nav-item" onclick="showView('feedback')">
+          <span class="icon">💬</span> 게시판
+        </div>
+        <div class="nav-item" onclick="showView('inquiry')">
+          <span class="icon">🆘</span> 1:1 문의
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -1975,6 +1984,15 @@
         <div class="nav-item" onclick="showView('messages')">
           <span class="icon">✉️</span> 쪽지함
           <span id="msg-badge-director" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">고객센터</div>
+        <div class="nav-item" onclick="showView('feedback')">
+          <span class="icon">💬</span> 게시판
+        </div>
+        <div class="nav-item" onclick="showView('inquiry')">
+          <span class="icon">🆘</span> 1:1 문의
         </div>
       </div>
       <div class="nav-section">
@@ -2048,6 +2066,16 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">고객센터</div>
+        <div class="nav-item" onclick="showView('feedback')">
+          <span class="icon">💬</span> 게시판
+        </div>
+        <div class="nav-item" onclick="showView('admin-inquiries')">
+          <span class="icon">📋</span> 문의 처리
+          <span id="inquiry-pending-badge" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -2102,6 +2130,15 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">고객센터</div>
+        <div class="nav-item" onclick="showView('feedback')">
+          <span class="icon">💬</span> 게시판
+        </div>
+        <div class="nav-item" onclick="showView('inquiry')">
+          <span class="icon">🆘</span> 1:1 문의
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">계정</div>
         <div class="nav-item" onclick="showView('profile')">
           <span class="icon">👤</span> 내 정보
@@ -2144,6 +2181,15 @@
         <div class="nav-item" onclick="showView('messages')">
           <span class="icon">✉️</span> 쪽지함
           <span id="msg-badge-parent" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">고객센터</div>
+        <div class="nav-item" onclick="showView('feedback')">
+          <span class="icon">💬</span> 게시판
+        </div>
+        <div class="nav-item" onclick="showView('inquiry')">
+          <span class="icon">🆘</span> 1:1 문의
         </div>
       </div>
       <div class="nav-section">
@@ -3602,12 +3648,25 @@
               <span style="color:var(--text3)">→</span>
             </div>
           </div>
-          <div class="ah-pending-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-sm);opacity:0.6">
+          <div class="ah-pending-row" onclick="showView('admin-inquiries')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-sm);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
             <div style="display:flex;align-items:center;gap:10px">
               <span>💬</span>
-              <span>문의/신고</span>
+              <span>1:1 문의 미답변</span>
             </div>
-            <div style="font-size:12px;color:var(--text3)">추후 기능</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="ah-pending-inquiries" style="font-weight:700;color:var(--text)">0</span>건
+              <span style="color:var(--text3)">→</span>
+            </div>
+          </div>
+          <div class="ah-pending-row" onclick="showView('feedback');filterFeedback('bug',document.querySelector('[data-cat=bug]'))" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-sm);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span>🐛</span>
+              <span>미해결 버그 신고</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="ah-pending-bugs" style="font-weight:700;color:var(--text)">0</span>건
+              <span style="color:var(--text3)">→</span>
+            </div>
           </div>
         </div>
       </div>
@@ -3654,6 +3713,159 @@
             <span>🕐</span>
             <span>마지막 업데이트: <span id="ah-update-time">-</span></span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: FEEDBACK BOARD (게시판) ══ -->
+    <div id="view-feedback" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">💬 게시판</h2>
+          <p class="page-sub">버그 신고, 질문, 건의사항을 남겨주세요</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="openFeedbackWriteModal()">✏️ 글쓰기</button>
+        </div>
+      </div>
+
+      <!-- 카테고리 탭 -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-sm fb-tab active" data-cat="all" onclick="filterFeedback('all', this)">전체</button>
+        <button class="btn btn-ghost btn-sm fb-tab" data-cat="bug" onclick="filterFeedback('bug', this)">🐛 버그</button>
+        <button class="btn btn-ghost btn-sm fb-tab" data-cat="question" onclick="filterFeedback('question', this)">❓ 질문</button>
+        <button class="btn btn-ghost btn-sm fb-tab" data-cat="suggestion" onclick="filterFeedback('suggestion', this)">💡 건의</button>
+        <button class="btn btn-ghost btn-sm fb-tab" data-cat="notice" onclick="filterFeedback('notice', this)">📢 공지</button>
+      </div>
+
+      <!-- 정렬 + 검색 -->
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <select id="fb-sort" class="input" style="width:auto" onchange="loadFeedbackPosts()">
+          <option value="latest">최신순</option>
+          <option value="votes">추천순</option>
+          <option value="views">조회순</option>
+        </select>
+        <div style="flex:1;min-width:200px;position:relative">
+          <input type="text" id="fb-search" class="input" placeholder="검색어 입력..." onkeyup="if(event.key==='Enter')loadFeedbackPosts()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadFeedbackPosts()">🔍 검색</button>
+      </div>
+
+      <!-- 게시글 목록 -->
+      <div class="card" style="padding:0">
+        <div id="fb-posts-list" style="min-height:200px">
+          <div style="padding:40px;text-align:center;color:var(--text3)">불러오는 중...</div>
+        </div>
+      </div>
+
+      <!-- 페이지네이션 -->
+      <div id="fb-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:20px"></div>
+    </div>
+
+    <!-- ══ VIEW: FEEDBACK DETAIL (게시글 상세) ══ -->
+    <div id="view-feedback-detail" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <button class="btn btn-ghost btn-sm" onclick="showView('feedback')" style="margin-bottom:8px">← 목록으로</button>
+          <h2 class="page-title" id="fd-title">제목</h2>
+          <p class="page-sub" id="fd-meta">작성자 · 날짜</p>
+        </div>
+        <div class="header-actions" id="fd-actions"></div>
+      </div>
+
+      <div class="card" style="padding:20px;margin-bottom:20px">
+        <!-- 카테고리/상태 뱃지 -->
+        <div id="fd-badges" style="margin-bottom:16px"></div>
+        <!-- 본문 -->
+        <div id="fd-content" style="line-height:1.8;white-space:pre-wrap"></div>
+        <!-- 첨부파일 -->
+        <div id="fd-attachments" style="margin-top:16px"></div>
+        <!-- 추천 버튼 (건의사항) -->
+        <div id="fd-vote-section" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);display:none">
+          <button id="fd-vote-btn" class="btn btn-ghost" onclick="toggleVote()">👍 추천 <span id="fd-vote-count">0</span></button>
+        </div>
+      </div>
+
+      <!-- 댓글 -->
+      <div class="card" style="padding:20px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px">💬 댓글 <span id="fd-comment-count">0</span>개</div>
+        <div id="fd-comments" style="margin-bottom:20px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="fd-comment-input" class="input" placeholder="댓글을 입력하세요..." style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="submitComment()">등록</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: INQUIRY (1:1 문의) ══ -->
+    <div id="view-inquiry" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">🆘 1:1 문의</h2>
+          <p class="page-sub">운영진에게 직접 문의하세요</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="openNewInquiryModal()">+ 새 문의</button>
+        </div>
+      </div>
+
+      <!-- 문의 목록 -->
+      <div class="card" style="padding:0">
+        <div id="iq-list" style="min-height:200px">
+          <div style="padding:40px;text-align:center;color:var(--text3)">불러오는 중...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: INQUIRY DETAIL (문의 상세/채팅) ══ -->
+    <div id="view-inquiry-detail" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <button class="btn btn-ghost btn-sm" onclick="showView(currentProfile?.role==='staff'?'admin-inquiries':'inquiry')" style="margin-bottom:8px">← 목록으로</button>
+          <h2 class="page-title" id="iq-subject">문의 제목</h2>
+          <p class="page-sub" id="iq-meta">상태 · 날짜</p>
+        </div>
+        <div class="header-actions" id="iq-actions"></div>
+      </div>
+
+      <!-- 메시지 목록 -->
+      <div class="card" style="padding:20px;margin-bottom:16px;max-height:500px;overflow-y:auto" id="iq-messages">
+      </div>
+
+      <!-- 메시지 입력 -->
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:8px">
+          <input type="text" id="iq-msg-input" class="input" placeholder="메시지를 입력하세요..." style="flex:1">
+          <button class="btn btn-primary" onclick="sendInquiryMessage()">전송</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN INQUIRIES (운영자 문의 처리) ══ -->
+    <div id="view-admin-inquiries" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">📋 문의 처리</h2>
+          <p class="page-sub">1:1 문의 전체 관리</p>
+        </div>
+      </div>
+
+      <!-- 필터 -->
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <select id="aiq-status-filter" class="input" style="width:auto" onchange="loadAdminInquiries()">
+          <option value="all">전체 상태</option>
+          <option value="open">오픈</option>
+          <option value="in_progress">진행중</option>
+          <option value="resolved">해결</option>
+          <option value="closed">종료</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadAdminInquiries()">🔄 새로고침</button>
+      </div>
+
+      <!-- 문의 목록 -->
+      <div class="card" style="padding:0">
+        <div id="aiq-list" style="min-height:200px">
+          <div style="padding:40px;text-align:center;color:var(--text3)">불러오는 중...</div>
         </div>
       </div>
     </div>
@@ -4240,6 +4452,97 @@
         <button onclick="closeMsgCompose()" class="btn btn-ghost">취소</button>
         <button onclick="submitMsg()" class="btn btn-primary" id="msgSendBtn">보내기</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ FEEDBACK WRITE MODAL ════════════════════ -->
+<div class="modal-overlay" id="feedbackWriteModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">✏️ 글쓰기</div>
+      <button class="modal-close" onclick="closeModal('feedbackWriteModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">카테고리</label>
+        <select id="fw-category" class="input" onchange="updateFeedbackForm()">
+          <option value="bug">🐛 버그 신고</option>
+          <option value="question">❓ 질문</option>
+          <option value="suggestion">💡 건의사항</option>
+          <option value="notice" id="fw-notice-opt" style="display:none">📢 공지사항</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">제목</label>
+        <input type="text" id="fw-title" class="input" placeholder="제목을 입력하세요">
+      </div>
+      <!-- 버그 전용 필드 -->
+      <div id="fw-bug-fields">
+        <div class="form-group">
+          <label class="form-label">어떤 화면에서 발생했나요?</label>
+          <select id="fw-bug-screen" class="input">
+            <option value="">선택...</option>
+            <option value="dashboard">대시보드</option>
+            <option value="students">학생 관리</option>
+            <option value="exams">시험 관리</option>
+            <option value="question-bank">문제은행</option>
+            <option value="tutor-matching">과외매칭</option>
+            <option value="login">로그인/회원가입</option>
+            <option value="other">기타</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">내용</label>
+        <textarea id="fw-content" class="input" rows="8" placeholder="내용을 입력하세요"></textarea>
+      </div>
+      <!-- 공지 전용 -->
+      <div id="fw-notice-fields" style="display:none">
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="fw-is-pinned">
+            <span>상단 고정</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('feedbackWriteModal')">취소</button>
+      <button class="btn btn-primary" onclick="submitFeedbackPost()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ NEW INQUIRY MODAL ════════════════════ -->
+<div class="modal-overlay" id="newInquiryModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">🆘 새 문의</div>
+      <button class="modal-close" onclick="closeModal('newInquiryModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">카테고리</label>
+        <select id="niq-category" class="input">
+          <option value="payment">💳 결제/포인트</option>
+          <option value="account">👤 계정</option>
+          <option value="feature">🛠️ 기능 문의</option>
+          <option value="other">📌 기타</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">제목</label>
+        <input type="text" id="niq-subject" class="input" placeholder="문의 제목">
+      </div>
+      <div class="form-group">
+        <label class="form-label">내용</label>
+        <textarea id="niq-content" class="input" rows="6" placeholder="문의 내용을 상세히 작성해주세요"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newInquiryModal')">취소</button>
+      <button class="btn btn-primary" onclick="submitNewInquiry()">문의 등록</button>
     </div>
   </div>
 </div>
@@ -5931,6 +6234,9 @@ function showView(viewId) {
         if (viewId === 'admin-question-bank') loadAdminQuestionBankView().catch(() => {});
         if (viewId === 'teacher-materials') loadTeacherMaterials().catch(() => {});
         if (viewId === 'student-materials') loadStudentMaterials().catch(() => {});
+        if (viewId === 'feedback') loadFeedbackPosts().catch(() => {});
+        if (viewId === 'inquiry') loadInquiries().catch(() => {});
+        if (viewId === 'admin-inquiries') loadAdminInquiries().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -12626,7 +12932,9 @@ async function loadAdminHome() {
       { data: pointData },
       { count: pendingTeachers },
       { count: pendingQuestions },
-      { count: activeUsers24h }
+      { count: activeUsers24h },
+      { count: pendingInquiries },
+      { count: unresolvedBugs }
     ] = await Promise.all([
       sbClient.from('profiles').select('*', { count: 'exact', head: true }),
       sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
@@ -12637,7 +12945,9 @@ async function loadAdminHome() {
       sbClient.from('profiles').select('point_balance'),
       sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending').in('role', ['teacher', 'director']),
       sbClient.from('questions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('last_login', day24h)
+      sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('last_login', day24h),
+      sbClient.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+      sbClient.from('feedback_posts').select('*', { count: 'exact', head: true }).eq('category', 'bug').eq('is_resolved', false)
     ]);
 
     // 포인트 합계 계산
@@ -12656,9 +12966,13 @@ async function loadAdminHome() {
     // 3) 처리 대기 업데이트
     const pTeach = pendingTeachers || 0;
     const pQuest = pendingQuestions || 0;
-    const pTotal = pTeach + pQuest;
+    const pInq = pendingInquiries || 0;
+    const pBugs = unresolvedBugs || 0;
+    const pTotal = pTeach + pQuest + pInq + pBugs;
     document.getElementById('ah-pending-teachers').textContent = pTeach;
     document.getElementById('ah-pending-questions').textContent = pQuest;
+    document.getElementById('ah-pending-inquiries').textContent = pInq;
+    document.getElementById('ah-pending-bugs').textContent = pBugs;
     const badge = document.getElementById('ah-pending-total');
     if (pTotal > 0) {
       badge.textContent = pTotal;
@@ -12806,6 +13120,515 @@ function getTimeAgo(date) {
   if (hr < 24) return hr + '시간 전';
   const day = Math.floor(hr / 24);
   return day + '일 전';
+}
+
+// ── FEEDBACK BOARD (게시판) ──
+let _fbCurrentCat = 'all';
+let _fbCurrentPage = 1;
+let _fbCurrentPost = null;
+
+async function loadFeedbackPosts() {
+  const container = document.getElementById('fb-posts-list');
+  if (!container) return;
+
+  const sort = document.getElementById('fb-sort')?.value || 'latest';
+  const search = document.getElementById('fb-search')?.value?.trim() || '';
+
+  let query = sbClient.from('feedback_posts')
+    .select('*, author:profiles(id, name, role)')
+    .order(sort === 'votes' ? 'vote_count' : sort === 'views' ? 'view_count' : 'created_at', { ascending: false });
+
+  if (_fbCurrentCat !== 'all') {
+    query = query.eq('category', _fbCurrentCat);
+  }
+  if (search) {
+    query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query.range((_fbCurrentPage - 1) * 20, _fbCurrentPage * 20 - 1);
+
+  if (error || !data?.length) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">게시글이 없습니다</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(p => {
+    const catIcon = { bug: '🐛', question: '❓', suggestion: '💡', notice: '📢' }[p.category] || '';
+    const catName = { bug: '버그', question: '질문', suggestion: '건의', notice: '공지' }[p.category] || '';
+    const pinned = p.is_pinned ? '<span style="color:var(--accent);margin-right:4px">📌</span>' : '';
+    const resolved = p.is_resolved ? '<span class="chip green" style="margin-left:8px">해결됨</span>' : '';
+    const votes = p.category === 'suggestion' ? `<span style="color:var(--text3);margin-left:8px">👍 ${p.vote_count || 0}</span>` : '';
+    const statusBadge = p.suggestion_status ? getSuggestionStatusBadge(p.suggestion_status) : '';
+    return `<div onclick="openFeedbackDetail('${p.id}')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span class="chip">${catIcon} ${catName}</span>
+        ${statusBadge}
+        ${resolved}
+      </div>
+      <div style="font-size:15px;font-weight:600;color:var(--text)">${pinned}${escHtml(p.title)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
+        <span>${p.author?.name || '익명'}</span>
+        <span>${getTimeAgo(new Date(p.created_at))}</span>
+        <span>조회 ${p.view_count || 0}</span>
+        ${votes}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getSuggestionStatusBadge(status) {
+  const m = {
+    reviewing: ['yellow', '검토중'],
+    accepted: ['green', '채택'],
+    in_progress: ['purple', '진행중'],
+    completed: ['green', '완료'],
+    rejected: ['red', '반려']
+  }[status];
+  return m ? `<span class="chip ${m[0]}">${m[1]}</span>` : '';
+}
+
+function filterFeedback(cat, btn) {
+  _fbCurrentCat = cat;
+  _fbCurrentPage = 1;
+  document.querySelectorAll('.fb-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  btn.className = cat === 'all' ? 'btn btn-sm fb-tab active' : 'btn btn-ghost btn-sm fb-tab active';
+  document.querySelectorAll('.fb-tab').forEach(t => {
+    if (!t.classList.contains('active')) t.className = 'btn btn-ghost btn-sm fb-tab';
+  });
+  document.querySelector('.fb-tab.active').className = 'btn btn-sm fb-tab active';
+  loadFeedbackPosts();
+}
+
+function openFeedbackWriteModal() {
+  document.getElementById('fw-title').value = '';
+  document.getElementById('fw-content').value = '';
+  document.getElementById('fw-category').value = 'bug';
+  document.getElementById('fw-is-pinned').checked = false;
+  const noticeOpt = document.getElementById('fw-notice-opt');
+  if (noticeOpt) noticeOpt.style.display = currentProfile?.role === 'staff' ? '' : 'none';
+  updateFeedbackForm();
+  document.getElementById('feedbackWriteModal').classList.add('open');
+}
+
+function updateFeedbackForm() {
+  const cat = document.getElementById('fw-category').value;
+  document.getElementById('fw-bug-fields').style.display = cat === 'bug' ? '' : 'none';
+  document.getElementById('fw-notice-fields').style.display = cat === 'notice' ? '' : 'none';
+}
+
+async function submitFeedbackPost() {
+  const cat = document.getElementById('fw-category').value;
+  const title = document.getElementById('fw-title').value.trim();
+  const content = document.getElementById('fw-content').value.trim();
+
+  if (!title || !content) {
+    showToast('제목과 내용을 입력해주세요', '⚠️');
+    return;
+  }
+
+  const payload = {
+    author_id: currentUser.id,
+    category: cat,
+    title,
+    content,
+    is_pinned: cat === 'notice' && document.getElementById('fw-is-pinned').checked
+  };
+
+  if (cat === 'bug') {
+    payload.bug_screen = document.getElementById('fw-bug-screen').value;
+    payload.bug_browser = navigator.userAgent;
+  }
+  if (cat === 'suggestion') {
+    payload.suggestion_status = 'reviewing';
+  }
+
+  const { error } = await sbClient.from('feedback_posts').insert(payload);
+  if (error) {
+    showToast('등록 실패: ' + error.message, '❌');
+    return;
+  }
+
+  closeModal('feedbackWriteModal');
+  showToast('게시글이 등록되었습니다', '✅');
+  loadFeedbackPosts();
+}
+
+async function openFeedbackDetail(postId) {
+  // 조회수 증가
+  await sbClient.from('feedback_posts').update({ view_count: sbClient.rpc('increment_view', { post_id: postId }) }).eq('id', postId);
+  await sbClient.rpc('increment', { row_id: postId, table_name: 'feedback_posts', column_name: 'view_count' }).catch(() => {});
+
+  const { data: post, error } = await sbClient.from('feedback_posts')
+    .select('*, author:profiles(id, name, role)')
+    .eq('id', postId)
+    .single();
+
+  if (error || !post) {
+    showToast('게시글을 불러올 수 없습니다', '❌');
+    return;
+  }
+
+  _fbCurrentPost = post;
+
+  document.getElementById('fd-title').textContent = post.title;
+  document.getElementById('fd-meta').textContent = `${post.author?.name || '익명'} · ${new Date(post.created_at).toLocaleString('ko-KR')}`;
+  document.getElementById('fd-content').textContent = post.content;
+
+  // 카테고리 뱃지
+  const catIcon = { bug: '🐛', question: '❓', suggestion: '💡', notice: '📢' }[post.category] || '';
+  const catName = { bug: '버그', question: '질문', suggestion: '건의', notice: '공지' }[post.category] || '';
+  let badges = `<span class="chip">${catIcon} ${catName}</span>`;
+  if (post.is_resolved) badges += '<span class="chip green" style="margin-left:8px">해결됨</span>';
+  if (post.suggestion_status) badges += getSuggestionStatusBadge(post.suggestion_status);
+  document.getElementById('fd-badges').innerHTML = badges;
+
+  // 추천 섹션 (건의사항만)
+  const voteSection = document.getElementById('fd-vote-section');
+  if (post.category === 'suggestion') {
+    voteSection.style.display = '';
+    document.getElementById('fd-vote-count').textContent = post.vote_count || 0;
+    // 내가 추천했는지 확인
+    const { data: myVote } = await sbClient.from('feedback_votes').select('*').eq('post_id', postId).eq('user_id', currentUser.id).maybeSingle();
+    document.getElementById('fd-vote-btn').className = myVote ? 'btn btn-primary' : 'btn btn-ghost';
+  } else {
+    voteSection.style.display = 'none';
+  }
+
+  // 수정/삭제 버튼
+  const actions = document.getElementById('fd-actions');
+  if (post.author_id === currentUser.id || currentProfile?.role === 'staff') {
+    actions.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="editFeedbackPost()">수정</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteFeedbackPost()">삭제</button>
+    `;
+    if (currentProfile?.role === 'staff' && !post.is_resolved && post.category !== 'notice') {
+      actions.innerHTML += `<button class="btn btn-green btn-sm" onclick="resolveFeedbackPost()">해결됨 처리</button>`;
+    }
+    if (currentProfile?.role === 'staff' && post.category === 'suggestion') {
+      actions.innerHTML += `<select class="input" style="width:auto;margin-left:8px" onchange="updateSuggestionStatus(this.value)">
+        <option value="">상태 변경</option>
+        <option value="reviewing">검토중</option>
+        <option value="accepted">채택</option>
+        <option value="in_progress">진행중</option>
+        <option value="completed">완료</option>
+        <option value="rejected">반려</option>
+      </select>`;
+    }
+  } else {
+    actions.innerHTML = '';
+  }
+
+  // 댓글 로드
+  await loadFeedbackComments(postId);
+
+  showView('feedback-detail');
+}
+
+async function loadFeedbackComments(postId) {
+  const { data: comments } = await sbClient.from('feedback_comments')
+    .select('*, author:profiles(id, name, role)')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true });
+
+  document.getElementById('fd-comment-count').textContent = comments?.length || 0;
+
+  if (!comments?.length) {
+    document.getElementById('fd-comments').innerHTML = '<div style="color:var(--text3);text-align:center;padding:20px">댓글이 없습니다</div>';
+    return;
+  }
+
+  document.getElementById('fd-comments').innerHTML = comments.map(c => {
+    const official = c.is_official ? '<span class="chip green" style="margin-left:8px">공식 답변</span>' : '';
+    const isStaff = c.author?.role === 'staff';
+    return `<div style="padding:12px;background:${isStaff ? 'rgba(62,207,142,0.08)' : 'var(--bg2)'};border-radius:var(--radius-sm);margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-weight:600;color:var(--text)">${c.author?.name || '익명'}</span>
+        ${official}
+        <span style="font-size:11px;color:var(--text3);margin-left:auto">${getTimeAgo(new Date(c.created_at))}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text);white-space:pre-wrap">${escHtml(c.content)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function submitComment() {
+  if (!_fbCurrentPost) return;
+  const content = document.getElementById('fd-comment-input').value.trim();
+  if (!content) return;
+
+  const payload = {
+    post_id: _fbCurrentPost.id,
+    author_id: currentUser.id,
+    content,
+    is_official: currentProfile?.role === 'staff'
+  };
+
+  const { error } = await sbClient.from('feedback_comments').insert(payload);
+  if (error) {
+    showToast('댓글 등록 실패', '❌');
+    return;
+  }
+
+  document.getElementById('fd-comment-input').value = '';
+  loadFeedbackComments(_fbCurrentPost.id);
+}
+
+async function toggleVote() {
+  if (!_fbCurrentPost) return;
+
+  const { data: existing } = await sbClient.from('feedback_votes')
+    .select('*').eq('post_id', _fbCurrentPost.id).eq('user_id', currentUser.id).maybeSingle();
+
+  if (existing) {
+    await sbClient.from('feedback_votes').delete().eq('post_id', _fbCurrentPost.id).eq('user_id', currentUser.id);
+  } else {
+    await sbClient.from('feedback_votes').insert({ post_id: _fbCurrentPost.id, user_id: currentUser.id });
+  }
+
+  // 갱신
+  const { data } = await sbClient.from('feedback_posts').select('vote_count').eq('id', _fbCurrentPost.id).single();
+  document.getElementById('fd-vote-count').textContent = data?.vote_count || 0;
+  document.getElementById('fd-vote-btn').className = existing ? 'btn btn-ghost' : 'btn btn-primary';
+}
+
+async function deleteFeedbackPost() {
+  if (!_fbCurrentPost) return;
+  if (!confirm('게시글을 삭제하시겠습니까?')) return;
+
+  await sbClient.from('feedback_posts').delete().eq('id', _fbCurrentPost.id);
+  showToast('삭제되었습니다', '✅');
+  showView('feedback');
+}
+
+async function resolveFeedbackPost() {
+  if (!_fbCurrentPost) return;
+  await sbClient.from('feedback_posts').update({ is_resolved: true }).eq('id', _fbCurrentPost.id);
+  showToast('해결됨 처리되었습니다', '✅');
+  openFeedbackDetail(_fbCurrentPost.id);
+}
+
+async function updateSuggestionStatus(status) {
+  if (!_fbCurrentPost || !status) return;
+  await sbClient.from('feedback_posts').update({ suggestion_status: status }).eq('id', _fbCurrentPost.id);
+  showToast('상태가 변경되었습니다', '✅');
+  openFeedbackDetail(_fbCurrentPost.id);
+}
+
+// ── 1:1 INQUIRY (1:1 문의) ──
+let _iqCurrentInquiry = null;
+
+async function loadInquiries() {
+  const container = document.getElementById('iq-list');
+  if (!container) return;
+
+  const { data, error } = await sbClient.from('inquiries')
+    .select('*')
+    .eq('author_id', currentUser.id)
+    .order('updated_at', { ascending: false });
+
+  if (error || !data?.length) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">문의 내역이 없습니다</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(iq => {
+    const statusBadge = getInquiryStatusBadge(iq.status);
+    return `<div onclick="openInquiryDetail('${iq.id}')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        ${statusBadge}
+        <span style="font-size:12px;color:var(--text3)">${iq.category || '기타'}</span>
+      </div>
+      <div style="font-size:15px;font-weight:600;color:var(--text)">${escHtml(iq.subject)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">${getTimeAgo(new Date(iq.updated_at))}</div>
+    </div>`;
+  }).join('');
+}
+
+function getInquiryStatusBadge(status) {
+  const m = {
+    open: ['yellow', '오픈'],
+    in_progress: ['purple', '진행중'],
+    resolved: ['green', '해결'],
+    closed: ['', '종료']
+  }[status];
+  return m ? `<span class="chip ${m[0]}">${m[1]}</span>` : '';
+}
+
+function openNewInquiryModal() {
+  document.getElementById('niq-subject').value = '';
+  document.getElementById('niq-content').value = '';
+  document.getElementById('niq-category').value = 'other';
+  document.getElementById('newInquiryModal').classList.add('open');
+}
+
+async function submitNewInquiry() {
+  const subject = document.getElementById('niq-subject').value.trim();
+  const content = document.getElementById('niq-content').value.trim();
+  const category = document.getElementById('niq-category').value;
+
+  if (!subject || !content) {
+    showToast('제목과 내용을 입력해주세요', '⚠️');
+    return;
+  }
+
+  // 문의 생성
+  const { data: inquiry, error } = await sbClient.from('inquiries').insert({
+    author_id: currentUser.id,
+    subject,
+    category,
+    status: 'open'
+  }).select().single();
+
+  if (error) {
+    showToast('문의 등록 실패', '❌');
+    return;
+  }
+
+  // 첫 메시지 추가
+  await sbClient.from('inquiry_messages').insert({
+    inquiry_id: inquiry.id,
+    sender_id: currentUser.id,
+    content,
+    is_admin: false
+  });
+
+  closeModal('newInquiryModal');
+  showToast('문의가 등록되었습니다', '✅');
+  loadInquiries();
+}
+
+async function openInquiryDetail(inquiryId) {
+  const { data: inquiry, error } = await sbClient.from('inquiries')
+    .select('*')
+    .eq('id', inquiryId)
+    .single();
+
+  if (error || !inquiry) {
+    showToast('문의를 불러올 수 없습니다', '❌');
+    return;
+  }
+
+  _iqCurrentInquiry = inquiry;
+
+  document.getElementById('iq-subject').textContent = inquiry.subject;
+  document.getElementById('iq-meta').innerHTML = `${getInquiryStatusBadge(inquiry.status)} · ${new Date(inquiry.created_at).toLocaleString('ko-KR')}`;
+
+  // 운영자 상태 변경 버튼
+  const actions = document.getElementById('iq-actions');
+  if (currentProfile?.role === 'staff') {
+    actions.innerHTML = `<select class="input" style="width:auto" onchange="updateInquiryStatus(this.value)">
+      <option value="">상태 변경</option>
+      <option value="open">오픈</option>
+      <option value="in_progress">진행중</option>
+      <option value="resolved">해결</option>
+      <option value="closed">종료</option>
+    </select>`;
+  } else {
+    actions.innerHTML = '';
+  }
+
+  // 메시지 로드
+  await loadInquiryMessages(inquiryId);
+
+  showView('inquiry-detail');
+}
+
+async function loadInquiryMessages(inquiryId) {
+  const container = document.getElementById('iq-messages');
+
+  const { data: messages } = await sbClient.from('inquiry_messages')
+    .select('*, sender:profiles(id, name)')
+    .eq('inquiry_id', inquiryId)
+    .order('created_at', { ascending: true });
+
+  if (!messages?.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px">메시지가 없습니다</div>';
+    return;
+  }
+
+  container.innerHTML = messages.map(m => {
+    const isMe = m.sender_id === currentUser.id;
+    const isAdmin = m.is_admin;
+    return `<div style="display:flex;justify-content:${isMe && !isAdmin ? 'flex-end' : 'flex-start'};margin-bottom:12px">
+      <div style="max-width:80%;padding:12px 16px;border-radius:12px;background:${isAdmin ? 'rgba(62,207,142,0.15)' : isMe ? 'var(--accent)' : 'var(--bg2)'};color:${isMe && !isAdmin ? '#fff' : 'var(--text)'}">
+        <div style="font-size:11px;margin-bottom:4px;opacity:0.7">${isAdmin ? '운영팀' : m.sender?.name || '나'} · ${getTimeAgo(new Date(m.created_at))}</div>
+        <div style="white-space:pre-wrap">${escHtml(m.content)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendInquiryMessage() {
+  if (!_iqCurrentInquiry) return;
+  const content = document.getElementById('iq-msg-input').value.trim();
+  if (!content) return;
+
+  await sbClient.from('inquiry_messages').insert({
+    inquiry_id: _iqCurrentInquiry.id,
+    sender_id: currentUser.id,
+    content,
+    is_admin: currentProfile?.role === 'staff'
+  });
+
+  // 운영자가 답변하면 상태 변경
+  if (currentProfile?.role === 'staff' && _iqCurrentInquiry.status === 'open') {
+    await sbClient.from('inquiries').update({ status: 'in_progress', updated_at: new Date().toISOString() }).eq('id', _iqCurrentInquiry.id);
+  }
+
+  // 문의 updated_at 갱신
+  await sbClient.from('inquiries').update({ updated_at: new Date().toISOString() }).eq('id', _iqCurrentInquiry.id);
+
+  document.getElementById('iq-msg-input').value = '';
+  loadInquiryMessages(_iqCurrentInquiry.id);
+}
+
+async function updateInquiryStatus(status) {
+  if (!_iqCurrentInquiry || !status) return;
+  await sbClient.from('inquiries').update({ status, updated_at: new Date().toISOString() }).eq('id', _iqCurrentInquiry.id);
+  showToast('상태가 변경되었습니다', '✅');
+  openInquiryDetail(_iqCurrentInquiry.id);
+}
+
+// ── ADMIN INQUIRIES (운영자 문의 처리) ──
+async function loadAdminInquiries() {
+  const container = document.getElementById('aiq-list');
+  if (!container) return;
+
+  const statusFilter = document.getElementById('aiq-status-filter')?.value || 'all';
+
+  let query = sbClient.from('inquiries')
+    .select('*, author:profiles(id, name, email)')
+    .order('updated_at', { ascending: false });
+
+  if (statusFilter !== 'all') {
+    query = query.eq('status', statusFilter);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data?.length) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">문의가 없습니다</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(iq => {
+    const statusBadge = getInquiryStatusBadge(iq.status);
+    const isUnanswered = iq.status === 'open';
+    return `<div onclick="openInquiryDetail('${iq.id}')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;background:${isUnanswered ? 'rgba(255,107,107,0.05)' : 'transparent'};transition:background 0.2s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='${isUnanswered ? 'rgba(255,107,107,0.05)' : 'transparent'}'">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        ${statusBadge}
+        <span style="font-size:12px;color:var(--text3)">${iq.category || '기타'}</span>
+        ${isUnanswered ? '<span style="color:var(--red);font-size:11px;font-weight:600">미답변</span>' : ''}
+      </div>
+      <div style="font-size:15px;font-weight:600;color:var(--text)">${escHtml(iq.subject)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">
+        ${iq.author?.name || '익명'} (${iq.author?.email || '-'}) · ${getTimeAgo(new Date(iq.updated_at))}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function loadAdminTeachers() {
