@@ -1000,6 +1000,53 @@
       approvedCount: 0,
     };
 
+    // ======== 카테고리 캐시 ========
+    const categoryCache = {
+      units: [],       // [{ id, name, area, is_extra_unit, ... }]
+      subUnits: {},    // { unitId: [{ id, name, ... }] }
+      types: {},       // { subUnitId: [{ id, name, difficulty_default, ... }] }
+      loaded: false,
+    };
+
+    // 카테고리 데이터 로드
+    async function loadCategories() {
+      if (categoryCache.loaded) return;
+      try {
+        // 단원 로드 (지수와 로그만)
+        const { data: units } = await sb
+          .from('units')
+          .select('*')
+          .eq('area', '지수와 로그')
+          .order('display_order');
+        categoryCache.units = units || [];
+
+        // 소단원 로드
+        const { data: subUnits } = await sb
+          .from('sub_units')
+          .select('*')
+          .order('display_order');
+        (subUnits || []).forEach(su => {
+          if (!categoryCache.subUnits[su.unit_id]) categoryCache.subUnits[su.unit_id] = [];
+          categoryCache.subUnits[su.unit_id].push(su);
+        });
+
+        // 유형 로드
+        const { data: types } = await sb
+          .from('question_types')
+          .select('*')
+          .order('display_order');
+        (types || []).forEach(t => {
+          if (!categoryCache.types[t.sub_unit_id]) categoryCache.types[t.sub_unit_id] = [];
+          categoryCache.types[t.sub_unit_id].push(t);
+        });
+
+        categoryCache.loaded = true;
+        console.log('카테고리 로드 완료:', categoryCache.units.length, '단원');
+      } catch (err) {
+        console.error('카테고리 로드 실패:', err);
+      }
+    }
+
     // ======== DOM ========
     const $ = (id) => document.getElementById(id);
 
@@ -1029,6 +1076,9 @@
 
       state.currentUser = { ...session.user, profile };
       $('userInfo').textContent = profile.name || profile.email || session.user.email;
+
+      // 카테고리 데이터 로드
+      await loadCategories();
 
       $('authGate').style.display = 'none';
       $('app').style.display = 'block';
@@ -1103,8 +1153,12 @@
           _saving: false,
           _answer: '',
           _gradeSemester: '',
-          _domain: '',
+          _domain: '지수와 로그',     // 기본값: 현재 지수와 로그만 지원
           _unit: '',
+          _unitId: null,              // FK: units.id
+          _subUnitId: null,           // FK: sub_units.id
+          _typeId: null,              // FK: question_types.id
+          _difficulty: '중',          // 난이도 기본값
           _subjectType: p.subject_type || '객관식',
           // 해설 관련 상태
           _solutionMode: 'none',       // 'none' | 'original' → 라디오 선택
@@ -1246,29 +1300,53 @@
           </div>
           <div class="field">
             <label class="field__label">영역</label>
-            <select class="field__select" onchange="setField('${p._localId}', '_domain', this.value)">
-              ${DOMAIN_OPTIONS.map(o => `<option value="${o.value}" ${o.value === p._domain ? 'selected' : ''}>${o.label}</option>`).join('')}
+            <select class="field__select" disabled>
+              <option value="지수와 로그" selected>지수와 로그</option>
             </select>
           </div>
           <div class="field">
             <label class="field__label">단원</label>
-            <input type="text" class="field__input"
-              value="${escapeHtml(p._unit)}"
-              placeholder="예: 극한"
-              onchange="setField('${p._localId}', '_unit', this.value)" />
+            <select class="field__select" id="unit_${p._localId}" onchange="onUnitChange('${p._localId}', this.value)">
+              <option value="">단원 선택</option>
+              ${categoryCache.units.map(u => `<option value="${u.id}" ${u.id === p._unitId ? 'selected' : ''}>${u.name}${u.is_extra_unit ? ' ⭐' : ''}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">소단원</label>
+            <select class="field__select" id="subunit_${p._localId}" onchange="onSubUnitChange('${p._localId}', this.value)">
+              <option value="">소단원 선택</option>
+              ${p._unitId && categoryCache.subUnits[p._unitId] ? categoryCache.subUnits[p._unitId].map(su => `<option value="${su.id}" ${su.id === p._subUnitId ? 'selected' : ''}>${su.name}</option>`).join('') : ''}
+            </select>
           </div>
           <div class="field">
             <label class="field__label">유형</label>
+            <select class="field__select" id="type_${p._localId}" onchange="onTypeChange('${p._localId}', this.value)">
+              <option value="">유형 선택</option>
+              ${p._subUnitId && categoryCache.types[p._subUnitId] ? categoryCache.types[p._subUnitId].map(t => `<option value="${t.id}" ${t.id === p._typeId ? 'selected' : ''}>${t.name}</option>`).join('') : ''}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">문제유형</label>
             <select class="field__select" onchange="setField('${p._localId}', '_subjectType', this.value)">
               ${SUBJECT_TYPE_OPTIONS.map(o => `<option value="${o.value}" ${o.value === p._subjectType ? 'selected' : ''}>${o.label}</option>`).join('')}
             </select>
           </div>
-          <div class="field">
-            <label class="field__label">배점</label>
-            <input type="text" class="field__input"
-              value="${escapeHtml(p.points || '')}"
-              placeholder="3"
-              onchange="setField('${p._localId}', 'points', this.value)" />
+          <div class="field" style="display:flex;gap:8px">
+            <div style="flex:1">
+              <label class="field__label">난이도</label>
+              <select class="field__select" id="diff_${p._localId}" onchange="setField('${p._localId}', '_difficulty', this.value)">
+                <option value="하" ${p._difficulty === '하' ? 'selected' : ''}>하</option>
+                <option value="중" ${p._difficulty === '중' ? 'selected' : ''}>중</option>
+                <option value="상" ${p._difficulty === '상' ? 'selected' : ''}>상</option>
+              </select>
+            </div>
+            <div style="flex:1">
+              <label class="field__label">배점</label>
+              <input type="text" class="field__input"
+                value="${escapeHtml(p.points || '')}"
+                placeholder="3"
+                onchange="setField('${p._localId}', 'points', this.value)" />
+            </div>
           </div>
           <button class="card__save" onclick="saveCard('${p._localId}')" ${p._approved ? 'disabled' : ''}>
             ${p._approved ? '✓ 승인됨' : '✓ 승인 및 저장'}
@@ -1782,6 +1860,68 @@
       if (p) p[field] = value;
     }
 
+    // ======== 카테고리 드롭다운 변경 핸들러 ========
+    function onUnitChange(localId, unitId) {
+      const p = state.problems.find(x => x._localId === localId);
+      if (!p) return;
+
+      p._unitId = unitId || null;
+      p._subUnitId = null;
+      p._typeId = null;
+
+      // 단원명도 저장 (하위 호환)
+      const unit = categoryCache.units.find(u => u.id === unitId);
+      p._unit = unit ? unit.name : '';
+
+      // 소단원 드롭다운 업데이트
+      const subUnitSelect = document.getElementById(`subunit_${localId}`);
+      if (subUnitSelect) {
+        const subUnits = categoryCache.subUnits[unitId] || [];
+        subUnitSelect.innerHTML = '<option value="">소단원 선택</option>' +
+          subUnits.map(su => `<option value="${su.id}">${su.name}</option>`).join('');
+      }
+
+      // 유형 드롭다운 초기화
+      const typeSelect = document.getElementById(`type_${localId}`);
+      if (typeSelect) {
+        typeSelect.innerHTML = '<option value="">유형 선택</option>';
+      }
+    }
+
+    function onSubUnitChange(localId, subUnitId) {
+      const p = state.problems.find(x => x._localId === localId);
+      if (!p) return;
+
+      p._subUnitId = subUnitId || null;
+      p._typeId = null;
+
+      // 유형 드롭다운 업데이트
+      const typeSelect = document.getElementById(`type_${localId}`);
+      if (typeSelect) {
+        const types = categoryCache.types[subUnitId] || [];
+        typeSelect.innerHTML = '<option value="">유형 선택</option>' +
+          types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      }
+    }
+
+    function onTypeChange(localId, typeId) {
+      const p = state.problems.find(x => x._localId === localId);
+      if (!p) return;
+
+      p._typeId = typeId || null;
+
+      // 유형의 기본 난이도로 자동 설정
+      if (typeId && p._subUnitId) {
+        const types = categoryCache.types[p._subUnitId] || [];
+        const type = types.find(t => t.id === typeId);
+        if (type && type.difficulty_default) {
+          p._difficulty = type.difficulty_default;
+          const diffSelect = document.getElementById(`diff_${localId}`);
+          if (diffSelect) diffSelect.value = type.difficulty_default;
+        }
+      }
+    }
+
     // ======== 저장 (Supabase questions 테이블) ========
     async function saveCard(id) {
       const p = state.problems.find((x) => x._localId === id);
@@ -1828,11 +1968,15 @@
           school_level: schoolLevel,
           grade: grade,
           semester: semester,
-          area: p._domain || null,
+          area: p._domain || '지수와 로그',
           unit: p._unit || null,
-          sub_unit: null,  // 나중에 exam_source로 분리 예정
+          sub_unit: null,  // 기존 text 필드 (하위 호환)
           question_type: p._subjectType || '객관식',
-          difficulty: parseInt(p.points) || 3,  // 배점을 난이도로 임시 매핑
+          // 새 FK 필드 (카테고리 시스템)
+          unit_id: p._unitId || null,
+          sub_unit_id: p._subUnitId || null,
+          question_type_id: p._typeId || null,
+          difficulty: p._difficulty || '중',
           status: 'approved',
           uploader_id: state.currentUser.id,
           // 해설 관련 새 컬럼 (마이그레이션 후 사용)
