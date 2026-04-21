@@ -4779,6 +4779,13 @@
     width: 90%;
     border-radius: 20px;
   }
+  .feedback-modal .modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid var(--border);
+  }
   .feedback-input {
     width: 100%;
     box-sizing: border-box;
@@ -10660,14 +10667,22 @@ async function downloadMaterial(id, filePath, fileName) {
     const { data, error } = await sbClient.storage.from('materials').download(filePath);
     if (error) throw error;
 
-    // 다운로드 카운트 증가 (RPC 또는 직접 update)
-    sbClient.rpc('increment_material_download', { material_id: id }).catch(() => {
-      // RPC 없으면 직접 +1
-      sbClient.from('materials').select('download_count').eq('id', id).single()
-        .then(({ data: cur }) => {
-          if (cur) sbClient.from('materials').update({ download_count: (cur.download_count || 0) + 1 }).eq('id', id);
-        });
-    });
+    // 다운로드 카운트 증가 (직접 +1)
+    try {
+      const { data: cur } = await sbClient
+        .from('materials')
+        .select('download_count')
+        .eq('id', id)
+        .single();
+      if (cur) {
+        await sbClient
+          .from('materials')
+          .update({ download_count: (cur.download_count || 0) + 1 })
+          .eq('id', id);
+      }
+    } catch (e) {
+      console.warn('다운로드 카운트 증가 실패:', e);
+    }
 
     // 브라우저 다운로드
     const url = URL.createObjectURL(data);
