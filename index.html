@@ -13639,9 +13639,22 @@ async function submitFeedbackPost() {
 }
 
 async function openFeedbackDetail(postId) {
-  // 조회수 증가
-  await sbClient.from('feedback_posts').update({ view_count: sbClient.rpc('increment_view', { post_id: postId }) }).eq('id', postId);
-  await sbClient.rpc('increment', { row_id: postId, table_name: 'feedback_posts', column_name: 'view_count' }).catch(() => {});
+  // 조회수 증가 (RPC 없이 직접 +1)
+  try {
+    const { data: cur } = await sbClient
+      .from('feedback_posts')
+      .select('view_count')
+      .eq('id', postId)
+      .single();
+    if (cur) {
+      await sbClient
+        .from('feedback_posts')
+        .update({ view_count: (cur.view_count || 0) + 1 })
+        .eq('id', postId);
+    }
+  } catch (e) {
+    console.warn('조회수 증가 실패:', e);
+  }
 
   const { data: post, error } = await sbClient.from('feedback_posts')
     .select('*, author:profiles!feedback_posts_author_id_fkey(id, name, role)')
