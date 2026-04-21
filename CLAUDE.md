@@ -88,3 +88,19 @@
 - 기존 기능 임의 제거
 - `node_modules`, `package-lock.json` 등 거대 파일 커밋
 - 내 개인정보/API 키 커밋 (config.js는 .gitignore 확인)
+
+## 📚 기능 명세 참조
+- **새 기능 작업 전**: 관련 `DOCS/*.md` 파일 먼저 확인
+- **기능 추가/변경 시**: 해당 DOCS 파일 업데이트 필수
+- **전체 기능 조망**: [DOCS/00-FEATURES.md](./DOCS/00-FEATURES.md)
+- **장기 비전**: [DOCS/05-roadmap.md](./DOCS/05-roadmap.md)
+
+### 문서 목록
+| 파일 | 내용 |
+|------|------|
+| `DOCS/00-FEATURES.md` | 전체 기능 인덱스 |
+| `DOCS/01-student-report.md` | 학생 성적 리포트 PDF |
+| `DOCS/02-parent-sms.md` | 학부모 문자 발송 |
+| `DOCS/03-tutor-matching.md` | 과외 매칭 시스템 |
+| `DOCS/04-point-system.md` | 포인트 시스템 |
+| `DOCS/05-roadmap.md` | 장기 로드맵 |
