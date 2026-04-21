@@ -43,27 +43,21 @@ DROP POLICY IF EXISTS "notices_insert" ON public.notices;
 CREATE POLICY "notices_insert"
   ON public.notices FOR INSERT
   TO authenticated
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  WITH CHECK (public.is_admin_user());
 
 -- UPDATE: admin만
 DROP POLICY IF EXISTS "notices_update" ON public.notices;
 CREATE POLICY "notices_update"
   ON public.notices FOR UPDATE
   TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  USING (public.is_admin_user());
 
 -- DELETE: admin만
 DROP POLICY IF EXISTS "notices_delete" ON public.notices;
 CREATE POLICY "notices_delete"
   ON public.notices FOR DELETE
   TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  USING (public.is_admin_user());
 
 
 -- ┌─────────────────────────────────────────────────────────────────┐
