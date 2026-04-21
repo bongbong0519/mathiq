@@ -16169,7 +16169,7 @@ async function loadStudentMaterials() {
   const { data: studentRecords } = await sbClient
     .from('students')
     .select('id')
-    .eq('auth_user_id', currentUser.id);
+    .eq('user_id', currentUser.id);
 
   if (!studentRecords?.length) {
     listWrap.innerHTML = `<div class="empty-state" style="padding:60px">

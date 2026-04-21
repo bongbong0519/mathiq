@@ -124,7 +124,7 @@ CREATE POLICY "shares_student_select"
     EXISTS (
       SELECT 1 FROM public.students
       WHERE id = student_id AND (
-        auth_user_id = auth.uid() OR
+        user_id = auth.uid() OR
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'student')
       )
     )
@@ -138,7 +138,7 @@ CREATE POLICY "shares_student_update"
   USING (
     EXISTS (
       SELECT 1 FROM public.students
-      WHERE id = student_id AND auth_user_id = auth.uid()
+      WHERE id = student_id AND user_id = auth.uid()
     )
   );
 
