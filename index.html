@@ -4690,19 +4690,19 @@
 
 <!-- ════════════════════ FEEDBACK WRITE MODAL ════════════════════ -->
 <div class="modal-overlay" id="feedbackWriteModal">
-  <div class="modal" style="max-width:580px;border-radius:20px">
-    <div class="modal-header" style="padding:24px 28px 20px;border-bottom:1px solid var(--border)">
-      <div class="modal-title" style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px">
-        <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--bg3);border-radius:10px">✏️</span>
+  <div class="modal feedback-modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span class="modal-title-icon">✏️</span>
         글쓰기
       </div>
-      <button class="modal-close" onclick="closeModal('feedbackWriteModal')" style="width:32px;height:32px;border-radius:8px">✕</button>
+      <button class="modal-close" onclick="closeModal('feedbackWriteModal')">✕</button>
     </div>
-    <div class="modal-body" style="padding:24px 28px">
+    <div class="modal-body">
       <!-- 카테고리 선택 (버튼 그룹) -->
-      <div class="form-group" style="margin-bottom:20px">
-        <label class="form-label" style="font-weight:600;margin-bottom:10px;display:block">카테고리</label>
-        <div class="fw-cat-buttons" style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="form-group">
+        <label class="form-label">카테고리</label>
+        <div class="fw-cat-buttons">
           <label class="fw-cat-btn active" onclick="selectFwCategory('bug')">
             <input type="radio" name="fw-cat-radio" value="bug" checked style="display:none">
             <span class="fw-cat-icon" style="background:rgba(245,101,101,0.12)">🐛</span>
@@ -4731,15 +4731,15 @@
           <option value="notice" id="fw-notice-opt">공지사항</option>
         </select>
       </div>
-      <div class="form-group" style="margin-bottom:20px">
-        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">제목</label>
-        <input type="text" id="fw-title" class="input" placeholder="제목을 입력하세요" style="padding:14px 16px;font-size:14px;border-radius:12px">
+      <div class="form-group">
+        <label class="form-label">제목</label>
+        <input type="text" id="fw-title" class="input feedback-input" placeholder="제목을 입력하세요">
       </div>
       <!-- 버그 전용 필드 -->
       <div id="fw-bug-fields">
-        <div class="form-group" style="margin-bottom:20px">
-          <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">어떤 화면에서 발생했나요?</label>
-          <select id="fw-bug-screen" class="input" style="padding:14px 16px;font-size:14px;border-radius:12px">
+        <div class="form-group">
+          <label class="form-label">어떤 화면에서 발생했나요?</label>
+          <select id="fw-bug-screen" class="input feedback-input">
             <option value="">화면을 선택하세요</option>
             <option value="dashboard">📊 대시보드</option>
             <option value="students">👥 학생 관리</option>
@@ -4751,28 +4751,73 @@
           </select>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:20px">
-        <label class="form-label" style="font-weight:600;margin-bottom:8px;display:block">내용</label>
-        <textarea id="fw-content" class="input" rows="6" placeholder="상세한 내용을 입력하세요" style="padding:14px 16px;font-size:14px;border-radius:12px;resize:vertical;min-height:140px"></textarea>
+      <div class="form-group">
+        <label class="form-label">내용</label>
+        <textarea id="fw-content" class="input feedback-textarea" rows="6" placeholder="상세한 내용을 입력하세요"></textarea>
       </div>
       <!-- 공지 전용 -->
       <div id="fw-notice-fields" style="display:none">
         <div class="form-group" style="margin-bottom:0">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 16px;background:var(--bg2);border-radius:12px">
-            <input type="checkbox" id="fw-is-pinned" style="width:18px;height:18px;accent-color:var(--accent)">
-            <span style="font-weight:500">📌 상단에 고정</span>
+          <label class="feedback-checkbox-label">
+            <input type="checkbox" id="fw-is-pinned">
+            <span>📌 상단에 고정</span>
           </label>
         </div>
       </div>
     </div>
-    <div class="modal-footer" style="padding:20px 28px 24px;border-top:1px solid var(--border);gap:12px">
-      <button class="btn btn-ghost" onclick="closeModal('feedbackWriteModal')" style="padding:12px 24px;border-radius:12px">취소</button>
-      <button class="btn btn-primary" onclick="submitFeedbackPost()" style="padding:12px 28px;border-radius:12px;font-weight:600">등록하기</button>
+    <div class="modal-footer">
+      <button class="btn btn-ghost feedback-btn" onclick="closeModal('feedbackWriteModal')">취소</button>
+      <button class="btn btn-primary feedback-btn-primary" onclick="submitFeedbackPost()">등록하기</button>
     </div>
   </div>
 </div>
 
 <style>
+  /* 피드백 글쓰기 모달 전용 스타일 */
+  .feedback-modal {
+    max-width: 700px !important;
+    width: 90%;
+    border-radius: 20px;
+  }
+  .feedback-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    font-size: 14px;
+    border-radius: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .feedback-input:focus {
+    border-color: var(--accent);
+  }
+  .feedback-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    font-size: 14px;
+    border-radius: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    min-height: 200px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.6;
+  }
+  .feedback-textarea:focus {
+    border-color: var(--accent);
+  }
+  .fw-cat-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
   .fw-cat-btn {
     display: flex;
     align-items: center;
@@ -13428,14 +13473,20 @@ let _fbCurrentPage = 1;
 let _fbCurrentPost = null;
 
 async function loadFeedbackPosts() {
+  console.log('[loadFeedbackPosts] 시작, _fbCurrentCat:', _fbCurrentCat);
   const container = document.getElementById('fb-posts-list');
-  if (!container) return;
+  console.log('[loadFeedbackPosts] container:', container);
+  if (!container) {
+    console.error('[loadFeedbackPosts] fb-posts-list 컨테이너를 찾을 수 없음!');
+    return;
+  }
 
   const sort = document.getElementById('fb-sort')?.value || 'latest';
   const search = document.getElementById('fb-search')?.value?.trim() || '';
+  console.log('[loadFeedbackPosts] sort:', sort, 'search:', search);
 
   let query = sbClient.from('feedback_posts')
-    .select('*, author:profiles(id, name, role)')
+    .select('*, author:profiles!feedback_posts_author_id_fkey(id, name, role)')
     .order(sort === 'votes' ? 'vote_count' : sort === 'views' ? 'view_count' : 'created_at', { ascending: false });
 
   if (_fbCurrentCat !== 'all') {
@@ -13446,8 +13497,10 @@ async function loadFeedbackPosts() {
   }
 
   const { data, error } = await query.range((_fbCurrentPage - 1) * 20, _fbCurrentPage * 20 - 1);
+  console.log('[loadFeedbackPosts] 쿼리 결과 - data:', data, 'error:', error);
 
   if (error || !data?.length) {
+    console.log('[loadFeedbackPosts] 데이터 없음 또는 에러');
     container.innerHTML = `<div class="fb-empty">
       <div class="fb-empty-icon">📝</div>
       <div class="fb-empty-text">게시글이 없습니다</div>
@@ -13538,9 +13591,11 @@ function updateFeedbackForm() {
 }
 
 async function submitFeedbackPost() {
+  console.log('[submitFeedbackPost] 시작');
   const cat = document.getElementById('fw-category').value;
   const title = document.getElementById('fw-title').value.trim();
   const content = document.getElementById('fw-content').value.trim();
+  console.log('[submitFeedbackPost] cat:', cat, 'title:', title);
 
   if (!title || !content) {
     showToast('제목과 내용을 입력해주세요', '⚠️');
@@ -13563,7 +13618,9 @@ async function submitFeedbackPost() {
     payload.suggestion_status = 'reviewing';
   }
 
-  const { error } = await sbClient.from('feedback_posts').insert(payload);
+  console.log('[submitFeedbackPost] payload:', payload);
+  const { data, error } = await sbClient.from('feedback_posts').insert(payload).select();
+  console.log('[submitFeedbackPost] insert 결과 - data:', data, 'error:', error);
   if (error) {
     showToast('등록 실패: ' + error.message, '❌');
     return;
@@ -13572,7 +13629,13 @@ async function submitFeedbackPost() {
   closeModal('feedbackWriteModal');
   showToast('게시글이 등록되었습니다', '✅');
   _fbCurrentCat = 'all'; // 전체 탭으로 이동
+  // 전체 탭 시각적 활성화
+  document.querySelectorAll('.fb-cat-tab').forEach(t => t.classList.remove('active'));
+  const allTab = document.querySelector('.fb-cat-tab[data-cat="all"]');
+  if (allTab) allTab.classList.add('active');
+  console.log('[submitFeedbackPost] loadFeedbackPosts 호출 전');
   await loadFeedbackPosts();
+  console.log('[submitFeedbackPost] loadFeedbackPosts 호출 후');
 }
 
 async function openFeedbackDetail(postId) {
@@ -13581,7 +13644,7 @@ async function openFeedbackDetail(postId) {
   await sbClient.rpc('increment', { row_id: postId, table_name: 'feedback_posts', column_name: 'view_count' }).catch(() => {});
 
   const { data: post, error } = await sbClient.from('feedback_posts')
-    .select('*, author:profiles(id, name, role)')
+    .select('*, author:profiles!feedback_posts_author_id_fkey(id, name, role)')
     .eq('id', postId)
     .single();
 
@@ -13648,7 +13711,7 @@ async function openFeedbackDetail(postId) {
 
 async function loadFeedbackComments(postId) {
   const { data: comments } = await sbClient.from('feedback_comments')
-    .select('*, author:profiles(id, name, role)')
+    .select('*, author:profiles!feedback_comments_author_id_fkey(id, name, role)')
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
 
