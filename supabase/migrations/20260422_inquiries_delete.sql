@@ -15,7 +15,7 @@ CREATE POLICY "inquiries_delete"
   TO authenticated
   USING (
     -- staff는 무조건 삭제 가능
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
     OR
     -- 본인 문의 + staff 답변 없음
     (

@@ -4084,7 +4084,7 @@
     <div id="view-inquiry-detail" class="view" style="display:none">
       <div class="page-header">
         <div>
-          <button class="btn btn-ghost btn-sm" onclick="showView(currentProfile?.role==='staff'?'admin-inquiries':'inquiry')" style="margin-bottom:8px">← 목록으로</button>
+          <button class="btn btn-ghost btn-sm" onclick="showView(currentProfile?.role==='admin'?'admin-inquiries':'inquiry')" style="margin-bottom:8px">← 목록으로</button>
           <h2 class="page-title" id="iq-subject">문의 제목</h2>
           <p class="page-sub" id="iq-meta">상태 · 날짜</p>
         </div>
@@ -5644,7 +5644,7 @@ function openLpPage(name) {
     loadNotices();
     const writeBtn = document.getElementById('noticeWriteBtn');
     if (writeBtn) {
-      const canWrite = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'staff');
+      const canWrite = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'admin');
       writeBtn.style.display = canWrite ? '' : 'none';
     }
   }
@@ -5707,7 +5707,7 @@ function updateLpTutorRegisterBtn() {
   const btn = document.getElementById('lpTutorRegisterBtn');
   if (!btn) return;
   if (currentUser && currentProfile) {
-    const isTeacher = ['teacher', 'expert', 'staff', 'admin', 'director'].includes(currentProfile.role);
+    const isTeacher = ['teacher', 'expert', 'admin', 'director'].includes(currentProfile.role);
     btn.textContent = isTeacher ? '📝 내 과외 프로필 등록/수정' : '📋 내 구인 등록/수정';
   } else {
     btn.textContent = '📝 프로필 등록하기';
@@ -5728,7 +5728,7 @@ function handleLpTutorRegisterClick() {
   }
 
   // 로그인: 역할에 맞는 대시보드 뷰로 이동
-  const isTeacher = ['teacher', 'expert', 'staff', 'admin', 'director'].includes(currentProfile.role);
+  const isTeacher = ['teacher', 'expert', 'admin', 'director'].includes(currentProfile.role);
   const view = isTeacher ? 'tutor-profile' : 'tutee-register';
   showApp();
   showView(view);
@@ -6367,7 +6367,7 @@ async function loadProfile(autoNavigate = true) {
     if (teacherBtn) teacherBtn.style.display = '';
   }
   const roleSwitcher = document.querySelector('.role-switcher');
-  if (roleSwitcher) roleSwitcher.style.display = ['parent', 'student', 'member', 'expert', 'staff'].includes(data.role) ? 'none' : '';
+  if (roleSwitcher) roleSwitcher.style.display = ['parent', 'student', 'member', 'expert'].includes(data.role) ? 'none' : '';
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   const activeBtn = document.getElementById('role-btn-' + roleForNav);
   if (activeBtn) activeBtn.classList.add('active');
@@ -12158,8 +12158,8 @@ async function updateParentMatchBadge() {
 // ═══════════════════════════════════════
 
 const BOARD_META = {
-  admission: { title: '입시정보',       subtitle: '입시 관련 최신 정보를 확인합니다',    writeRoles: ['admin', 'staff', 'expert'] },
-  math:      { title: '수학커뮤니티',   subtitle: '수학에 관해 자유롭게 이야기 나눠요', writeRoles: ['admin', 'staff', 'teacher', 'director', 'student', 'parent', 'member', 'expert'] },
+  admission: { title: '입시정보',       subtitle: '입시 관련 최신 정보를 확인합니다',    writeRoles: ['admin', 'expert'] },
+  math:      { title: '수학커뮤니티',   subtitle: '수학에 관해 자유롭게 이야기 나눠요', writeRoles: ['admin', 'teacher', 'director', 'student', 'parent', 'member', 'expert'] },
   student:   { title: '학생 커뮤니티',  subtitle: '다른 학생들과 정보를 나눕니다',       writeRoles: ['student'] },
   parent:    { title: '학부모 커뮤니티', subtitle: '다른 학부모님들과 정보를 나눕니다',  writeRoles: ['parent'] }
 };
@@ -13723,7 +13723,7 @@ function openFeedbackWriteModal() {
 
   // 공지 버튼 표시 (staff만)
   const noticeBtn = document.getElementById('fw-notice-btn');
-  if (noticeBtn) noticeBtn.style.display = currentProfile?.role === 'staff' ? 'flex' : 'none';
+  if (noticeBtn) noticeBtn.style.display = currentProfile?.role === 'admin' ? 'flex' : 'none';
 
   // 카테고리 버튼 초기화 (버그 선택)
   document.querySelectorAll('.fw-cat-btn').forEach(b => b.classList.remove('active'));
@@ -13850,15 +13850,15 @@ async function openFeedbackDetail(postId) {
 
   // 수정/삭제 버튼
   const actions = document.getElementById('fd-actions');
-  if (post.author_id === currentUser.id || currentProfile?.role === 'staff') {
+  if (post.author_id === currentUser.id || currentProfile?.role === 'admin') {
     actions.innerHTML = `
       <button class="btn btn-ghost btn-sm" onclick="editFeedbackPost()">수정</button>
       <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteFeedbackPost()">삭제</button>
     `;
-    if (currentProfile?.role === 'staff' && !post.is_resolved && post.category !== 'notice') {
+    if (currentProfile?.role === 'admin' && !post.is_resolved && post.category !== 'notice') {
       actions.innerHTML += `<button class="btn btn-green btn-sm" onclick="resolveFeedbackPost()">해결됨 처리</button>`;
     }
-    if (currentProfile?.role === 'staff' && post.category === 'suggestion') {
+    if (currentProfile?.role === 'admin' && post.category === 'suggestion') {
       actions.innerHTML += `<select class="input" style="width:auto;margin-left:8px" onchange="updateSuggestionStatus(this.value)">
         <option value="">상태 변경</option>
         <option value="reviewing">검토중</option>
@@ -13893,7 +13893,7 @@ async function loadFeedbackComments(postId) {
 
   document.getElementById('fd-comments').innerHTML = comments.map(c => {
     const official = c.is_official ? '<span class="chip green" style="margin-left:8px">공식 답변</span>' : '';
-    const isStaff = c.author?.role === 'staff';
+    const isStaff = c.author?.role === 'admin';
     return `<div style="padding:12px;background:${isStaff ? 'rgba(62,207,142,0.08)' : 'var(--bg2)'};border-radius:var(--radius-sm);margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-weight:600;color:var(--text)">${c.author?.name || '익명'}</span>
@@ -13914,7 +13914,7 @@ async function submitComment() {
     post_id: _fbCurrentPost.id,
     author_id: currentUser.id,
     content,
-    is_official: currentProfile?.role === 'staff'
+    is_official: currentProfile?.role === 'admin'
   };
 
   const { error } = await sbClient.from('feedback_comments').insert(payload);
@@ -14169,7 +14169,7 @@ async function openInquiryDetail(inquiryId) {
 
   // 삭제 버튼: staff는 항상, 본인 문의는 staff 답변 전까지만
   const isOwner = inquiry.author_id === currentUser.id;
-  const isStaff = currentProfile?.role === 'staff';
+  const isStaff = currentProfile?.role === 'admin';
   const canDelete = isStaff || (isOwner && !hasStaffReply);
 
   if (canDelete) {
@@ -14217,7 +14217,7 @@ async function deleteInquiry() {
   _iqCurrentInquiry = null;
 
   // 목록으로 이동
-  if (currentProfile?.role === 'staff') {
+  if (currentProfile?.role === 'admin') {
     showView('admin-inquiries');
   } else {
     showView('inquiry');
@@ -14264,11 +14264,11 @@ async function sendInquiryMessage() {
     inquiry_id: _iqCurrentInquiry.id,
     sender_id: currentUser.id,
     content,
-    is_admin: currentProfile?.role === 'staff'
+    is_admin: currentProfile?.role === 'admin'
   });
 
   // 운영자가 답변하면 상태 변경
-  if (currentProfile?.role === 'staff' && _iqCurrentInquiry.status === 'open') {
+  if (currentProfile?.role === 'admin' && _iqCurrentInquiry.status === 'open') {
     await sbClient.from('inquiries').update({ status: 'in_progress', updated_at: new Date().toISOString() }).eq('id', _iqCurrentInquiry.id);
   }
 
@@ -14910,7 +14910,7 @@ async function loadQuestionBankView() {
     return;
   }
   const role = currentProfile?.role;
-  const canAdd = role === 'teacher' || role === 'director' || role === 'admin' || role === 'staff';
+  const canAdd = role === 'teacher' || role === 'director' || role === 'admin' || role === 'admin';
   wrap.innerHTML = data.map(q => qbRenderCard(q, canAdd)).join('');
   // KaTeX 렌더링
   if (window.renderMathInElement) renderMathInElement(wrap, { delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false });
@@ -17338,7 +17338,7 @@ async function rejectQuestion(qid) {
 // 승인 대기 배지 업데이트
 async function checkQbPendingBadge() {
   if (!sbClient || !currentProfile) return;
-  if (!['admin','staff'].includes(currentProfile.role)) return;
+  if (!['admin'].includes(currentProfile.role)) return;
   const { count } = await sbClient.from('questions').select('id', { count:'exact', head:true }).eq('status','pending');
   const n = count || 0;
   const badge = document.getElementById('qb-pending-badge');

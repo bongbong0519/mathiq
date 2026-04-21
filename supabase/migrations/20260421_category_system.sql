@@ -86,8 +86,8 @@ DROP POLICY IF EXISTS "units_staff_all" ON public.units;
 CREATE POLICY "units_staff_all"
   ON public.units FOR ALL
   TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff'));
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- sub_units: 모든 인증 사용자 조회 가능
 DROP POLICY IF EXISTS "sub_units_select_all" ON public.sub_units;
@@ -101,8 +101,8 @@ DROP POLICY IF EXISTS "sub_units_staff_all" ON public.sub_units;
 CREATE POLICY "sub_units_staff_all"
   ON public.sub_units FOR ALL
   TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff'));
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- question_types: 모든 인증 사용자 조회 가능
 DROP POLICY IF EXISTS "question_types_select_all" ON public.question_types;
@@ -116,8 +116,8 @@ DROP POLICY IF EXISTS "question_types_staff_all" ON public.question_types;
 CREATE POLICY "question_types_staff_all"
   ON public.question_types FOR ALL
   TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff'));
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 
 -- ┌─────────────────────────────────────────────────────────────────┐

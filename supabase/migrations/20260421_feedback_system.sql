@@ -60,7 +60,7 @@ CREATE POLICY "posts_insert"
   WITH CHECK (
     author_id = auth.uid() AND
     (category != 'notice' OR EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff'
+      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
     ))
   );
 
@@ -71,7 +71,7 @@ CREATE POLICY "posts_update"
   TO authenticated
   USING (
     author_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
 -- 본인 글만 삭제 (staff는 전체 삭제 가능)
@@ -81,7 +81,7 @@ CREATE POLICY "posts_delete"
   TO authenticated
   USING (
     author_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
 
@@ -133,7 +133,7 @@ CREATE POLICY "comments_delete"
   TO authenticated
   USING (
     author_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
 
@@ -206,7 +206,7 @@ CREATE POLICY "inquiries_select"
   TO authenticated
   USING (
     author_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
 -- 본인 문의 생성
@@ -223,7 +223,7 @@ CREATE POLICY "inquiries_update"
   TO authenticated
   USING (
     author_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
 -- 문의 메시지
@@ -254,7 +254,7 @@ CREATE POLICY "messages_select"
       SELECT 1 FROM public.inquiries
       WHERE id = inquiry_id AND (
         author_id = auth.uid() OR
-        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
       )
     )
   );
@@ -270,7 +270,7 @@ CREATE POLICY "messages_insert"
       SELECT 1 FROM public.inquiries
       WHERE id = inquiry_id AND (
         author_id = auth.uid() OR
-        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'staff')
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
       )
     )
   );

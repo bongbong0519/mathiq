@@ -42,7 +42,7 @@ CREATE POLICY "staff_sms_select"
   ON sms_history FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'staff'
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
@@ -51,7 +51,7 @@ CREATE POLICY "staff_sms_update"
   ON sms_history FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'staff'
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
     )
   );
 

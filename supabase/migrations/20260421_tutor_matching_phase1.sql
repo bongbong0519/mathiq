@@ -112,7 +112,7 @@ CREATE POLICY "match_requests_staff_select"
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'staff'
+      WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
@@ -177,7 +177,7 @@ CREATE POLICY "matches_staff_select"
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'staff'
+      WHERE id = auth.uid() AND role = 'admin'
     )
   );
 

@@ -49,7 +49,7 @@ CREATE POLICY "materials_staff_select"
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'staff'
+      WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
@@ -150,7 +150,7 @@ CREATE POLICY "shares_staff_select"
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'staff'
+      WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
