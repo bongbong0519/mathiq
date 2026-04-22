@@ -11193,17 +11193,30 @@ async function assignTeacherToStudent(studentId, teacherId, studentName) {
 
 async function loadAdminStudents() {
   if (!sbClient || !currentUser) return;
+
+  // 1. 학생 목록 조회
   const { data: students, error } = await sbClient
     .from('students')
-    .select('*, profiles:teacher_id(name, school)')
+    .select('*')
     .order('created_at', { ascending: false });
 
   const wrap = document.getElementById('admin-students-wrap');
   if (!wrap) return;
 
-  if (!students || students.length === 0) {
+  if (error || !students || students.length === 0) {
     wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">👥</div><div class="empty-state-text">등록된 학생이 없습니다</div></div>';
     return;
+  }
+
+  // 2. teacher_id가 있는 학생들의 선생님 정보 조회
+  const teacherIds = [...new Set(students.filter(s => s.teacher_id).map(s => s.teacher_id))];
+  let teacherMap = {};
+  if (teacherIds.length > 0) {
+    const { data: teachers } = await sbClient
+      .from('profiles')
+      .select('id, name')
+      .in('id', teacherIds);
+    (teachers || []).forEach(t => teacherMap[t.id] = t.name);
   }
 
   wrap.innerHTML = `
@@ -11219,7 +11232,7 @@ async function loadAdminStudents() {
               <td class="font-bold">${s.name || '—'}</td>
               <td>${s.grade || '—'}</td>
               <td>${s.school || '—'}</td>
-              <td>${s.profiles?.name || '—'}</td>
+              <td>${s.teacher_id ? (teacherMap[s.teacher_id] || '—') : '<span style="color:var(--text3)">미배정</span>'}</td>
               <td class="text-muted text-sm">${new Date(s.created_at).toLocaleDateString('ko-KR')}</td>
             </tr>
           `).join('')}
