@@ -2024,7 +2024,44 @@
         <input type="password" class="auth-input" id="signupPassword" placeholder="8자 이상">
       </div>
       <div class="auth-error" id="signupError"></div>
-      <button class="auth-submit" id="signupBtn" onclick="handleSignup()">✨ 회원가입</button>
+
+      <!-- 개인정보 동의 -->
+      <div style="margin:16px 0;padding:14px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">약관 동의</div>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;cursor:pointer;font-size:13px;color:var(--text)">
+          <input type="checkbox" id="consent-essential" onchange="updateSignupBtnState()" style="margin-top:2px">
+          <span><span style="color:var(--red);font-weight:600">[필수]</span> 개인정보 수집·이용 동의
+            <span style="color:var(--accent);cursor:pointer;text-decoration:underline;margin-left:4px" onclick="event.preventDefault();openPrivacyModal('essential')">전문 보기</span>
+          </span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;cursor:pointer;font-size:13px;color:var(--text)">
+          <input type="checkbox" id="consent-terms" onchange="updateSignupBtnState()" style="margin-top:2px">
+          <span><span style="color:var(--red);font-weight:600">[필수]</span> 서비스 이용약관 동의
+            <span style="color:var(--accent);cursor:pointer;text-decoration:underline;margin-left:4px" onclick="event.preventDefault();openPrivacyModal('terms')">전문 보기</span>
+          </span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)">
+          <input type="checkbox" id="consent-marketing" style="margin-top:2px">
+          <span>[선택] 마케팅 정보 수신 동의</span>
+        </label>
+      </div>
+
+      <button class="auth-submit" id="signupBtn" onclick="handleSignup()" disabled style="opacity:0.5;cursor:not-allowed">회원가입</button>
+    </div>
+  </div>
+</div>
+
+<!-- 개인정보/이용약관 전문 모달 -->
+<div id="privacyModal" class="modal">
+  <div class="modal-content" style="max-width:600px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3 id="privacyModalTitle">개인정보 수집·이용 동의</h3>
+      <button class="modal-close" onclick="closeModal('privacyModal')">&times;</button>
+    </div>
+    <div id="privacyModalBody" style="flex:1;overflow-y:auto;padding:20px;font-size:13px;line-height:1.8;color:var(--text2)">
+    </div>
+    <div style="padding:16px 20px;border-top:1px solid var(--border);text-align:right">
+      <button class="btn btn-primary" onclick="closeModal('privacyModal')">확인</button>
     </div>
   </div>
 </div>
@@ -2041,6 +2078,101 @@
       <span style="color:var(--text3);font-size:12px">승인은 보통 1~2일 이내에 처리됩니다.</span>
     </div>
     <button onclick="handleLogout()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">로그아웃</button>
+  </div>
+</div>
+
+<!-- ════ DELETED ACCOUNT RECOVERY SCREEN ════ -->
+<div id="deletedAccountOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:998;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px 44px;width:460px;box-shadow:0 24px 80px rgba(0,0,0,0.6)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:48px;margin-bottom:12px">🔒</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text)">이 계정은 탈퇴된 상태입니다</div>
+    </div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
+        <span style="color:var(--text3)">탈퇴일</span>
+        <span id="recovery-deleted-date" style="color:var(--text);font-weight:600">-</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span style="color:var(--text3)">남은 복구 가능 기간</span>
+        <span id="recovery-days-left" style="color:var(--accent);font-weight:600">- 일</span>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:20px">
+      <div style="font-weight:600;color:var(--text);margin-bottom:8px">복구 시:</div>
+      <ul style="margin:0;padding-left:18px">
+        <li>계정 즉시 재활성화</li>
+        <li>보유 포인트의 <strong style="color:var(--green)">50%</strong> 자동 복구 (<span id="recovery-points-preview">0</span> pt)</li>
+        <li style="color:var(--text3)">학생, 학원 관계는 복구되지 않음</li>
+      </ul>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <button id="recoveryBtn" onclick="recoverAccount()" class="btn btn-primary" style="flex:1">계정 복구하기</button>
+      <button onclick="closeDeletedAccountOverlay()" class="btn btn-ghost">닫기</button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px">이의제기 (포인트 100% 복구)</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">불가피한 사유로 탈퇴하셨다면 이의제기를 남겨주세요.</div>
+      <div id="appeal-form-wrap">
+        <textarea id="appeal-message" placeholder="이의제기 사유를 입력하세요..." style="width:100%;height:60px;resize:none;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:inherit;background:var(--bg);color:var(--text)"></textarea>
+        <button onclick="submitAppeal()" class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:12px">이의제기 요청</button>
+      </div>
+      <div id="appeal-submitted" style="display:none;text-align:center;padding:12px;background:rgba(62,207,142,0.1);border-radius:var(--radius-sm);font-size:12px;color:var(--green)">
+        이의제기가 접수되었습니다. 운영자 검토 후 알려드립니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 계정 탈퇴 모달 -->
+<div id="deleteAccountModal" class="modal">
+  <div class="modal-content" style="max-width:480px">
+    <div class="modal-header" style="border-bottom-color:var(--red)">
+      <h3 style="color:var(--red)">계정 탈퇴 안내</h3>
+      <button class="modal-close" onclick="closeModal('deleteAccountModal')">&times;</button>
+    </div>
+    <div style="padding:20px">
+      <div style="background:rgba(245,101,101,0.1);border:1px solid rgba(245,101,101,0.2);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:10px">탈퇴 시 다음이 발생합니다:</div>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.8">
+          <li>계정이 즉시 비활성화됩니다</li>
+          <li>학생 목록, 학원 소속 관계가 모두 해제됩니다</li>
+          <li>현재 보유 포인트: <strong id="del-current-points">0</strong> pt</li>
+          <li>현재 보유 캐시: <strong id="del-current-cash">0</strong> 원</li>
+        </ul>
+      </div>
+      <div style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px">30일 이내 복구 가능</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">
+          최초 1회에 한해 포인트의 50% 복구.<br>
+          이의제기 시 검토 후 100% 복구 가능.
+        </div>
+      </div>
+      <div style="background:rgba(245,101,101,0.05);border:1px solid rgba(245,101,101,0.15);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:12px;color:var(--red)">
+        30일 후 모든 데이터가 영구 삭제됩니다.
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:13px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">탈퇴 사유 (선택)</label>
+        <textarea id="deletion-reason" placeholder="탈퇴 사유를 입력해주세요..." style="width:100%;height:70px;resize:none;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)"></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="closeModal('deleteAccountModal')" class="btn btn-ghost" style="flex:1">취소</button>
+        <button onclick="confirmDeleteAccount()" class="btn" style="flex:1;background:var(--red);color:#fff;border-color:var(--red)">탈퇴 진행</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 운영자: 계정 복구 요청 관리 모달 -->
+<div id="recoveryRequestsModal" class="modal">
+  <div class="modal-content" style="max-width:700px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3>계정 복구 요청 관리</h3>
+      <button class="modal-close" onclick="closeModal('recoveryRequestsModal')">&times;</button>
+    </div>
+    <div id="recovery-requests-list" style="flex:1;overflow-y:auto;padding:20px">
+      <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+    </div>
   </div>
 </div>
 
@@ -3964,6 +4096,16 @@
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <span id="ah-pending-bugs" style="font-weight:700;color:var(--text)">0</span>건
+              <span style="color:var(--text3)">→</span>
+            </div>
+          </div>
+          <div class="ah-pending-row" onclick="openRecoveryRequestsModal()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-sm);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span>🔄</span>
+              <span>계정 복구 요청</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="ah-pending-recovery" style="font-weight:700;color:var(--text)">0</span>건
               <span style="color:var(--text3)">→</span>
             </div>
           </div>
@@ -6646,14 +6788,9 @@ async function loadProfile(autoNavigate = true) {
 
   currentProfile = data;
 
-  // 탈퇴 계정 차단
-  if (data.status === 'deleted') {
-    await sbClient.auth.signOut();
-    currentUser = null; currentProfile = null;
-    document.getElementById('authOverlay').style.display = 'none';
-    document.getElementById('appWrapper').style.display = 'none';
-    alert('탈퇴 처리된 계정입니다.\n자세한 사항은 운영자에게 문의해주세요.');
-    showLanding();
+  // 탈퇴 계정 체크 (deleted_at이 있으면 복구 화면 표시)
+  if (data.deleted_at) {
+    await showDeletedAccountOverlay(data);
     return;
   }
 
@@ -6894,7 +7031,7 @@ async function handleSignup() {
     options: { data: { name, role: selectedRole } }
   });
   if (error) {
-    btn.disabled = false; btn.textContent = '✨ 회원가입';
+    btn.disabled = false; btn.textContent = '회원가입';
     const msg = error.status === 422
       ? '이미 가입된 이메일이거나 입력 정보가 올바르지 않습니다'
       : error.message;
@@ -6902,7 +7039,7 @@ async function handleSignup() {
     return;
   }
   if (!data?.user) {
-    btn.disabled = false; btn.textContent = '✨ 회원가입';
+    btn.disabled = false; btn.textContent = '회원가입';
     showAuthError('signupError', '회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
     return;
   }
@@ -6937,12 +7074,15 @@ async function handleSignup() {
   const { error: profileError } = await sbClient.from('profiles').upsert(profileData);
   if (profileError) {
     console.error('Profile upsert error:', profileError.message, profileError);
-    btn.disabled = false; btn.textContent = '✨ 회원가입';
+    btn.disabled = false; btn.textContent = '회원가입';
     showAuthError('signupError', `프로필 저장 실패: ${profileError.message}`);
     return;
   }
 
-  btn.disabled = false; btn.textContent = '✨ 회원가입';
+  // 개인정보 동의 저장
+  await savePrivacyConsents(data.user.id);
+
+  btn.disabled = false; btn.textContent = '회원가입';
   clearOrgSelection();
 
   // 가입 알림 이메일 발송 (실패해도 가입 처리에 영향 없음)
@@ -13450,6 +13590,19 @@ async function loadProfileView() {
     </div>`;
   }
 
+  // 계정 탈퇴 섹션 (모든 사용자)
+  html += `
+  <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-size:15px;font-weight:700;color:var(--red)">계정 탈퇴</span>
+    </div>
+    <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
+      탈퇴 시 30일간 계정이 보관되며, 이후 영구 삭제됩니다.<br>
+      30일 이내 복구 시 포인트의 50%가 반환됩니다.
+    </div>
+    <button class="btn" onclick="openDeleteAccountModal()" style="background:transparent;border:1px solid var(--red);color:var(--red)">계정 탈퇴</button>
+  </div>`;
+
   wrap.innerHTML = html;
 }
 
@@ -13765,6 +13918,424 @@ async function updateExpense() {
   showToast('지출이 수정되었습니다', '✅');
   cancelEditExpense();
   loadAccountingView();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  계정 탈퇴·복구 시스템
+// ══════════════════════════════════════════════════════════════════
+
+// 개인정보 동의 체크 시 가입 버튼 활성화
+function updateSignupBtnState() {
+  const essential = document.getElementById('consent-essential').checked;
+  const terms = document.getElementById('consent-terms').checked;
+  const btn = document.getElementById('signupBtn');
+  if (essential && terms) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+
+// 개인정보/이용약관 전문 모달
+function openPrivacyModal(type) {
+  const modal = document.getElementById('privacyModal');
+  const title = document.getElementById('privacyModalTitle');
+  const body = document.getElementById('privacyModalBody');
+
+  if (type === 'essential') {
+    title.textContent = '개인정보 수집·이용 동의';
+    body.innerHTML = `
+      <h4 style="margin-bottom:12px;color:var(--text)">1. 수집하는 개인정보 항목</h4>
+      <p style="margin-bottom:16px">이름, 이메일, 소속 기관, 연락처 (선택)</p>
+
+      <h4 style="margin-bottom:12px;color:var(--text)">2. 개인정보 수집·이용 목적</h4>
+      <p style="margin-bottom:16px">회원 가입 및 서비스 제공, 본인 확인, 학습 분석 서비스 운영</p>
+
+      <h4 style="margin-bottom:12px;color:var(--text)">3. 개인정보 보유 및 이용기간</h4>
+      <p style="margin-bottom:16px">회원 탈퇴 시까지 (탈퇴 후 30일간 복구 목적 보관 후 영구 삭제)</p>
+
+      <h4 style="margin-bottom:12px;color:var(--text)">4. 동의 거부권 및 불이익</h4>
+      <p>개인정보 수집·이용에 동의하지 않으실 수 있으나, 동의를 거부하실 경우 서비스 이용이 제한됩니다.</p>
+
+      <div style="margin-top:20px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm);font-size:12px;color:var(--text3)">
+        ※ 본 약관은 법무 검토 전 임시 버전입니다. 정식 서비스 전 법률 자문을 거쳐 수정될 수 있습니다.
+      </div>`;
+  } else {
+    title.textContent = '서비스 이용약관';
+    body.innerHTML = `
+      <h4 style="margin-bottom:12px;color:var(--text)">제1조 (목적)</h4>
+      <p style="margin-bottom:16px">본 약관은 파이데이아솔루션(이하 "회사")이 제공하는 MathIQ 서비스(이하 "서비스")의 이용 조건 및 절차에 관한 사항을 규정함을 목적으로 합니다.</p>
+
+      <h4 style="margin-bottom:12px;color:var(--text)">제2조 (서비스 내용)</h4>
+      <p style="margin-bottom:16px">수학 문제은행, 학생 관리, 성적 분석, 학부모 소통 등 교육 관련 기능을 제공합니다.</p>
+
+      <h4 style="margin-bottom:12px;color:var(--text)">제3조 (회원 의무)</h4>
+      <p style="margin-bottom:16px">회원은 본인의 계정 정보를 안전하게 관리해야 하며, 타인의 정보를 도용하거나 불법적인 목적으로 서비스를 이용할 수 없습니다.</p>
+
+      <h4 style="margin-bottom:12px;color:var(--text)">제4조 (저작권)</h4>
+      <p style="margin-bottom:16px">회원이 업로드한 문제 및 자료의 저작권은 원 저작자에게 있으며, 플랫폼 내 공유 시 공공재로 활용될 수 있습니다.</p>
+
+      <h4 style="margin-bottom:12px;color:var(--text)">제5조 (계정 탈퇴)</h4>
+      <p>회원은 언제든지 탈퇴할 수 있으며, 탈퇴 후 30일간 계정이 보관됩니다. 30일 이내 복구 시 포인트의 50%가 반환되며, 이의제기를 통해 100% 반환받을 수 있습니다.</p>
+
+      <div style="margin-top:20px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm);font-size:12px;color:var(--text3)">
+        ※ 본 약관은 법무 검토 전 임시 버전입니다. 정식 서비스 전 법률 자문을 거쳐 수정될 수 있습니다.
+      </div>`;
+  }
+
+  modal.classList.add('open');
+}
+
+// 탈퇴 계정 복구 화면 표시
+let _deletionSnapshot = null;
+
+async function showDeletedAccountOverlay(profile) {
+  const overlay = document.getElementById('deletedAccountOverlay');
+
+  // 탈퇴 스냅샷 조회
+  const { data: deletion } = await sbClient.from('account_deletions')
+    .select('*')
+    .eq('user_id', profile.id)
+    .order('deleted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!deletion) {
+    // 스냅샷이 없으면 로그아웃 (비정상 상태)
+    await sbClient.auth.signOut();
+    currentUser = null; currentProfile = null;
+    showLanding();
+    return;
+  }
+
+  _deletionSnapshot = deletion;
+
+  // 남은 일수 계산
+  const deletedDate = new Date(deletion.deleted_at);
+  const expireDate = new Date(deletedDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const daysLeft = Math.max(0, Math.ceil((expireDate - now) / (1000 * 60 * 60 * 24)));
+
+  // 이미 30일 경과했으면
+  if (daysLeft <= 0) {
+    await sbClient.auth.signOut();
+    currentUser = null; currentProfile = null;
+    alert('복구 가능 기간(30일)이 경과하여 계정이 영구 삭제되었습니다.');
+    showLanding();
+    return;
+  }
+
+  // 이미 복구된 계정이면 (recovered_at이 있으면)
+  if (deletion.recovered_at) {
+    await sbClient.auth.signOut();
+    currentUser = null; currentProfile = null;
+    alert('이미 복구 처리된 계정입니다. 다시 로그인해주세요.');
+    showLanding();
+    return;
+  }
+
+  // UI 업데이트
+  document.getElementById('recovery-deleted-date').textContent = deletedDate.toLocaleDateString('ko-KR');
+  document.getElementById('recovery-days-left').textContent = daysLeft + '일';
+  document.getElementById('recovery-points-preview').textContent = Math.floor((deletion.snapshot_point_balance || 0) * 0.5).toLocaleString();
+
+  // 이미 이의제기 접수했는지 확인
+  const { data: existingRequest } = await sbClient.from('recovery_requests')
+    .select('id, status')
+    .eq('deletion_id', deletion.id)
+    .maybeSingle();
+
+  if (existingRequest) {
+    document.getElementById('appeal-form-wrap').style.display = 'none';
+    const statusText = existingRequest.status === 'pending' ? '검토 중입니다' :
+                       existingRequest.status === 'approved' ? '승인되었습니다. 다시 로그인해주세요.' :
+                       '거절되었습니다.';
+    document.getElementById('appeal-submitted').style.display = 'block';
+    document.getElementById('appeal-submitted').innerHTML = `이의제기가 ${statusText}`;
+  } else {
+    document.getElementById('appeal-form-wrap').style.display = 'block';
+    document.getElementById('appeal-submitted').style.display = 'none';
+    document.getElementById('appeal-message').value = '';
+  }
+
+  // 화면 표시
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('appWrapper').style.display = 'none';
+  document.getElementById('landingPage').style.display = 'none';
+  overlay.style.display = 'flex';
+}
+
+function closeDeletedAccountOverlay() {
+  document.getElementById('deletedAccountOverlay').style.display = 'none';
+  sbClient.auth.signOut();
+  currentUser = null; currentProfile = null;
+  _deletionSnapshot = null;
+  showLanding();
+}
+
+// 계정 복구 (50%)
+async function recoverAccount() {
+  if (!_deletionSnapshot || !currentUser) return;
+
+  const btn = document.getElementById('recoveryBtn');
+  btn.disabled = true;
+  btn.textContent = '복구 중...';
+
+  try {
+    const pointsToRecover = Math.floor((_deletionSnapshot.snapshot_point_balance || 0) * 0.5);
+
+    // 1. profiles.deleted_at = NULL, 포인트 복구
+    const { error: profileErr } = await sbClient.from('profiles')
+      .update({
+        deleted_at: null,
+        deletion_reason: null,
+        point_balance: pointsToRecover
+      })
+      .eq('id', currentUser.id);
+
+    if (profileErr) throw profileErr;
+
+    // 2. account_deletions 업데이트
+    await sbClient.from('account_deletions')
+      .update({
+        recovered_at: new Date().toISOString(),
+        recovery_type: 'auto_50',
+        recovered_points: pointsToRecover
+      })
+      .eq('id', _deletionSnapshot.id);
+
+    // 3. 복구 완료
+    document.getElementById('deletedAccountOverlay').style.display = 'none';
+    _deletionSnapshot = null;
+
+    // 프로필 다시 로드
+    await loadProfile(true);
+    showToast(`계정이 복구되었습니다. ${pointsToRecover.toLocaleString()} pt가 반환되었습니다.`, '✅');
+
+  } catch (e) {
+    console.error('Recovery error:', e);
+    showToast('복구 실패: ' + e.message, '❌');
+    btn.disabled = false;
+    btn.textContent = '계정 복구하기';
+  }
+}
+
+// 이의제기 요청
+async function submitAppeal() {
+  if (!_deletionSnapshot || !currentUser) return;
+
+  const message = document.getElementById('appeal-message').value.trim();
+  if (!message) {
+    showToast('이의제기 사유를 입력해주세요', '⚠️');
+    return;
+  }
+
+  const { error } = await sbClient.from('recovery_requests').insert({
+    deletion_id: _deletionSnapshot.id,
+    user_id: currentUser.id,
+    message,
+    status: 'pending'
+  });
+
+  if (error) {
+    showToast('요청 실패: ' + error.message, '❌');
+    return;
+  }
+
+  document.getElementById('appeal-form-wrap').style.display = 'none';
+  document.getElementById('appeal-submitted').style.display = 'block';
+  document.getElementById('appeal-submitted').innerHTML = '이의제기가 접수되었습니다. 운영자 검토 후 알려드립니다.';
+}
+
+// 계정 탈퇴 모달 열기
+function openDeleteAccountModal() {
+  if (!currentProfile) return;
+
+  document.getElementById('del-current-points').textContent = (currentProfile.point_balance || 0).toLocaleString();
+  document.getElementById('del-current-cash').textContent = (currentProfile.cash_balance || 0).toLocaleString();
+  document.getElementById('deletion-reason').value = '';
+  document.getElementById('deleteAccountModal').classList.add('open');
+}
+
+// 계정 탈퇴 확인
+async function confirmDeleteAccount() {
+  if (!currentUser || !currentProfile) return;
+
+  if (!confirm('정말 탈퇴하시겠습니까?\n30일 이내 복구 가능하지만, 학생·학원 관계는 즉시 해제됩니다.')) return;
+
+  const reason = document.getElementById('deletion-reason').value.trim();
+
+  try {
+    // 1. account_deletions에 스냅샷 저장
+    const { error: snapErr } = await sbClient.from('account_deletions').insert({
+      user_id: currentUser.id,
+      snapshot_point_balance: currentProfile.point_balance || 0,
+      snapshot_cash_balance: currentProfile.cash_balance || 0,
+      reason: reason || null
+    });
+    if (snapErr) throw snapErr;
+
+    // 2. profiles 업데이트
+    const { error: profErr } = await sbClient.from('profiles').update({
+      deleted_at: new Date().toISOString(),
+      deletion_reason: reason || null,
+      point_balance: 0
+    }).eq('id', currentUser.id);
+    if (profErr) throw profErr;
+
+    // 3. 로그아웃
+    closeModal('deleteAccountModal');
+    await sbClient.auth.signOut();
+    currentUser = null;
+    currentProfile = null;
+
+    alert('계정이 탈퇴 처리되었습니다.\n30일 이내 로그인하시면 복구하실 수 있습니다.');
+    showLanding();
+
+  } catch (e) {
+    console.error('Delete account error:', e);
+    showToast('탈퇴 처리 실패: ' + e.message, '❌');
+  }
+}
+
+// 운영자: 복구 요청 모달 열기
+async function openRecoveryRequestsModal() {
+  document.getElementById('recoveryRequestsModal').classList.add('open');
+  await loadRecoveryRequests();
+}
+
+// 운영자: 복구 요청 목록 로드
+async function loadRecoveryRequests() {
+  const wrap = document.getElementById('recovery-requests-list');
+  wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  const { data, error } = await sbClient.from('recovery_requests')
+    .select(`
+      *,
+      profiles:user_id(id, name, email),
+      account_deletions:deletion_id(snapshot_point_balance, deleted_at)
+    `)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error || !data?.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">대기 중인 복구 요청이 없습니다</div></div>';
+    return;
+  }
+
+  let html = '';
+  data.forEach(req => {
+    const profile = req.profiles || {};
+    const deletion = req.account_deletions || {};
+    const createdAt = new Date(req.created_at).toLocaleDateString('ko-KR');
+    const deletedAt = deletion.deleted_at ? new Date(deletion.deleted_at).toLocaleDateString('ko-KR') : '-';
+
+    html += `
+    <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;color:var(--text)">${escapeHtml(profile.name || '알 수 없음')}</div>
+          <div style="font-size:12px;color:var(--text3)">${escapeHtml(profile.email || '')}</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--text3)">
+          <div>탈퇴일: ${deletedAt}</div>
+          <div>요청일: ${createdAt}</div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:4px">이의제기 사유</div>
+        <div style="font-size:13px;color:var(--text)">${escapeHtml(req.message || '(사유 없음)')}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;color:var(--text2)">
+          복구 시 포인트: <strong style="color:var(--green)">${(deletion.snapshot_point_balance || 0).toLocaleString()} pt (100%)</strong>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="rejectRecoveryRequest('${req.id}')" style="color:var(--red)">거절</button>
+          <button class="btn btn-primary btn-sm" onclick="approveRecoveryRequest('${req.id}', '${req.user_id}', ${deletion.snapshot_point_balance || 0}, '${req.deletion_id}')">승인 (100%)</button>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  wrap.innerHTML = html;
+}
+
+// 운영자: 복구 승인
+async function approveRecoveryRequest(requestId, userId, points, deletionId) {
+  if (!confirm('이 요청을 승인하시겠습니까?\n포인트 100%가 복구됩니다.')) return;
+
+  try {
+    // 1. profiles 복구
+    const { error: profErr } = await sbClient.from('profiles').update({
+      deleted_at: null,
+      deletion_reason: null,
+      point_balance: points
+    }).eq('id', userId);
+    if (profErr) throw profErr;
+
+    // 2. account_deletions 업데이트
+    await sbClient.from('account_deletions').update({
+      recovered_at: new Date().toISOString(),
+      recovery_type: 'admin_100',
+      recovered_points: points
+    }).eq('id', deletionId);
+
+    // 3. recovery_requests 업데이트
+    await sbClient.from('recovery_requests').update({
+      status: 'approved',
+      reviewed_by: currentUser.id,
+      reviewed_at: new Date().toISOString()
+    }).eq('id', requestId);
+
+    showToast('복구가 승인되었습니다', '✅');
+    loadRecoveryRequests();
+    loadAdminHome();
+
+  } catch (e) {
+    showToast('처리 실패: ' + e.message, '❌');
+  }
+}
+
+// 운영자: 복구 거절
+async function rejectRecoveryRequest(requestId) {
+  const note = prompt('거절 사유를 입력하세요 (선택):');
+  if (note === null) return; // 취소
+
+  try {
+    await sbClient.from('recovery_requests').update({
+      status: 'rejected',
+      reviewed_by: currentUser.id,
+      reviewed_at: new Date().toISOString(),
+      review_note: note || null
+    }).eq('id', requestId);
+
+    showToast('요청이 거절되었습니다', '✅');
+    loadRecoveryRequests();
+    loadAdminHome();
+
+  } catch (e) {
+    showToast('처리 실패: ' + e.message, '❌');
+  }
+}
+
+// 개인정보 동의 저장 (회원가입 시 호출)
+async function savePrivacyConsents(userId) {
+  const essential = document.getElementById('consent-essential').checked;
+  const terms = document.getElementById('consent-terms').checked;
+  const marketing = document.getElementById('consent-marketing').checked;
+
+  const consents = [
+    { user_id: userId, consent_type: 'essential', agreed: essential },
+    { user_id: userId, consent_type: 'third_party', agreed: terms },
+    { user_id: userId, consent_type: 'marketing', agreed: marketing }
+  ];
+
+  await sbClient.from('privacy_consents').insert(consents);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -14495,7 +15066,8 @@ async function loadAdminHome() {
       { count: pendingQuestions },
       { count: activeUsers24h },
       { count: pendingInquiries },
-      { count: unresolvedBugs }
+      { count: unresolvedBugs },
+      { count: pendingRecovery }
     ] = await Promise.all([
       sbClient.from('profiles').select('*', { count: 'exact', head: true }),
       sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
@@ -14508,7 +15080,8 @@ async function loadAdminHome() {
       sbClient.from('questions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('last_login', day24h),
       sbClient.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', 'open'),
-      sbClient.from('feedback_posts').select('*', { count: 'exact', head: true }).eq('category', 'bug').eq('is_resolved', false)
+      sbClient.from('feedback_posts').select('*', { count: 'exact', head: true }).eq('category', 'bug').eq('is_resolved', false),
+      sbClient.from('recovery_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
     ]);
 
     // 포인트 합계 계산
@@ -14529,11 +15102,13 @@ async function loadAdminHome() {
     const pQuest = pendingQuestions || 0;
     const pInq = pendingInquiries || 0;
     const pBugs = unresolvedBugs || 0;
-    const pTotal = pTeach + pQuest + pInq + pBugs;
+    const pRecov = pendingRecovery || 0;
+    const pTotal = pTeach + pQuest + pInq + pBugs + pRecov;
     document.getElementById('ah-pending-teachers').textContent = pTeach;
     document.getElementById('ah-pending-questions').textContent = pQuest;
     document.getElementById('ah-pending-inquiries').textContent = pInq;
     document.getElementById('ah-pending-bugs').textContent = pBugs;
+    document.getElementById('ah-pending-recovery').textContent = pRecov;
     const badge = document.getElementById('ah-pending-total');
     if (pTotal > 0) {
       badge.textContent = pTotal;
