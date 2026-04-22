@@ -5370,6 +5370,58 @@
     </div>
   </div>
 </div>
+
+<!-- 학생 편집 모달 -->
+<div class="modal-overlay" id="editStudentModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">✏️ 학생 정보 수정</div>
+      <button class="modal-close" onclick="closeModal('editStudentModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-stu-id">
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" class="form-input" id="edit-stu-name" placeholder="학생 이름">
+      </div>
+      <div class="form-group">
+        <label class="form-label">학교</label>
+        <input type="text" class="form-input" id="edit-stu-school" placeholder="○○고등학교">
+      </div>
+      <div class="form-group">
+        <label class="form-label">학년</label>
+        <select class="form-input" id="edit-stu-grade">
+          <option value="">선택</option>
+          <option value="초1">초1</option><option value="초2">초2</option><option value="초3">초3</option>
+          <option value="초4">초4</option><option value="초5">초5</option><option value="초6">초6</option>
+          <option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option>
+          <option value="고1">고1</option><option value="고2">고2</option><option value="고3">고3</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">월 수강료 (원)</label>
+        <input type="number" class="form-input" id="edit-stu-tuition" placeholder="예: 350000" min="0" step="10000">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">청구서 발송 시 사용됩니다</div>
+      </div>
+      <div id="edit-stu-error" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px"></div>
+      <button class="btn btn-primary w-full" onclick="submitEditStudent()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 청구/독촉 이력 모달 -->
+<div class="modal-overlay" id="billingHistoryModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title" id="billing-history-title">📋 청구/독촉 이력</div>
+      <button class="modal-close" onclick="closeModal('billingHistoryModal')">✕</button>
+    </div>
+    <div class="modal-body" id="billing-history-content" style="max-height:400px;overflow-y:auto">
+      <div style="text-align:center;padding:30px;color:var(--text3)">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════════ CREATE EXAM MODAL ════════════════════ -->
 <!-- 선생님 초대 모달 (원장님용) -->
 <!-- 기관 등록 모달 (운영자용) -->
@@ -8813,16 +8865,25 @@ async function loadStudents() {
   } else {
     students.forEach((s, i) => {
       const color = colors[i % colors.length];
+      const tuition = s.monthly_tuition || 0;
+      const tuitionDisplay = tuition > 0 ? `${tuition.toLocaleString()}원` : '미설정';
       html += `<div class="student-card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
           <div class="student-ava" style="background:${color}">${s.name[0]}</div>
           <div style="flex:1;min-width:0">
             <div class="student-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-            <div class="student-meta">${s.grade}학년 ${s.class_name || ''}</div>
+            <div class="student-meta">${s.grade || ''} · ${s.school || ''}</div>
           </div>
+          <button onclick="openStudentEditModal('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="편집">✏️</button>
         </div>
-        <div style="display:flex;gap:6px">
-          <button onclick="openAssignExamModal('${s.id}','${s.name}')" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📝 시험배정</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:6px">
+          <span style="font-size:11px;color:var(--text3)">월 수강료</span>
+          <span style="font-size:13px;font-weight:700;color:${tuition > 0 ? 'var(--accent)' : 'var(--text3)'}">${tuitionDisplay}</span>
+          <button onclick="openBillingHistory('${s.id}','${s.name}')" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;text-decoration:underline">이력</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="sendBillingInvoice('${s.id}','${s.name}',${tuition})" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap" ${tuition <= 0 ? 'disabled title="수강료를 먼저 설정하세요"' : ''}>💳 청구</button>
+          <button onclick="sendPaymentReminder('${s.id}','${s.name}',${tuition})" style="background:rgba(246,173,85,0.1);border:1px solid rgba(246,173,85,0.2);color:var(--yellow);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap" ${tuition <= 0 ? 'disabled title="수강료를 먼저 설정하세요"' : ''}>📢 독촉</button>
           <button onclick="openStudentReport('${s.id}')" style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);color:var(--green);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📊 리포트</button>
           <button onclick="deleteStudent('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;margin-left:auto" title="삭제">🗑</button>
         </div>
@@ -9036,6 +9097,254 @@ async function deleteStudent(id) {
   showToast('삭제되었습니다', '🗑');
   loadStudents();
   loadDashboard();
+}
+
+// ── 학생 편집 ──
+async function openStudentEditModal(studentId) {
+  const { data: student } = await sbClient.from('students')
+    .select('*').eq('id', studentId).single();
+  if (!student) { showToast('학생 정보를 찾을 수 없습니다', '❌'); return; }
+
+  document.getElementById('edit-stu-id').value = student.id;
+  document.getElementById('edit-stu-name').value = student.name || '';
+  document.getElementById('edit-stu-school').value = student.school || '';
+  document.getElementById('edit-stu-grade').value = student.grade || '';
+  document.getElementById('edit-stu-tuition').value = student.monthly_tuition || '';
+  document.getElementById('edit-stu-error').style.display = 'none';
+  document.getElementById('editStudentModal').classList.add('open');
+}
+
+async function submitEditStudent() {
+  const id = document.getElementById('edit-stu-id').value;
+  const name = document.getElementById('edit-stu-name').value.trim();
+  const school = document.getElementById('edit-stu-school').value.trim();
+  const grade = document.getElementById('edit-stu-grade').value;
+  const tuition = parseInt(document.getElementById('edit-stu-tuition').value) || 0;
+  const errEl = document.getElementById('edit-stu-error');
+
+  if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.style.display = 'block'; return; }
+
+  const { error } = await sbClient.from('students').update({
+    name, school, grade, monthly_tuition: tuition
+  }).eq('id', id);
+
+  if (error) { errEl.textContent = '저장 실패: ' + error.message; errEl.style.display = 'block'; return; }
+
+  closeModal('editStudentModal');
+  showToast('학생 정보가 수정되었습니다', '✅');
+  loadStudents();
+}
+
+// ═══════════════════════════════════════
+//  수강료 청구 / MathIQ 독촉 시스템
+// ═══════════════════════════════════════
+
+// 선생님 입금 정보 캐시
+let _teacherPaymentSettings = null;
+
+async function getTeacherPaymentSettings() {
+  if (_teacherPaymentSettings) return _teacherPaymentSettings;
+  const { data } = await sbClient.from('teacher_payment_settings')
+    .select('*').eq('user_id', currentUser.id).maybeSingle();
+  _teacherPaymentSettings = data;
+  return data;
+}
+
+// 수강료 청구 문자 발송
+async function sendBillingInvoice(studentId, studentName, amount) {
+  if (!amount || amount <= 0) {
+    showToast('수강료가 설정되지 않았습니다. 학생 정보를 수정해주세요.', '⚠️');
+    return;
+  }
+
+  const now = new Date();
+  const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
+
+  // 이번 달 이미 청구했는지 확인
+  const { data: existing } = await sbClient.from('billing_invoices')
+    .select('id').eq('student_id', studentId).eq('billing_month', billingMonth).maybeSingle();
+
+  if (existing) {
+    if (!confirm(`이번 달(${monthLabel}) 이미 청구했습니다.\n다시 보내시겠어요?`)) return;
+  }
+
+  // 입금 정보 확인
+  const settings = await getTeacherPaymentSettings();
+  if (!settings || !settings.bank_name || !settings.account_number) {
+    showToast('입금 정보를 먼저 설정해주세요. (내 정보 → 입금 정보)', '⚠️');
+    return;
+  }
+
+  const amountStr = amount.toLocaleString();
+  if (!confirm(`${studentName} 학생 학부모님께\n${amountStr}원 청구 문자를 발송합니다.`)) return;
+
+  // 문자 내용 생성
+  const tossLine = settings.toss_link ? `▸ 토스링크: ${settings.toss_link}\n` : '';
+  const smsBody = `안녕하세요, 학부모님.
+[${currentProfile.name} 선생님]의 MathIQ 과외비 안내입니다.
+
+${studentName} 학생의 ${monthLabel} 수강료를 안내드립니다.
+
+▸ 금액: ${amountStr}원
+▸ 입금계좌: ${settings.bank_name} ${settings.account_number}
+▸ 예금주: ${settings.account_holder}
+${tossLine}
+편하신 방법으로 납부 부탁드립니다.
+감사합니다.`;
+
+  console.log('[청구 문자 시뮬레이션]', smsBody);
+
+  // DB에 기록
+  const { error } = await sbClient.from('billing_invoices').insert({
+    student_id: studentId,
+    teacher_id: currentUser.id,
+    billing_month: billingMonth,
+    amount: amount,
+    sent_at: new Date().toISOString(),
+    status: 'sent'
+  });
+
+  if (error) {
+    showToast('청구 기록 저장 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('청구 문자 발송됨 (시뮬레이션)', '💳');
+}
+
+// MathIQ 독촉 문자 발송
+async function sendPaymentReminder(studentId, studentName, amount) {
+  if (!amount || amount <= 0) {
+    showToast('수강료가 설정되지 않았습니다.', '⚠️');
+    return;
+  }
+
+  const now = new Date();
+  const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
+
+  // 입금 정보 확인
+  const settings = await getTeacherPaymentSettings();
+  if (!settings || !settings.bank_name || !settings.account_number) {
+    showToast('입금 정보를 먼저 설정해주세요.', '⚠️');
+    return;
+  }
+
+  if (!confirm(`MathIQ 운영팀 명의로\n${studentName} 학생 학부모님께 확인 문자를 발송합니다.`)) return;
+
+  const amountStr = amount.toLocaleString();
+  const smsBody = `안녕하세요, 학부모님.
+MathIQ 운영팀입니다.
+
+${studentName} 학생의 ${monthLabel} 과외비 납부 여부를 확인해 드리고자 연락드립니다.
+
+혹시 이미 입금하셨다면 시스템상 확인에 시간차가 있을 수 있으니 너그러이 양해 부탁드립니다.
+
+아직 입금 전이시라면 아래 정보로 부탁드리겠습니다.
+
+▸ 금액: ${amountStr}원
+▸ 입금계좌: ${settings.bank_name} ${settings.account_number}
+▸ 예금주: ${settings.account_holder}
+
+감사합니다.
+MathIQ 운영팀 드림`;
+
+  console.log('[MathIQ 독촉 시뮬레이션]', smsBody);
+
+  // DB에 기록
+  const { error } = await sbClient.from('payment_reminders').insert({
+    student_id: studentId,
+    teacher_id: currentUser.id,
+    billing_month: billingMonth,
+    amount: amount,
+    requested_at: new Date().toISOString(),
+    sent_at: new Date().toISOString(),
+    status: 'sent'
+  });
+
+  if (error) {
+    showToast('독촉 기록 저장 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('MathIQ 독촉 문자 발송됨 (시뮬레이션)', '📢');
+}
+
+// 청구/독촉 이력 보기
+async function openBillingHistory(studentId, studentName) {
+  document.getElementById('billing-history-title').textContent = `📋 ${studentName} 청구/독촉 이력`;
+  document.getElementById('billingHistoryModal').classList.add('open');
+  const content = document.getElementById('billing-history-content');
+  content.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3)">불러오는 중...</div>';
+
+  // 청구 이력
+  const { data: invoices } = await sbClient.from('billing_invoices')
+    .select('*').eq('student_id', studentId).order('created_at', { ascending: false });
+
+  // 독촉 이력
+  const { data: reminders } = await sbClient.from('payment_reminders')
+    .select('*').eq('student_id', studentId).order('created_at', { ascending: false });
+
+  // 합쳐서 시간순 정렬
+  const items = [];
+  (invoices || []).forEach(i => items.push({ type: 'invoice', data: i, time: new Date(i.created_at) }));
+  (reminders || []).forEach(r => items.push({ type: 'reminder', data: r, time: new Date(r.created_at) }));
+  items.sort((a, b) => b.time - a.time);
+
+  if (items.length === 0) {
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">이력이 없습니다</div>';
+    return;
+  }
+
+  let html = '';
+  items.forEach(item => {
+    const d = item.data;
+    const dateStr = item.time.toLocaleString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const amountStr = (d.amount || 0).toLocaleString();
+
+    if (item.type === 'invoice') {
+      const statusLabel = d.status === 'paid' ? '<span style="color:var(--green)">납부완료</span>' : '<span style="color:var(--accent)">청구됨</span>';
+      html += `<div style="padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">💳</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${d.billing_month} 청구 · ${amountStr}원</div>
+          <div style="font-size:11px;color:var(--text3)">${dateStr}</div>
+        </div>
+        <div style="font-size:12px">${statusLabel}</div>
+        ${d.status === 'sent' ? `<button onclick="markInvoicePaid('${d.id}')" style="font-size:11px;padding:4px 8px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer">납부확인</button>` : ''}
+      </div>`;
+    } else {
+      const statusLabel = { sent: '발송됨', parent_replied: '답변수신', resolved: '해결' }[d.status] || d.status;
+      html += `<div style="padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">📢</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${d.billing_month} MathIQ 독촉 · ${amountStr}원</div>
+          <div style="font-size:11px;color:var(--text3)">${dateStr}</div>
+        </div>
+        <div style="font-size:12px;color:var(--yellow)">${statusLabel}</div>
+      </div>`;
+    }
+  });
+
+  content.innerHTML = html;
+}
+
+// 납부 확인 처리
+async function markInvoicePaid(invoiceId) {
+  const { error } = await sbClient.from('billing_invoices').update({
+    status: 'paid',
+    paid_at: new Date().toISOString()
+  }).eq('id', invoiceId);
+
+  if (error) {
+    showToast('처리 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('납부 확인 처리되었습니다', '✅');
+  // 이력 새로고침 (현재 열린 학생 ID를 알 수 없으므로 모달 닫기)
+  closeModal('billingHistoryModal');
 }
 
 // ── 학생 리포트 열기 ──
@@ -13004,6 +13313,61 @@ async function loadProfileView() {
     <button class="btn btn-ghost" onclick="loadProfileView()">취소</button>
   </div>`;
 
+  // 선생님/원장/전문가에게만 입금 정보 섹션 표시
+  if (['teacher', 'director', 'expert'].includes(role)) {
+    const { data: paymentSettings } = await sbClient.from('teacher_payment_settings')
+      .select('*').eq('user_id', currentUser.id).maybeSingle();
+    const ps = paymentSettings || {};
+
+    html += `
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:18px">🏦</span>
+        <span style="font-size:15px;font-weight:700;color:var(--text)">입금 정보</span>
+        <span style="font-size:11px;color:var(--text3)">(수강료 청구 시 사용)</span>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block">은행</label>
+        <select id="payment-bank" class="form-input" style="width:100%">
+          <option value="">선택하세요</option>
+          <option value="국민은행" ${ps.bank_name === '국민은행' ? 'selected' : ''}>국민은행</option>
+          <option value="신한은행" ${ps.bank_name === '신한은행' ? 'selected' : ''}>신한은행</option>
+          <option value="우리은행" ${ps.bank_name === '우리은행' ? 'selected' : ''}>우리은행</option>
+          <option value="하나은행" ${ps.bank_name === '하나은행' ? 'selected' : ''}>하나은행</option>
+          <option value="농협은행" ${ps.bank_name === '농협은행' ? 'selected' : ''}>농협은행</option>
+          <option value="기업은행" ${ps.bank_name === '기업은행' ? 'selected' : ''}>기업은행</option>
+          <option value="카카오뱅크" ${ps.bank_name === '카카오뱅크' ? 'selected' : ''}>카카오뱅크</option>
+          <option value="토스뱅크" ${ps.bank_name === '토스뱅크' ? 'selected' : ''}>토스뱅크</option>
+          <option value="케이뱅크" ${ps.bank_name === '케이뱅크' ? 'selected' : ''}>케이뱅크</option>
+          <option value="SC제일은행" ${ps.bank_name === 'SC제일은행' ? 'selected' : ''}>SC제일은행</option>
+          <option value="씨티은행" ${ps.bank_name === '씨티은행' ? 'selected' : ''}>씨티은행</option>
+          <option value="대구은행" ${ps.bank_name === '대구은행' ? 'selected' : ''}>대구은행</option>
+          <option value="부산은행" ${ps.bank_name === '부산은행' ? 'selected' : ''}>부산은행</option>
+          <option value="광주은행" ${ps.bank_name === '광주은행' ? 'selected' : ''}>광주은행</option>
+          <option value="경남은행" ${ps.bank_name === '경남은행' ? 'selected' : ''}>경남은행</option>
+          <option value="전북은행" ${ps.bank_name === '전북은행' ? 'selected' : ''}>전북은행</option>
+          <option value="수협은행" ${ps.bank_name === '수협은행' ? 'selected' : ''}>수협은행</option>
+          <option value="새마을금고" ${ps.bank_name === '새마을금고' ? 'selected' : ''}>새마을금고</option>
+          <option value="우체국" ${ps.bank_name === '우체국' ? 'selected' : ''}>우체국</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block">계좌번호</label>
+        <input type="text" id="payment-account" class="form-input" value="${ps.account_number || ''}" placeholder="- 없이 입력" style="width:100%">
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block">예금주</label>
+        <input type="text" id="payment-holder" class="form-input" value="${ps.account_holder || ''}" placeholder="예금주명" style="width:100%">
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block">토스 송금 링크 (선택)</label>
+        <input type="text" id="payment-toss" class="form-input" value="${ps.toss_link || ''}" placeholder="예: toss.me/홍길동" style="width:100%">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">학부모가 쉽게 송금할 수 있도록 토스 링크를 추가하세요</div>
+      </div>
+      <button class="btn btn-primary" onclick="savePaymentSettings()" style="width:100%">입금 정보 저장</button>
+    </div>`;
+  }
+
   wrap.innerHTML = html;
 }
 
@@ -13043,6 +13407,40 @@ async function submitProfile() {
   Object.assign(currentProfile, updates);
   document.getElementById('userName').textContent = currentProfile.name || currentUser.email;
   document.getElementById('userAvatar').textContent = (currentProfile.name || '?')[0];
+}
+
+// ── 입금 정보 저장 ──
+async function savePaymentSettings() {
+  const bank = document.getElementById('payment-bank').value;
+  const account = document.getElementById('payment-account').value.trim();
+  const holder = document.getElementById('payment-holder').value.trim();
+  const toss = document.getElementById('payment-toss').value.trim();
+
+  if (!bank || !account || !holder) {
+    showToast('은행, 계좌번호, 예금주는 필수입니다', '⚠️');
+    return;
+  }
+
+  const payload = {
+    user_id: currentUser.id,
+    bank_name: bank,
+    account_number: account,
+    account_holder: holder,
+    toss_link: toss || null
+  };
+
+  // upsert (있으면 update, 없으면 insert)
+  const { error } = await sbClient.from('teacher_payment_settings')
+    .upsert(payload, { onConflict: 'user_id' });
+
+  if (error) {
+    showToast('저장 실패: ' + error.message, '❌');
+    return;
+  }
+
+  // 캐시 초기화
+  _teacherPaymentSettings = payload;
+  showToast('입금 정보가 저장되었습니다', '✅');
 }
 
 // ── 학부모 문자 발송 뷰 ──
