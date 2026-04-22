@@ -8857,35 +8857,65 @@ function openAddStudentModal() {
 
 // ── 학생 등록: NEIS 학교 검색 ──
 let stuSchoolTimer = null;
+let stuLastSearchQuery = '';
 
 function stuOnRegionChange() {
-  document.getElementById('stu-school').value = '';
-  document.getElementById('stu-school-selected').value = '';
-  document.getElementById('stu-school-dropdown').style.display = 'none';
   const region = document.getElementById('stu-region').value;
-  document.getElementById('stu-school').placeholder = region ? '학교명 검색 (2글자 이상)' : '지역 선택 후 학교명 검색';
+  console.log('[stuOnRegionChange] 지역 변경:', region || '(선택 해제)');
+
+  // 타이머 취소
+  clearTimeout(stuSchoolTimer);
+  stuSchoolTimer = null;
+
+  // 학교 관련 state 완전 초기화
+  const schoolInput = document.getElementById('stu-school');
+  const schoolSelected = document.getElementById('stu-school-selected');
+  const dropdown = document.getElementById('stu-school-dropdown');
+
+  schoolInput.value = '';
+  schoolSelected.value = '';
+  stuLastSearchQuery = '';
+  dropdown.innerHTML = '';
+  dropdown.style.display = 'none';
+
+  // placeholder 업데이트
+  schoolInput.placeholder = region ? '학교명 검색 (2글자 이상)' : '지역 선택 후 학교명 검색';
+
+  console.log('[stuOnRegionChange] 초기화 완료 - schoolInput:', schoolInput.value, 'schoolSelected:', schoolSelected.value);
 }
 
 async function stuSearchSchool(query) {
   const region = document.getElementById('stu-region').value;
   const dropdown = document.getElementById('stu-school-dropdown');
 
+  console.log('[stuSearchSchool] 호출 - query:', query, 'region:', region);
+
   // 선택 상태 초기화 (재검색 시)
   document.getElementById('stu-school-selected').value = '';
 
   if (!query || query.length < 2) {
+    console.log('[stuSearchSchool] 쿼리 길이 부족, 드롭다운 숨김');
     dropdown.style.display = 'none';
     return;
   }
 
   if (!region) {
+    console.log('[stuSearchSchool] 지역 미선택');
     dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--yellow)">⚠️ 지역을 먼저 선택해주세요</div>';
     dropdown.style.display = 'block';
     return;
   }
 
+  // 같은 쿼리로 중복 검색 방지
+  if (stuLastSearchQuery === query) {
+    console.log('[stuSearchSchool] 동일 쿼리 스킵:', query);
+    return;
+  }
+
   clearTimeout(stuSchoolTimer);
   stuSchoolTimer = setTimeout(async () => {
+    stuLastSearchQuery = query;
+    console.log('[stuSearchSchool] API 호출 시작:', region, query);
     dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">🔍 검색 중...</div>';
     dropdown.style.display = 'block';
 
@@ -8893,6 +8923,7 @@ async function stuSearchSchool(query) {
       const res = await fetch(`/api/school?region=${encodeURIComponent(region)}&name=${encodeURIComponent(query)}`);
       const data = await res.json();
       const schools = data?.schools || [];
+      console.log('[stuSearchSchool] API 응답:', schools.length, '개 학교');
 
       if (schools.length === 0) {
         dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">검색 결과가 없습니다</div>';

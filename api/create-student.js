@@ -1,5 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Supabase 에러 메시지 한국어 매핑
+const ERROR_MESSAGES = {
+  'A user with this email address has already been registered': '이미 등록된 이메일입니다. 다른 이메일을 사용해주세요.',
+  'User already registered': '이미 등록된 이메일입니다. 다른 이메일을 사용해주세요.',
+  'Email address is invalid': '유효하지 않은 이메일 형식입니다.',
+  'Password should be at least 6 characters': '비밀번호는 최소 6자 이상이어야 합니다.',
+  'Unable to validate email address: invalid format': '이메일 형식이 올바르지 않습니다.',
+};
+
+function translateError(message) {
+  // 정확히 일치하는 메시지 찾기
+  if (ERROR_MESSAGES[message]) return ERROR_MESSAGES[message];
+
+  // 부분 일치 검색
+  for (const [key, value] of Object.entries(ERROR_MESSAGES)) {
+    if (message.includes(key)) return value;
+  }
+
+  // 매핑되지 않은 에러는 일반 메시지로
+  return '계정 생성 중 오류가 발생했습니다. 다시 시도해주세요.';
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -48,6 +70,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, userId });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    const koreanError = translateError(e.message);
+    return res.status(500).json({ error: koreanError });
   }
 }
