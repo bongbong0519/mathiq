@@ -11195,10 +11195,8 @@ async function loadAdminStudents() {
   if (!sbClient || !currentUser) return;
   const { data: students, error } = await sbClient
     .from('students')
-    .select('*')
+    .select('*, profiles:teacher_id(name, school)')
     .order('created_at', { ascending: false });
-
-  console.log('admin students:', students, 'error:', error);
 
   const wrap = document.getElementById('admin-students-wrap');
   if (!wrap) return;
@@ -11216,12 +11214,12 @@ async function loadAdminStudents() {
           <th>이름</th><th>학년</th><th>학교</th><th>담당 선생님</th><th>가입일</th>
         </tr></thead>
         <tbody>
-         ${students.map(s => `
-          <tr style="cursor:pointer" onclick="openAssignTeacherModal('${s.id}','${s.name.replace(/'/g,'')}','${s.teacher_id||''}')"
-              <td class="font-bold">${s.name}</td>
+          ${students.map(s => `
+            <tr style="cursor:pointer" onclick="openAssignTeacherModal('${s.id}','${(s.name||'').replace(/'/g,"\\'")}','${s.teacher_id||''}')">
+              <td class="font-bold">${s.name || '—'}</td>
               <td>${s.grade || '—'}</td>
               <td>${s.school || '—'}</td>
-              <td>${s.profiles?.name || '—'} <span class="text-muted text-xs">(${s.profiles?.school || ''})</span></td>
+              <td>${s.profiles?.name || '—'}</td>
               <td class="text-muted text-sm">${new Date(s.created_at).toLocaleDateString('ko-KR')}</td>
             </tr>
           `).join('')}
