@@ -2283,6 +2283,9 @@
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
         </div>
+        <div class="nav-item" onclick="window.location.href='/help.html'">
+          <span class="icon">📖</span> 사용설명서
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">계정</div>
@@ -2348,6 +2351,9 @@
         </div>
         <div class="nav-item" onclick="showView('inquiry')">
           <span class="icon">🆘</span> 1:1 문의
+        </div>
+        <div class="nav-item" onclick="window.location.href='/help.html'">
+          <span class="icon">📖</span> 사용설명서
         </div>
       </div>
       <div class="nav-section">
@@ -2433,6 +2439,9 @@
         <div class="nav-item" onclick="showView('admin-inquiries')">
           <span class="icon">📋</span> 문의 처리
           <span id="inquiry-pending-badge" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='/help.html'">
+          <span class="icon">📖</span> 사용설명서
         </div>
       </div>
       <div class="nav-section">
@@ -11998,6 +12007,11 @@ async function loadTutorProfile() {
         <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">자기소개</label>
         <textarea id="tp-intro" class="form-input" style="width:100%;min-height:100px;resize:vertical" placeholder="학생에게 보여질 자기소개를 작성해주세요">${p.intro || ''}</textarea>
       </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">홍보 영상 URL (선택)</label>
+        <input id="tp-video" class="form-input" style="width:100%" placeholder="https://youtube.com/watch?v=..." value="${p.promo_video_url || ''}">
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">YouTube에 수업 영상을 올리고 링크를 붙여주세요. 학부모가 선생님을 더 잘 알 수 있습니다.</div>
+      </div>
       <button class="btn btn-primary" onclick="saveTutorProfile()">저장하기</button>
     </div>`;
 }
@@ -12011,10 +12025,21 @@ async function saveTutorProfile() {
   const experience = document.getElementById('tp-experience')?.value?.trim();
   const mode     = document.getElementById('tp-mode')?.value;
   const intro    = document.getElementById('tp-intro')?.value?.trim();
+  const videoUrl = document.getElementById('tp-video')?.value?.trim();
 
   if (!subject.length) { showToast('과목을 하나 이상 선택해주세요', '⚠️'); return; }
   if (!region.length)  { showToast('활동지역을 하나 이상 선택해주세요', '⚠️'); return; }
   if (!rate)           { showToast('시급을 입력해주세요', '⚠️'); return; }
+
+  // 영상 URL 검증 및 변환
+  let embedUrl = null;
+  if (videoUrl) {
+    embedUrl = convertToEmbedUrl(videoUrl);
+    if (!embedUrl) {
+      showToast('올바른 YouTube 또는 Vimeo 링크를 입력해주세요', '⚠️');
+      return;
+    }
+  }
 
   const photoFile = document.getElementById('tp-photo-input')?.files?.[0];
   let photoUrl = null;
@@ -12025,13 +12050,35 @@ async function saveTutorProfile() {
 
   const payload = { user_id: currentUser.id, subject, region, hourly_rate: rate,
     education: education || null, experience: experience || null,
-    teaching_mode: mode, intro: intro || null, updated_at: new Date().toISOString() };
+    teaching_mode: mode, intro: intro || null, promo_video_url: embedUrl,
+    updated_at: new Date().toISOString() };
   if (photoUrl) payload.photo_url = photoUrl;
 
   const { error } = await sbClient.from('tutor_profiles').upsert(payload, { onConflict: 'user_id' });
   if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
   showToast('과외 프로필이 저장되었습니다!', '✅');
   loadTutorProfile();
+}
+
+// YouTube/Vimeo URL을 임베드 URL로 변환
+function convertToEmbedUrl(url) {
+  if (!url) return null;
+
+  // YouTube 패턴들
+  const ytPatterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+  ];
+  for (const pattern of ytPatterns) {
+    const match = url.match(pattern);
+    if (match) return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  // Vimeo 패턴
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+
+  return null; // 인식 불가
 }
 
 async function toggleTutorActive() {
@@ -12196,7 +12243,8 @@ function openTutorDetail(id) {
       </div>
     </div>
     ${t.experience ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">경력</div><div style="font-size:13px;color:var(--text)">${t.experience}</div></div>` : ''}
-    ${t.intro ? `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">자기소개</div><div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${t.intro}</div></div>` : ''}
+    ${t.intro ? `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">자기소개</div><div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${t.intro}</div></div>` : ''}
+    ${t.promo_video_url ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">홍보 영상</div><div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:var(--radius-sm)"><iframe src="${t.promo_video_url}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen></iframe></div></div>` : ''}
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <button class="btn btn-primary" style="width:100%;font-size:14px;padding:12px" onclick="openMatchRequestModal('${t.user_id}','${(prof.name || '선생님').replace(/'/g, "\\'")}')">
         📨 매칭 신청하기

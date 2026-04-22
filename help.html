@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사용설명서 - MathIQ</title>
+  <link rel="icon" href="/favicon.ico">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg: #fdfbf7;
+      --bg2: #f8f4ed;
+      --bg3: #f0ebe0;
+      --text: #2d2a26;
+      --text2: #5c5650;
+      --text3: #8c857a;
+      --accent: #e07a5f;
+      --accent2: #d4a5a5;
+      --border: #e8e2d9;
+      --green: #3ecf8e;
+      --yellow: #f5a623;
+      --blue: #4a90d9;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Layout */
+    .help-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .help-sidebar {
+      width: 280px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .help-logo {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .help-logo a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .help-logo img { height: 32px; }
+
+    .help-search {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .help-search input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      font-size: 14px;
+      outline: none;
+    }
+    .help-search input:focus {
+      border-color: var(--accent);
+    }
+
+    .help-nav {
+      flex: 1;
+      padding: 16px 0;
+      overflow-y: auto;
+    }
+    .nav-category {
+      margin-bottom: 8px;
+    }
+    .nav-category-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text2);
+      cursor: pointer;
+      user-select: none;
+    }
+    .nav-category-header:hover {
+      background: var(--bg3);
+    }
+    .nav-category-icon {
+      font-size: 16px;
+    }
+    .nav-category-arrow {
+      margin-left: auto;
+      font-size: 12px;
+      transition: transform 0.2s;
+    }
+    .nav-category.collapsed .nav-category-arrow {
+      transform: rotate(-90deg);
+    }
+    .nav-category.collapsed .nav-items {
+      display: none;
+    }
+    .nav-items {
+      padding-left: 20px;
+    }
+    .nav-item {
+      display: block;
+      padding: 8px 20px;
+      font-size: 14px;
+      color: var(--text2);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      cursor: pointer;
+    }
+    .nav-item:hover {
+      background: var(--bg3);
+      color: var(--text);
+    }
+    .nav-item.active {
+      background: var(--bg);
+      color: var(--accent);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .help-back {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .help-back a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text2);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .help-back a:hover {
+      color: var(--accent);
+    }
+
+    /* Main Content */
+    .help-main {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+    .help-content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    /* Markdown Styles */
+    .markdown-body h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+    }
+    .markdown-body h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 32px 0 16px;
+      color: var(--text);
+    }
+    .markdown-body h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 24px 0 12px;
+      color: var(--text2);
+    }
+    .markdown-body p {
+      margin-bottom: 16px;
+      color: var(--text2);
+    }
+    .markdown-body ul, .markdown-body ol {
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+    .markdown-body li {
+      margin-bottom: 8px;
+      color: var(--text2);
+    }
+    .markdown-body strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .markdown-body code {
+      background: var(--bg3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 0.9em;
+    }
+    .markdown-body pre {
+      background: var(--bg3);
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+    .markdown-body pre code {
+      background: none;
+      padding: 0;
+    }
+    .markdown-body blockquote {
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px;
+      margin: 16px 0;
+      background: var(--bg2);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+    .markdown-body blockquote p {
+      margin: 0;
+    }
+    .markdown-body hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 32px 0;
+    }
+    .markdown-body a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .markdown-body a:hover {
+      text-decoration: underline;
+    }
+
+    /* Roadmap Status Badges */
+    .markdown-body li:has(> :first-child:is(:contains("✅"))) {
+      color: var(--green);
+    }
+
+    /* Page Navigation */
+    .page-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    .page-nav-btn {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 16px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--text2);
+      max-width: 45%;
+      transition: all 0.2s;
+    }
+    .page-nav-btn:hover {
+      background: var(--bg3);
+      border-color: var(--accent);
+    }
+    .page-nav-btn.next {
+      text-align: right;
+      margin-left: auto;
+    }
+    .page-nav-label {
+      font-size: 12px;
+      color: var(--text3);
+    }
+    .page-nav-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--text3);
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .help-sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      .help-main {
+        margin-left: 0;
+      }
+      .help-content {
+        padding: 24px 16px;
+      }
+      .help-container {
+        flex-direction: column;
+      }
+      .help-nav {
+        display: none;
+      }
+      .help-sidebar.nav-open .help-nav {
+        display: block;
+      }
+      .mobile-nav-toggle {
+        display: block;
+        padding: 12px 20px;
+        background: var(--bg3);
+        border: none;
+        width: 100%;
+        text-align: left;
+        font-size: 14px;
+        cursor: pointer;
+      }
+    }
+    @media (min-width: 769px) {
+      .mobile-nav-toggle { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="help-container">
+    <!-- Sidebar -->
+    <aside class="help-sidebar" id="helpSidebar">
+      <div class="help-logo">
+        <a href="/">
+          <img src="/mathiq-logo.svg" alt="MathIQ" onerror="this.style.display='none'">
+          <span>MathIQ 도움말</span>
+        </a>
+      </div>
+
+      <div class="help-search">
+        <input type="text" id="helpSearch" placeholder="검색..." oninput="filterDocs(this.value)">
+      </div>
+
+      <button class="mobile-nav-toggle" onclick="toggleMobileNav()">메뉴 보기</button>
+
+      <nav class="help-nav" id="helpNav">
+        <!-- 시작하기 -->
+        <div class="nav-category" data-category="getting-started">
+          <div class="nav-category-header" onclick="toggleCategory(this.parentElement)">
+            <span class="nav-category-icon">🚀</span>
+            <span>시작하기</span>
+            <span class="nav-category-arrow">▼</span>
+          </div>
+          <div class="nav-items">
+            <a class="nav-item" data-path="getting-started/01-signup">회원가입</a>
+            <a class="nav-item" data-path="getting-started/02-roles">역할 안내</a>
+            <a class="nav-item" data-path="getting-started/03-first-steps">첫 시작 가이드</a>
+          </div>
+        </div>
+
+        <!-- 사용법 -->
+        <div class="nav-category" data-category="features">
+          <div class="nav-category-header" onclick="toggleCategory(this.parentElement)">
+            <span class="nav-category-icon">📚</span>
+            <span>사용법</span>
+            <span class="nav-category-arrow">▼</span>
+          </div>
+          <div class="nav-items">
+            <a class="nav-item" data-path="features/student-management">학생 관리</a>
+            <a class="nav-item" data-path="features/billing">수강료 관리</a>
+            <a class="nav-item" data-path="features/accounting">회계 관리</a>
+            <a class="nav-item" data-path="features/account-recovery">계정 탈퇴 및 복구</a>
+          </div>
+        </div>
+
+        <!-- 단일 페이지 -->
+        <div class="nav-category">
+          <a class="nav-item" data-path="roadmap" style="padding-left:20px;display:flex;align-items:center;gap:8px">
+            <span>🗺️</span> 로드맵
+          </a>
+        </div>
+        <div class="nav-category">
+          <a class="nav-item" data-path="changelog" style="padding-left:20px;display:flex;align-items:center;gap:8px">
+            <span>📜</span> 업데이트 이력
+          </a>
+        </div>
+        <div class="nav-category">
+          <a class="nav-item" data-path="faq" style="padding-left:20px;display:flex;align-items:center;gap:8px">
+            <span>❓</span> FAQ
+          </a>
+        </div>
+      </nav>
+
+      <div class="help-back">
+        <a href="/">← MathIQ로 돌아가기</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="help-main">
+      <div class="help-content">
+        <article class="markdown-body" id="markdownContent">
+          <div class="loading">불러오는 중...</div>
+        </article>
+
+        <nav class="page-nav" id="pageNav" style="display:none">
+          <a class="page-nav-btn prev" id="prevPage" href="#">
+            <span class="page-nav-label">이전</span>
+            <span class="page-nav-title" id="prevTitle"></span>
+          </a>
+          <a class="page-nav-btn next" id="nextPage" href="#">
+            <span class="page-nav-label">다음</span>
+            <span class="page-nav-title" id="nextTitle"></span>
+          </a>
+        </nav>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // 문서 목록 (순서대로)
+    const docList = [
+      { path: 'getting-started/01-signup', title: '회원가입' },
+      { path: 'getting-started/02-roles', title: '역할 안내' },
+      { path: 'getting-started/03-first-steps', title: '첫 시작 가이드' },
+      { path: 'features/student-management', title: '학생 관리' },
+      { path: 'features/billing', title: '수강료 관리' },
+      { path: 'features/accounting', title: '회계 관리' },
+      { path: 'features/account-recovery', title: '계정 탈퇴 및 복구' },
+      { path: 'roadmap', title: '로드맵' },
+      { path: 'changelog', title: '업데이트 이력' },
+      { path: 'faq', title: 'FAQ' }
+    ];
+
+    let currentPath = 'getting-started/01-signup';
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      // URL 해시에서 경로 가져오기
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        currentPath = hash;
+      }
+
+      loadDocument(currentPath);
+      setupNavigation();
+    });
+
+    // 네비게이션 설정
+    function setupNavigation() {
+      document.querySelectorAll('.nav-item[data-path]').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const path = item.dataset.path;
+          loadDocument(path);
+          window.location.hash = path;
+        });
+      });
+    }
+
+    // 문서 로드
+    async function loadDocument(path) {
+      currentPath = path;
+      const content = document.getElementById('markdownContent');
+      content.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+      // 활성 상태 업데이트
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.path === path) {
+          item.classList.add('active');
+          // 부모 카테고리 펼치기
+          const category = item.closest('.nav-category');
+          if (category) category.classList.remove('collapsed');
+        }
+      });
+
+      try {
+        const response = await fetch(`/DOCS/${path}.md`);
+        if (!response.ok) throw new Error('문서를 찾을 수 없습니다');
+
+        const markdown = await response.text();
+        content.innerHTML = marked.parse(markdown);
+
+        // 로드맵 상태 배지 스타일 적용
+        if (path === 'roadmap') {
+          applyRoadmapStyles();
+        }
+
+        // 업데이트 이력 스타일 적용
+        if (path === 'changelog') {
+          applyChangelogStyles();
+        }
+
+        // 페이지 네비게이션 업데이트
+        updatePageNav();
+
+        // 스크롤 상단으로
+        window.scrollTo(0, 0);
+
+      } catch (e) {
+        content.innerHTML = `
+          <h1>문서를 찾을 수 없습니다</h1>
+          <p>요청하신 문서(${path})를 찾을 수 없습니다.</p>
+          <p><a href="#getting-started/01-signup" onclick="loadDocument('getting-started/01-signup')">시작 페이지로 이동</a></p>
+        `;
+      }
+    }
+
+    // 로드맵 스타일 적용
+    function applyRoadmapStyles() {
+      document.querySelectorAll('.markdown-body li').forEach(li => {
+        const text = li.textContent;
+        if (text.startsWith('✅')) {
+          li.style.color = 'var(--green)';
+        } else if (text.startsWith('🏗️')) {
+          li.style.color = 'var(--yellow)';
+        } else if (text.startsWith('📅')) {
+          li.style.color = 'var(--blue)';
+        } else if (text.startsWith('💭')) {
+          li.style.color = 'var(--text3)';
+        }
+      });
+    }
+
+    // 업데이트 이력 스타일 적용
+    function applyChangelogStyles() {
+      document.querySelectorAll('.markdown-body h3').forEach(h3 => {
+        const text = h3.textContent;
+        if (text.includes('신규 기능')) {
+          h3.style.color = 'var(--green)';
+        } else if (text.includes('버그 수정')) {
+          h3.style.color = 'var(--accent)';
+        } else if (text.includes('UX 개선')) {
+          h3.style.color = 'var(--blue)';
+        }
+      });
+    }
+
+    // 페이지 네비게이션 업데이트
+    function updatePageNav() {
+      const currentIndex = docList.findIndex(d => d.path === currentPath);
+      const pageNav = document.getElementById('pageNav');
+      const prevPage = document.getElementById('prevPage');
+      const nextPage = document.getElementById('nextPage');
+      const prevTitle = document.getElementById('prevTitle');
+      const nextTitle = document.getElementById('nextTitle');
+
+      if (currentIndex === -1) {
+        pageNav.style.display = 'none';
+        return;
+      }
+
+      pageNav.style.display = 'flex';
+
+      if (currentIndex > 0) {
+        const prev = docList[currentIndex - 1];
+        prevPage.style.display = 'flex';
+        prevPage.href = '#' + prev.path;
+        prevPage.onclick = (e) => { e.preventDefault(); loadDocument(prev.path); window.location.hash = prev.path; };
+        prevTitle.textContent = prev.title;
+      } else {
+        prevPage.style.display = 'none';
+      }
+
+      if (currentIndex < docList.length - 1) {
+        const next = docList[currentIndex + 1];
+        nextPage.style.display = 'flex';
+        nextPage.href = '#' + next.path;
+        nextPage.onclick = (e) => { e.preventDefault(); loadDocument(next.path); window.location.hash = next.path; };
+        nextTitle.textContent = next.title;
+      } else {
+        nextPage.style.display = 'none';
+      }
+    }
+
+    // 카테고리 토글
+    function toggleCategory(el) {
+      el.classList.toggle('collapsed');
+    }
+
+    // 모바일 네비 토글
+    function toggleMobileNav() {
+      document.getElementById('helpSidebar').classList.toggle('nav-open');
+    }
+
+    // 검색 필터
+    function filterDocs(query) {
+      query = query.toLowerCase();
+      document.querySelectorAll('.nav-item[data-path]').forEach(item => {
+        const title = item.textContent.toLowerCase();
+        const matches = title.includes(query);
+        item.style.display = matches || !query ? '' : 'none';
+      });
+
+      // 카테고리 표시/숨김
+      document.querySelectorAll('.nav-category').forEach(cat => {
+        const hasVisible = cat.querySelector('.nav-item[data-path]:not([style*="display: none"])');
+        cat.style.display = hasVisible || !query ? '' : 'none';
+        if (query && hasVisible) cat.classList.remove('collapsed');
+      });
+    }
+
+    // URL 해시 변경 감지
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.slice(1);
+      if (hash && hash !== currentPath) {
+        loadDocument(hash);
+      }
+    });
+  </script>
+</body>
+</html>
