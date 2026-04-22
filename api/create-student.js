@@ -56,7 +56,9 @@ export default async function handler(req, res) {
       role: 'student',
       name,
       school: school || null,
-      status: 'approved'
+      status: 'approved',
+      subscription_tier: 'campus',
+      point_balance: 0
     });
 
     await supabaseAdmin.from('students').insert({
