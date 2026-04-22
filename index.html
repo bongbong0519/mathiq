@@ -2091,6 +2091,12 @@
         </div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">회계 관리</div>
+        <div class="nav-item" onclick="showView('accounting')">
+          <span class="icon">💰</span> 매출·지출 관리
+        </div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">문제은행</div>
         <div class="nav-item" onclick="showView('question-bank')">
           <span class="icon">🗄️</span> 문제은행
@@ -3618,6 +3624,81 @@
         <div style="padding:24px">
           <div id="profile-form-container">
             <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ACCOUNTING (회계 관리) ══ -->
+    <div id="view-accounting" class="view" style="display:none">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">매출·지출 관리</h2>
+          <p class="page-subtitle">월별 수강료 수입과 지출을 관리합니다</p>
+        </div>
+        <div class="header-actions">
+          <input type="month" id="accounting-month" class="form-input" style="width:160px" onchange="loadAccountingView()">
+        </div>
+      </div>
+
+      <!-- 월별 요약 -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="padding:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">월별 요약</div>
+          <div id="accounting-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+            <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:var(--radius-sm)">
+              <div style="font-size:12px;color:var(--text3);margin-bottom:4px">총 수입</div>
+              <div id="acc-income" style="font-size:20px;font-weight:800;color:var(--green)">0원</div>
+            </div>
+            <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:var(--radius-sm)">
+              <div style="font-size:12px;color:var(--text3);margin-bottom:4px">총 지출</div>
+              <div id="acc-expense" style="font-size:20px;font-weight:800;color:var(--red)">0원</div>
+            </div>
+            <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:var(--radius-sm)">
+              <div style="font-size:12px;color:var(--text3);margin-bottom:4px">순이익</div>
+              <div id="acc-profit" style="font-size:20px;font-weight:800;color:var(--accent)">0원</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지출 등록 폼 -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="padding:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">지출 등록</div>
+          <div style="display:grid;grid-template-columns:140px 1fr 140px 1fr auto;gap:12px;align-items:end">
+            <div>
+              <label class="form-label" style="font-size:12px;margin-bottom:4px;display:block">날짜</label>
+              <input type="date" id="expense-date" class="form-input" style="width:100%">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:12px;margin-bottom:4px;display:block">카테고리</label>
+              <select id="expense-category" class="form-input" style="width:100%">
+                <option value="rent">임대료</option>
+                <option value="materials">교재비</option>
+                <option value="utilities">공과금</option>
+                <option value="other">기타</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:12px;margin-bottom:4px;display:block">금액 (원)</label>
+              <input type="number" id="expense-amount" class="form-input" placeholder="0" style="width:100%">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:12px;margin-bottom:4px;display:block">메모</label>
+              <input type="text" id="expense-memo" class="form-input" placeholder="메모 (선택)" style="width:100%">
+            </div>
+            <button class="btn btn-primary" onclick="addExpense()">등록</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지출 목록 -->
+      <div class="card">
+        <div style="padding:20px">
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">지출 내역</div>
+          <div id="expense-list">
+            <div class="empty-state" style="padding:40px"><div class="empty-state-text">지출 내역이 없습니다</div></div>
           </div>
         </div>
       </div>
@@ -6984,6 +7065,7 @@ function showView(viewId) {
         if (viewId === 'notices') loadNotices().catch(() => {});
         if (viewId === 'inquiry') loadInquiries().catch(() => {});
         if (viewId === 'admin-inquiries') loadAdminInquiries().catch(() => {});
+        if (viewId === 'accounting') loadAccountingView().catch(() => {});
       }
     } catch(e) {}
   }, 0);
@@ -13442,6 +13524,250 @@ async function savePaymentSettings() {
   _teacherPaymentSettings = payload;
   showToast('입금 정보가 저장되었습니다', '✅');
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  회계 관리 (매출·지출)
+// ══════════════════════════════════════════════════════════════════
+
+const EXPENSE_CATEGORIES = {
+  rent: '임대료',
+  materials: '교재비',
+  utilities: '공과금',
+  other: '기타'
+};
+
+async function loadAccountingView() {
+  if (!sbClient || !currentUser) return;
+
+  // 월 선택 초기화
+  const monthInput = document.getElementById('accounting-month');
+  if (!monthInput.value) {
+    const now = new Date();
+    monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  const selectedMonth = monthInput.value; // 'YYYY-MM'
+
+  // 날짜 범위 계산
+  const [year, month] = selectedMonth.split('-').map(Number);
+  const startDate = `${selectedMonth}-01`;
+  const endDate = new Date(year, month, 0).toISOString().slice(0, 10); // 말일
+
+  // 지출 입력폼 날짜 기본값 설정
+  const expenseDateInput = document.getElementById('expense-date');
+  if (!expenseDateInput.value) {
+    expenseDateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  // 1. 수입 집계 (billing_invoices에서 paid인 항목)
+  const { data: invoices } = await sbClient.from('billing_invoices')
+    .select('amount')
+    .eq('teacher_id', currentUser.id)
+    .eq('billing_month', selectedMonth)
+    .eq('status', 'paid');
+
+  const totalIncome = (invoices || []).reduce((sum, inv) => sum + (inv.amount || 0), 0);
+
+  // 2. 지출 집계 및 목록
+  const { data: expenses } = await sbClient.from('expenses')
+    .select('*')
+    .eq('teacher_id', currentUser.id)
+    .gte('expense_date', startDate)
+    .lte('expense_date', endDate)
+    .order('expense_date', { ascending: false });
+
+  const totalExpense = (expenses || []).reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const profit = totalIncome - totalExpense;
+
+  // 요약 업데이트
+  document.getElementById('acc-income').textContent = totalIncome.toLocaleString() + '원';
+  document.getElementById('acc-expense').textContent = totalExpense.toLocaleString() + '원';
+  const profitEl = document.getElementById('acc-profit');
+  profitEl.textContent = (profit >= 0 ? '+' : '') + profit.toLocaleString() + '원';
+  profitEl.style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
+
+  // 지출 목록 렌더링
+  const listWrap = document.getElementById('expense-list');
+  if (!expenses || expenses.length === 0) {
+    listWrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">이 달의 지출 내역이 없습니다</div></div>';
+    return;
+  }
+
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="background:var(--bg3);text-align:left">
+        <th style="padding:10px 12px;font-weight:600;border-bottom:1px solid var(--border)">날짜</th>
+        <th style="padding:10px 12px;font-weight:600;border-bottom:1px solid var(--border)">카테고리</th>
+        <th style="padding:10px 12px;font-weight:600;border-bottom:1px solid var(--border);text-align:right">금액</th>
+        <th style="padding:10px 12px;font-weight:600;border-bottom:1px solid var(--border)">메모</th>
+        <th style="padding:10px 12px;font-weight:600;border-bottom:1px solid var(--border);width:80px"></th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  expenses.forEach(exp => {
+    const dateStr = exp.expense_date ? exp.expense_date.slice(5).replace('-', '/') : '-';
+    const catLabel = EXPENSE_CATEGORIES[exp.category] || exp.category;
+    html += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 12px;color:var(--text2)">${dateStr}</td>
+      <td style="padding:10px 12px">${catLabel}</td>
+      <td style="padding:10px 12px;text-align:right;font-weight:600;color:var(--red)">${(exp.amount || 0).toLocaleString()}원</td>
+      <td style="padding:10px 12px;color:var(--text3)">${exp.memo || '-'}</td>
+      <td style="padding:10px 12px;text-align:right">
+        <button class="btn btn-ghost btn-sm" onclick="editExpense('${exp.id}')" style="padding:4px 8px;font-size:11px">수정</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteExpense('${exp.id}')" style="padding:4px 8px;font-size:11px;color:var(--red)">삭제</button>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  listWrap.innerHTML = html;
+}
+
+async function addExpense() {
+  if (!sbClient || !currentUser) return;
+
+  const date = document.getElementById('expense-date').value;
+  const category = document.getElementById('expense-category').value;
+  const amount = parseInt(document.getElementById('expense-amount').value) || 0;
+  const memo = document.getElementById('expense-memo').value.trim();
+
+  if (!date) {
+    showToast('날짜를 선택해주세요', '⚠️');
+    return;
+  }
+  if (amount <= 0) {
+    showToast('금액을 입력해주세요', '⚠️');
+    return;
+  }
+
+  const { error } = await sbClient.from('expenses').insert({
+    teacher_id: currentUser.id,
+    expense_date: date,
+    category,
+    amount,
+    memo: memo || null
+  });
+
+  if (error) {
+    showToast('등록 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('지출이 등록되었습니다', '✅');
+
+  // 폼 초기화
+  document.getElementById('expense-amount').value = '';
+  document.getElementById('expense-memo').value = '';
+
+  // 목록 새로고침
+  loadAccountingView();
+}
+
+async function deleteExpense(expenseId) {
+  if (!confirm('이 지출 내역을 삭제하시겠습니까?')) return;
+
+  const { error } = await sbClient.from('expenses')
+    .delete()
+    .eq('id', expenseId)
+    .eq('teacher_id', currentUser.id);
+
+  if (error) {
+    showToast('삭제 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('지출이 삭제되었습니다', '✅');
+  loadAccountingView();
+}
+
+// 지출 수정용 임시 저장
+let _editingExpenseId = null;
+
+async function editExpense(expenseId) {
+  // 해당 지출 정보 조회
+  const { data: exp, error } = await sbClient.from('expenses')
+    .select('*')
+    .eq('id', expenseId)
+    .single();
+
+  if (error || !exp) {
+    showToast('지출 정보를 불러올 수 없습니다', '❌');
+    return;
+  }
+
+  // 폼에 값 채우기
+  document.getElementById('expense-date').value = exp.expense_date || '';
+  document.getElementById('expense-category').value = exp.category || 'other';
+  document.getElementById('expense-amount').value = exp.amount || '';
+  document.getElementById('expense-memo').value = exp.memo || '';
+
+  _editingExpenseId = expenseId;
+
+  // 등록 버튼을 수정 모드로 변경
+  const formSection = document.querySelector('#view-accounting .card:nth-child(2) .btn-primary');
+  formSection.textContent = '수정 완료';
+  formSection.onclick = updateExpense;
+
+  // 취소 버튼 추가
+  if (!document.getElementById('expense-cancel-btn')) {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'expense-cancel-btn';
+    cancelBtn.className = 'btn btn-ghost';
+    cancelBtn.textContent = '취소';
+    cancelBtn.onclick = cancelEditExpense;
+    cancelBtn.style.marginLeft = '8px';
+    formSection.parentNode.appendChild(cancelBtn);
+  }
+}
+
+function cancelEditExpense() {
+  _editingExpenseId = null;
+
+  // 폼 초기화
+  document.getElementById('expense-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('expense-category').value = 'rent';
+  document.getElementById('expense-amount').value = '';
+  document.getElementById('expense-memo').value = '';
+
+  // 버튼 원복
+  const formSection = document.querySelector('#view-accounting .card:nth-child(2) .btn-primary');
+  formSection.textContent = '등록';
+  formSection.onclick = addExpense;
+
+  // 취소 버튼 제거
+  const cancelBtn = document.getElementById('expense-cancel-btn');
+  if (cancelBtn) cancelBtn.remove();
+}
+
+async function updateExpense() {
+  if (!_editingExpenseId) return;
+
+  const date = document.getElementById('expense-date').value;
+  const category = document.getElementById('expense-category').value;
+  const amount = parseInt(document.getElementById('expense-amount').value) || 0;
+  const memo = document.getElementById('expense-memo').value.trim();
+
+  if (!date || amount <= 0) {
+    showToast('날짜와 금액을 확인해주세요', '⚠️');
+    return;
+  }
+
+  const { error } = await sbClient.from('expenses')
+    .update({ expense_date: date, category, amount, memo: memo || null })
+    .eq('id', _editingExpenseId)
+    .eq('teacher_id', currentUser.id);
+
+  if (error) {
+    showToast('수정 실패: ' + error.message, '❌');
+    return;
+  }
+
+  showToast('지출이 수정되었습니다', '✅');
+  cancelEditExpense();
+  loadAccountingView();
+}
+
+// ══════════════════════════════════════════════════════════════════
 
 // ── 학부모 문자 발송 뷰 ──
 let smsState = {
