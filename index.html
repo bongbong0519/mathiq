@@ -2137,7 +2137,8 @@
         <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:10px">탈퇴 시 다음이 발생합니다:</div>
         <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.8">
           <li>계정이 즉시 비활성화됩니다</li>
-          <li>학생 목록, 학원 소속 관계가 모두 해제됩니다</li>
+          <li id="del-student-row" style="display:none">담당 학생 <strong id="del-student-count" style="color:var(--red)">0</strong>명의 연결이 해제됩니다</li>
+          <li>학원 소속 관계가 해제됩니다</li>
           <li>현재 보유 포인트: <strong id="del-current-points">0</strong> pt</li>
           <li>현재 보유 캐시: <strong id="del-current-cash">0</strong> 원</li>
         </ul>
@@ -14153,12 +14154,30 @@ async function submitAppeal() {
 }
 
 // 계정 탈퇴 모달 열기
-function openDeleteAccountModal() {
-  if (!currentProfile) return;
+async function openDeleteAccountModal() {
+  if (!currentProfile || !currentUser) return;
 
   document.getElementById('del-current-points').textContent = (currentProfile.point_balance || 0).toLocaleString();
   document.getElementById('del-current-cash').textContent = (currentProfile.cash_balance || 0).toLocaleString();
   document.getElementById('deletion-reason').value = '';
+
+  // 담당 학생 수 조회 (선생님/원장 역할인 경우)
+  const studentRow = document.getElementById('del-student-row');
+  const studentCountEl = document.getElementById('del-student-count');
+  if (['teacher', 'director', 'expert'].includes(currentProfile.role)) {
+    const { count } = await sbClient.from('students')
+      .select('*', { count: 'exact', head: true })
+      .eq('teacher_id', currentUser.id);
+    if (count > 0) {
+      studentCountEl.textContent = count;
+      studentRow.style.display = '';
+    } else {
+      studentRow.style.display = 'none';
+    }
+  } else {
+    studentRow.style.display = 'none';
+  }
+
   document.getElementById('deleteAccountModal').classList.add('open');
 }
 
@@ -14180,7 +14199,21 @@ async function confirmDeleteAccount() {
     });
     if (snapErr) throw snapErr;
 
-    // 2. profiles 업데이트
+    // 2. 학생-강사 관계 해제 (teacher_id를 NULL로)
+    if (['teacher', 'director', 'expert'].includes(currentProfile.role)) {
+      await sbClient.from('students')
+        .update({ teacher_id: null })
+        .eq('teacher_id', currentUser.id);
+    }
+
+    // 3. 학원 소속 관계 해제 (organization_id를 NULL로)
+    if (currentProfile.organization_id) {
+      await sbClient.from('profiles')
+        .update({ organization_id: null })
+        .eq('id', currentUser.id);
+    }
+
+    // 4. profiles 업데이트 (탈퇴 처리)
     const { error: profErr } = await sbClient.from('profiles').update({
       deleted_at: new Date().toISOString(),
       deletion_reason: reason || null,
@@ -14188,7 +14221,7 @@ async function confirmDeleteAccount() {
     }).eq('id', currentUser.id);
     if (profErr) throw profErr;
 
-    // 3. 로그아웃
+    // 5. 로그아웃
     closeModal('deleteAccountModal');
     await sbClient.auth.signOut();
     currentUser = null;
