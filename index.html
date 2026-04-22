@@ -12203,19 +12203,22 @@ async function saveTutorProfile() {
 // YouTube/Vimeo URL을 임베드 URL로 변환
 function convertToEmbedUrl(url) {
   if (!url) return null;
+  url = url.trim();
 
-  // YouTube 패턴들
+  // YouTube 패턴들 (www 포함/미포함, 다양한 형식)
   const ytPatterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+    /(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+    /(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/
   ];
   for (const pattern of ytPatterns) {
     const match = url.match(pattern);
     if (match) return `https://www.youtube.com/embed/${match[1]}`;
   }
 
-  // Vimeo 패턴
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  // Vimeo 패턴 (www 포함/미포함)
+  const vimeoMatch = url.match(/(?:www\.)?vimeo\.com\/(\d+)/);
   if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
 
   return null; // 인식 불가
