@@ -2031,13 +2031,13 @@
         <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;cursor:pointer;font-size:13px;color:var(--text)">
           <input type="checkbox" id="consent-essential" onchange="updateSignupBtnState()" style="margin-top:2px">
           <span><span style="color:var(--red);font-weight:600">[필수]</span> 개인정보 수집·이용 동의
-            <span style="color:var(--accent);cursor:pointer;text-decoration:underline;margin-left:4px" onclick="event.preventDefault();openPrivacyModal('essential')">전문 보기</span>
+            <a href="#" style="color:var(--accent);margin-left:4px" onclick="event.preventDefault();event.stopPropagation();openPrivacyModal('essential')">전문 보기</a>
           </span>
         </label>
         <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;cursor:pointer;font-size:13px;color:var(--text)">
           <input type="checkbox" id="consent-terms" onchange="updateSignupBtnState()" style="margin-top:2px">
           <span><span style="color:var(--red);font-weight:600">[필수]</span> 서비스 이용약관 동의
-            <span style="color:var(--accent);cursor:pointer;text-decoration:underline;margin-left:4px" onclick="event.preventDefault();openPrivacyModal('terms')">전문 보기</span>
+            <a href="#" style="color:var(--accent);margin-left:4px" onclick="event.preventDefault();event.stopPropagation();openPrivacyModal('terms')">전문 보기</a>
           </span>
         </label>
         <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)">
