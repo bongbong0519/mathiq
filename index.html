@@ -5329,8 +5329,26 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">지역</label>
+        <select class="form-input" id="stu-region" onchange="stuOnRegionChange()">
+          <option value="">시/도 선택</option>
+          <option value="서울">서울</option><option value="부산">부산</option>
+          <option value="대구">대구</option><option value="인천">인천</option>
+          <option value="광주">광주</option><option value="대전">대전</option>
+          <option value="울산">울산</option><option value="세종">세종</option>
+          <option value="경기">경기</option><option value="강원">강원</option>
+          <option value="충북">충북</option><option value="충남">충남</option>
+          <option value="전북">전북</option><option value="전남">전남</option>
+          <option value="경북">경북</option><option value="경남">경남</option>
+          <option value="제주">제주</option>
+        </select>
+      </div>
+      <div class="form-group" style="position:relative">
         <label class="form-label">학교명</label>
-        <input type="text" class="form-input" id="stu-school" placeholder="○○중학교">
+        <input type="text" class="form-input" id="stu-school" placeholder="지역 선택 후 학교명 검색" autocomplete="off"
+          oninput="stuSearchSchool(this.value)" onfocus="stuSearchSchool(this.value)">
+        <input type="hidden" id="stu-school-selected" value="">
+        <div id="stu-school-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
       </div>
       <div class="form-group">
         <label class="form-label">학년</label>
@@ -8826,8 +8844,92 @@ async function loadStudents() {
 function openAddStudentModal() {
   document.getElementById('addStudentModal').classList.add('open');
   document.getElementById('stu-name').value = '';
+  document.getElementById('stu-email').value = '';
+  document.getElementById('stu-password').value = '';
+  document.getElementById('stu-region').value = '';
+  document.getElementById('stu-school').value = '';
+  document.getElementById('stu-school').placeholder = '지역 선택 후 학교명 검색';
+  document.getElementById('stu-school-selected').value = '';
+  document.getElementById('stu-school-dropdown').style.display = 'none';
+  document.getElementById('stu-grade').value = '중1';
   document.getElementById('stu-error').style.display = 'none';
 }
+
+// ── 학생 등록: NEIS 학교 검색 ──
+let stuSchoolTimer = null;
+
+function stuOnRegionChange() {
+  document.getElementById('stu-school').value = '';
+  document.getElementById('stu-school-selected').value = '';
+  document.getElementById('stu-school-dropdown').style.display = 'none';
+  const region = document.getElementById('stu-region').value;
+  document.getElementById('stu-school').placeholder = region ? '학교명 검색 (2글자 이상)' : '지역 선택 후 학교명 검색';
+}
+
+async function stuSearchSchool(query) {
+  const region = document.getElementById('stu-region').value;
+  const dropdown = document.getElementById('stu-school-dropdown');
+
+  // 선택 상태 초기화 (재검색 시)
+  document.getElementById('stu-school-selected').value = '';
+
+  if (!query || query.length < 2) {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  if (!region) {
+    dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--yellow)">⚠️ 지역을 먼저 선택해주세요</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  clearTimeout(stuSchoolTimer);
+  stuSchoolTimer = setTimeout(async () => {
+    dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">🔍 검색 중...</div>';
+    dropdown.style.display = 'block';
+
+    try {
+      const res = await fetch(`/api/school?region=${encodeURIComponent(region)}&name=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      const schools = data?.schools || [];
+
+      if (schools.length === 0) {
+        dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">검색 결과가 없습니다</div>';
+        return;
+      }
+
+      dropdown.innerHTML = schools.map(s => {
+        const displayName = `${s.SCHUL_NM} (${s.SCHUL_KND_SC_NM})`;
+        const saveName = s.SCHUL_NM; // NEIS 표준 학교명만 저장
+        return `
+          <div onclick="stuSelectSchool('${saveName.replace(/'/g, "\\'")}', '${displayName.replace(/'/g, "\\'")}')"
+            style="padding:9px 12px;font-size:12px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s"
+            onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+            <span style="font-weight:700">${s.SCHUL_NM}</span>
+            <span style="color:var(--text3);margin-left:6px;font-size:11px">${s.SCHUL_KND_SC_NM}</span>
+          </div>`;
+      }).join('');
+
+    } catch(e) {
+      dropdown.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--red)">검색 오류가 발생했습니다</div>';
+    }
+  }, 200);
+}
+
+function stuSelectSchool(saveName, displayName) {
+  document.getElementById('stu-school').value = displayName;
+  document.getElementById('stu-school-selected').value = saveName;
+  document.getElementById('stu-school-dropdown').style.display = 'none';
+}
+
+// 외부 클릭 시 드롭다운 닫기
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#stu-school') && !e.target.closest('#stu-school-dropdown')) {
+    const dd = document.getElementById('stu-school-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
 
 function stuGenPassword() {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -8840,13 +8942,24 @@ async function submitAddStudent() {
   const name = document.getElementById('stu-name').value.trim();
   const email = document.getElementById('stu-email').value.trim();
   const password = document.getElementById('stu-password').value.trim();
-  const school = document.getElementById('stu-school').value.trim();
+  const schoolInput = document.getElementById('stu-school').value.trim();
+  const schoolSelected = document.getElementById('stu-school-selected').value.trim();
   const grade = document.getElementById('stu-grade').value;
   const errEl = document.getElementById('stu-error');
 
   if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.style.display = 'block'; return; }
   if (!email) { errEl.textContent = '이메일을 입력해주세요'; errEl.style.display = 'block'; return; }
   if (!password || password.length < 8) { errEl.textContent = '비밀번호는 8자 이상이어야 합니다'; errEl.style.display = 'block'; return; }
+
+  // 학교 검증: 입력은 있는데 선택 안 한 경우
+  if (schoolInput && !schoolSelected) {
+    errEl.textContent = '학교를 검색해서 목록에서 선택해주세요';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // 저장할 학교명 (선택된 NEIS 표준명 또는 빈값)
+  const school = schoolSelected || '';
 
   errEl.style.display = 'none';
   const btn = document.querySelector('#addStudentModal .btn-primary');
