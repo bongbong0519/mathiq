@@ -15369,14 +15369,14 @@ async function loadAdminHomeTimeline() {
   // 최근 활동 10개: 신규 가입, 매칭 성사, 문제 등록
   const [{ data: users }, { data: matches }, { data: questions }] = await Promise.all([
     sbClient.from('profiles').select('id, name, role, created_at').order('created_at', { ascending: false }).limit(5),
-    sbClient.from('tutor_matches').select('id, created_at, tutor_id, tutee_id').order('created_at', { ascending: false }).limit(5),
-    sbClient.from('questions').select('id, created_at, source_exam').order('created_at', { ascending: false }).limit(5)
+    sbClient.from('tutor_matches').select('id, created_at, tutor_id, requester_id').order('created_at', { ascending: false }).limit(5),
+    sbClient.from('questions').select('id, created_at, title').order('created_at', { ascending: false }).limit(5)
   ]);
 
   const items = [];
   (users || []).forEach(u => items.push({ type: 'user', time: new Date(u.created_at), name: u.name, role: u.role }));
   (matches || []).forEach(m => items.push({ type: 'match', time: new Date(m.created_at) }));
-  (questions || []).forEach(q => items.push({ type: 'question', time: new Date(q.created_at), source: q.source_exam }));
+  (questions || []).forEach(q => items.push({ type: 'question', time: new Date(q.created_at), title: q.title }));
 
   items.sort((a, b) => b.time - a.time);
   const top10 = items.slice(0, 10);
@@ -15409,7 +15409,7 @@ async function loadAdminHomeTimeline() {
       return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="font-size:16px">📝</span>
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;color:var(--text)">문제 등록 ${item.source ? `(${item.source})` : ''}</div>
+          <div style="font-size:13px;color:var(--text)">문제 등록${item.title ? `: ${item.title.slice(0,20)}${item.title.length>20?'...':''}` : ''}</div>
           <div style="font-size:11px;color:var(--text3)">${ago}</div>
         </div>
       </div>`;
