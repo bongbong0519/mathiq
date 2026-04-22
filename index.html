@@ -2052,11 +2052,11 @@
 </div>
 
 <!-- 개인정보/이용약관 전문 모달 -->
-<div id="privacyModal" class="modal">
-  <div class="modal-content" style="max-width:600px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
+<div class="modal-overlay" id="privacyModal">
+  <div class="modal" style="max-width:600px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
     <div class="modal-header">
-      <h3 id="privacyModalTitle">개인정보 수집·이용 동의</h3>
-      <button class="modal-close" onclick="closeModal('privacyModal')">&times;</button>
+      <div class="modal-title" id="privacyModalTitle">개인정보 수집·이용 동의</div>
+      <button class="modal-close" onclick="closeModal('privacyModal')">✕</button>
     </div>
     <div id="privacyModalBody" style="flex:1;overflow-y:auto;padding:20px;font-size:13px;line-height:1.8;color:var(--text2)">
     </div>
@@ -2125,11 +2125,11 @@
 </div>
 
 <!-- 계정 탈퇴 모달 -->
-<div id="deleteAccountModal" class="modal">
-  <div class="modal-content" style="max-width:480px">
+<div class="modal-overlay" id="deleteAccountModal">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header" style="border-bottom-color:var(--red)">
-      <h3 style="color:var(--red)">계정 탈퇴 안내</h3>
-      <button class="modal-close" onclick="closeModal('deleteAccountModal')">&times;</button>
+      <div class="modal-title" style="color:var(--red)">계정 탈퇴 안내</div>
+      <button class="modal-close" onclick="closeModal('deleteAccountModal')">✕</button>
     </div>
     <div style="padding:20px">
       <div style="background:rgba(245,101,101,0.1);border:1px solid rgba(245,101,101,0.2);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px">
@@ -2164,11 +2164,11 @@
 </div>
 
 <!-- 운영자: 계정 복구 요청 관리 모달 -->
-<div id="recoveryRequestsModal" class="modal">
-  <div class="modal-content" style="max-width:700px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
+<div class="modal-overlay" id="recoveryRequestsModal">
+  <div class="modal" style="max-width:700px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
     <div class="modal-header">
-      <h3>계정 복구 요청 관리</h3>
-      <button class="modal-close" onclick="closeModal('recoveryRequestsModal')">&times;</button>
+      <div class="modal-title">계정 복구 요청 관리</div>
+      <button class="modal-close" onclick="closeModal('recoveryRequestsModal')">✕</button>
     </div>
     <div id="recovery-requests-list" style="flex:1;overflow-y:auto;padding:20px">
       <div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>
