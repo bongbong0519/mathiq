@@ -13592,6 +13592,12 @@ async function loadProfileView() {
     </div>`;
   }
 
+  // 포인트 추가 복구 요청 섹션 (조건: auto_50 복구 후 30일 이내, 이의제기 미신청)
+  const additionalRecoveryHtml = await checkAdditionalRecoveryEligibility();
+  if (additionalRecoveryHtml) {
+    html += additionalRecoveryHtml;
+  }
+
   // 계정 탈퇴 섹션 (모든 사용자)
   html += `
   <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
@@ -14236,7 +14242,7 @@ async function loadRecoveryRequests() {
     .select(`
       *,
       profiles:user_id(id, name, email),
-      account_deletions:deletion_id(snapshot_point_balance, deleted_at)
+      account_deletions:deletion_id(snapshot_point_balance, deleted_at, recovery_type, recovered_points)
     `)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
@@ -14253,11 +14259,27 @@ async function loadRecoveryRequests() {
     const createdAt = new Date(req.created_at).toLocaleDateString('ko-KR');
     const deletedAt = deletion.deleted_at ? new Date(deletion.deleted_at).toLocaleDateString('ko-KR') : '-';
 
+    // 추가 복구 요청인지 확인 (이미 auto_50으로 복구한 경우)
+    const isAdditionalRecovery = deletion.recovery_type === 'auto_50';
+    const snapshotPoints = deletion.snapshot_point_balance || 0;
+    const alreadyRecovered = deletion.recovered_points || 0;
+    const remainingPoints = isAdditionalRecovery ? (snapshotPoints - alreadyRecovered) : snapshotPoints;
+
+    const requestTypeLabel = isAdditionalRecovery
+      ? '<span style="background:#f59e0b;color:white;padding:2px 6px;border-radius:4px;font-size:11px;margin-left:8px">추가 복구</span>'
+      : '';
+
+    const pointsLabel = isAdditionalRecovery
+      ? `추가 복구 포인트: <strong style="color:var(--green)">${remainingPoints.toLocaleString()} pt (나머지 50%)</strong>`
+      : `복구 시 포인트: <strong style="color:var(--green)">${snapshotPoints.toLocaleString()} pt (100%)</strong>`;
+
+    const approveLabel = isAdditionalRecovery ? '승인 (+50%)' : '승인 (100%)';
+
     html += `
     <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div>
-          <div style="font-weight:700;color:var(--text)">${escapeHtml(profile.name || '알 수 없음')}</div>
+          <div style="font-weight:700;color:var(--text)">${escapeHtml(profile.name || '알 수 없음')}${requestTypeLabel}</div>
           <div style="font-size:12px;color:var(--text3)">${escapeHtml(profile.email || '')}</div>
         </div>
         <div style="text-align:right;font-size:12px;color:var(--text3)">
@@ -14271,11 +14293,11 @@ async function loadRecoveryRequests() {
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="font-size:13px;color:var(--text2)">
-          복구 시 포인트: <strong style="color:var(--green)">${(deletion.snapshot_point_balance || 0).toLocaleString()} pt (100%)</strong>
+          ${pointsLabel}
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-ghost btn-sm" onclick="rejectRecoveryRequest('${req.id}')" style="color:var(--red)">거절</button>
-          <button class="btn btn-primary btn-sm" onclick="approveRecoveryRequest('${req.id}', '${req.user_id}', ${deletion.snapshot_point_balance || 0}, '${req.deletion_id}')">승인 (100%)</button>
+          <button class="btn btn-primary btn-sm" onclick="approveRecoveryRequest('${req.id}', '${req.user_id}', ${remainingPoints}, '${req.deletion_id}', ${isAdditionalRecovery})">${approveLabel}</button>
         </div>
       </div>
     </div>`;
@@ -14285,26 +14307,58 @@ async function loadRecoveryRequests() {
 }
 
 // 운영자: 복구 승인
-async function approveRecoveryRequest(requestId, userId, points, deletionId) {
-  if (!confirm('이 요청을 승인하시겠습니까?\n포인트 100%가 복구됩니다.')) return;
+async function approveRecoveryRequest(requestId, userId, points, deletionId, isAdditional = false) {
+  const confirmMsg = isAdditional
+    ? `이 추가 복구 요청을 승인하시겠습니까?\n나머지 50% (${points.toLocaleString()}P)가 추가됩니다.`
+    : '이 요청을 승인하시겠습니까?\n포인트 100%가 복구됩니다.';
+  if (!confirm(confirmMsg)) return;
 
   try {
-    // 1. profiles 복구
-    const { error: profErr } = await sbClient.from('profiles').update({
-      deleted_at: null,
-      deletion_reason: null,
-      point_balance: points
-    }).eq('id', userId);
-    if (profErr) throw profErr;
+    if (isAdditional) {
+      // 추가 복구: 현재 포인트에 추가
+      const { data: profile, error: fetchErr } = await sbClient
+        .from('profiles')
+        .select('point_balance')
+        .eq('id', userId)
+        .single();
+      if (fetchErr) throw fetchErr;
 
-    // 2. account_deletions 업데이트
-    await sbClient.from('account_deletions').update({
-      recovered_at: new Date().toISOString(),
-      recovery_type: 'admin_100',
-      recovered_points: points
-    }).eq('id', deletionId);
+      const newBalance = (profile.point_balance || 0) + points;
+      const { error: profErr } = await sbClient.from('profiles').update({
+        point_balance: newBalance
+      }).eq('id', userId);
+      if (profErr) throw profErr;
 
-    // 3. recovery_requests 업데이트
+      // account_deletions: 복구 포인트 합산 업데이트
+      const { data: delData, error: delFetchErr } = await sbClient
+        .from('account_deletions')
+        .select('recovered_points')
+        .eq('id', deletionId)
+        .single();
+      if (delFetchErr) throw delFetchErr;
+
+      await sbClient.from('account_deletions').update({
+        recovery_type: 'admin_100', // 100% 복구로 변경
+        recovered_points: (delData.recovered_points || 0) + points
+      }).eq('id', deletionId);
+
+    } else {
+      // 전체 복구: 탈퇴 상태에서 복구
+      const { error: profErr } = await sbClient.from('profiles').update({
+        deleted_at: null,
+        deletion_reason: null,
+        point_balance: points
+      }).eq('id', userId);
+      if (profErr) throw profErr;
+
+      await sbClient.from('account_deletions').update({
+        recovered_at: new Date().toISOString(),
+        recovery_type: 'admin_100',
+        recovered_points: points
+      }).eq('id', deletionId);
+    }
+
+    // recovery_requests 업데이트
     await sbClient.from('recovery_requests').update({
       status: 'approved',
       reviewed_by: currentUser.id,
@@ -14339,6 +14393,98 @@ async function rejectRecoveryRequest(requestId) {
 
   } catch (e) {
     showToast('처리 실패: ' + e.message, '❌');
+  }
+}
+
+// 포인트 추가 복구 자격 확인 (auto_50 복구 후 30일 이내, 이의제기 미신청)
+async function checkAdditionalRecoveryEligibility() {
+  try {
+    // 1. auto_50 복구 기록 조회
+    const { data: deletions, error: delErr } = await sbClient
+      .from('account_deletions')
+      .select('id, recovered_at, snapshot_point_balance, recovered_points')
+      .eq('user_id', currentUser.id)
+      .eq('recovery_type', 'auto_50')
+      .not('recovered_at', 'is', null)
+      .order('recovered_at', { ascending: false })
+      .limit(1);
+
+    if (delErr || !deletions || deletions.length === 0) return null;
+
+    const deletion = deletions[0];
+    const recoveredAt = new Date(deletion.recovered_at);
+    const now = new Date();
+    const daysSinceRecovery = Math.floor((now - recoveredAt) / (1000 * 60 * 60 * 24));
+
+    // 30일 경과 시 자격 없음
+    if (daysSinceRecovery > 30) return null;
+
+    // 2. 이미 이의제기 신청했는지 확인
+    const { data: requests, error: reqErr } = await sbClient
+      .from('recovery_requests')
+      .select('id, status')
+      .eq('deletion_id', deletion.id)
+      .in('status', ['pending', 'approved']);
+
+    if (reqErr) return null;
+    if (requests && requests.length > 0) {
+      // 이미 신청했거나 승인됨
+      const pending = requests.find(r => r.status === 'pending');
+      if (pending) {
+        return `
+          <div class="card" style="margin-top: 20px; border-left: 4px solid #f59e0b;">
+            <h3>📋 포인트 추가 복구 요청</h3>
+            <p style="color: #f59e0b;">이미 이의제기 신청 중입니다. 운영자 검토를 기다려주세요.</p>
+          </div>
+        `;
+      }
+      return null; // 이미 승인됨
+    }
+
+    // 3. 추가 복구 가능한 포인트 계산
+    const remainingPoints = deletion.snapshot_point_balance - deletion.recovered_points;
+    if (remainingPoints <= 0) return null;
+
+    const daysLeft = 30 - daysSinceRecovery;
+
+    return `
+      <div class="card" style="margin-top: 20px; border-left: 4px solid #10b981;">
+        <h3>💰 포인트 추가 복구 요청</h3>
+        <p>자동 복구 시 50%만 복구되었습니다. 나머지 <strong>${remainingPoints.toLocaleString()}P</strong>를 이의제기를 통해 복구할 수 있습니다.</p>
+        <p style="color: #6b7280; font-size: 0.9em;">⏰ 남은 기간: ${daysLeft}일 (복구일로부터 30일 이내 신청 가능)</p>
+        <textarea id="additional-recovery-reason" placeholder="추가 복구 요청 사유를 입력하세요 (선택)"
+          style="width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 8px; min-height: 80px;"></textarea>
+        <button class="btn btn-primary" onclick="submitAdditionalRecoveryRequest('${deletion.id}', ${remainingPoints})">
+          추가 복구 요청하기
+        </button>
+      </div>
+    `;
+
+  } catch (e) {
+    console.error('checkAdditionalRecoveryEligibility error:', e);
+    return null;
+  }
+}
+
+// 포인트 추가 복구 요청 제출
+async function submitAdditionalRecoveryRequest(deletionId, remainingPoints) {
+  const reason = document.getElementById('additional-recovery-reason')?.value?.trim() || '';
+
+  try {
+    const { error } = await sbClient.from('recovery_requests').insert({
+      deletion_id: deletionId,
+      user_id: currentUser.id,
+      message: reason || `자동 복구(50%) 후 나머지 ${remainingPoints.toLocaleString()}P 추가 복구 요청`,
+      status: 'pending'
+    });
+
+    if (error) throw error;
+
+    showToast('추가 복구 요청이 접수되었습니다', '✅');
+    loadProfileView(); // 새로고침하여 상태 반영
+
+  } catch (e) {
+    showToast('요청 실패: ' + e.message, '❌');
   }
 }
 
