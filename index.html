@@ -14124,44 +14124,34 @@ function closeDeletedAccountOverlay() {
   showLanding();
 }
 
-// 계정 복구 (50%)
+// 계정 복구 (50%) - RPC 함수 사용
 async function recoverAccount() {
-  if (!_deletionSnapshot || !currentUser) return;
+  if (!currentUser) return;
 
   const btn = document.getElementById('recoveryBtn');
   btn.disabled = true;
   btn.textContent = '복구 중...';
 
   try {
-    const pointsToRecover = Math.floor((_deletionSnapshot.snapshot_point_balance || 0) * 0.5);
+    // RPC 함수 호출 (profiles + account_deletions 원자적 업데이트)
+    const { data, error } = await sbClient.rpc('process_account_recovery', {
+      p_user_id: currentUser.id
+    });
 
-    // 1. profiles.deleted_at = NULL, 포인트 복구
-    const { error: profileErr } = await sbClient.from('profiles')
-      .update({
-        deleted_at: null,
-        deletion_reason: null,
-        point_balance: pointsToRecover
-      })
-      .eq('id', currentUser.id);
+    if (error) throw error;
 
-    if (profileErr) throw profileErr;
+    // RPC 함수 내부 에러 체크
+    if (!data.success) {
+      throw new Error(data.error || '복구 처리 중 오류가 발생했습니다');
+    }
 
-    // 2. account_deletions 업데이트
-    await sbClient.from('account_deletions')
-      .update({
-        recovered_at: new Date().toISOString(),
-        recovery_type: 'auto_50',
-        recovered_points: pointsToRecover
-      })
-      .eq('id', _deletionSnapshot.id);
-
-    // 3. 복구 완료
+    // 복구 완료
     document.getElementById('deletedAccountOverlay').style.display = 'none';
     _deletionSnapshot = null;
 
     // 프로필 다시 로드
     await loadProfile(true);
-    showToast(`계정이 복구되었습니다. ${pointsToRecover.toLocaleString()} pt가 반환되었습니다.`, '✅');
+    showToast(`계정이 복구되었습니다. ${(data.recovered_points || 0).toLocaleString()} pt가 반환되었습니다.`, '✅');
 
   } catch (e) {
     console.error('Recovery error:', e);
