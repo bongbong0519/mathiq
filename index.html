@@ -9961,11 +9961,19 @@ async function sgExportPDF() {
 
   html += '</body></html>';
 
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 600);
+  // iframe + srcdoc 방식 (Chrome 팝업 차단 우회)
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(iframe);
+  iframe.onload = () => {
+    setTimeout(() => {
+      const w = iframe.contentWindow;
+      w.focus(); w.print();
+      w.addEventListener?.('afterprint', () => iframe.remove(), { once: true });
+      setTimeout(() => iframe.remove(), 60000);
+    }, 600);
+  };
+  iframe.srcdoc = html;
   showToast('인쇄 창에서 "PDF로 저장"을 선택하세요!', '📄');
 }
 
