@@ -2378,6 +2378,10 @@
         <div class="nav-item" onclick="showView('admin-students')">
           <span class="icon">👥</span> 전체 학생
         </div>
+        <div class="nav-item" onclick="showView('admin-recovery')">
+          <span class="icon">🔄</span> 계정 복구 요청
+          <span id="recovery-pending-badge" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--yellow);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
+        </div>
         <div class="nav-item" onclick="showView('admin-question-bank')">
           <span class="icon">🗄️</span> 문제 승인 관리
           <span id="qb-pending-badge" style="display:none;min-width:18px;height:18px;border-radius:9px;background:var(--yellow);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;padding:0 4px;margin-left:auto;flex-shrink:0"></span>
@@ -4587,6 +4591,29 @@
         <div id="admin-students-wrap">
           <div class="empty-state" style="padding:40px">
             <div class="empty-state-icon">👥</div>
+            <div class="empty-state-text">불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: ADMIN RECOVERY ══ -->
+    <div id="view-admin-recovery" class="view">
+      <div class="page-header">
+        <div><div class="page-title">계정 복구 요청</div><div class="page-sub">탈퇴 계정 복구 및 이의제기 처리</div></div>
+      </div>
+
+      <div class="tab-nav" style="display:flex;flex-wrap:wrap;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;width:fit-content">
+        <button class="tab-btn" data-filter="all" onclick="switchRecoveryFilter(this,'all')">전체</button>
+        <button class="tab-btn active" data-filter="pending" onclick="switchRecoveryFilter(this,'pending')">대기중</button>
+        <button class="tab-btn" data-filter="approved" onclick="switchRecoveryFilter(this,'approved')">승인됨</button>
+        <button class="tab-btn" data-filter="rejected" onclick="switchRecoveryFilter(this,'rejected')">거절됨</button>
+      </div>
+
+      <div class="card">
+        <div id="admin-recovery-wrap">
+          <div class="empty-state" style="padding:40px">
+            <div class="empty-state-icon">🔄</div>
             <div class="empty-state-text">불러오는 중...</div>
           </div>
         </div>
@@ -7188,6 +7215,7 @@ function showView(viewId) {
         if (viewId === 'director-students') loadDirectorStudents().catch(() => {});
         if (viewId === 'admin-teachers') loadAdminTeachers().catch(() => {});
         if (viewId === 'admin-students') loadAdminStudents().catch(() => {});
+        if (viewId === 'admin-recovery') loadAdminRecoveryView().catch(() => {});
         if (viewId === 'tutor-profile')  loadTutorProfile().catch(() => {});
         if (viewId === 'student-search') loadStudentSearch().catch(() => {});
         if (viewId === 'student-exams')  loadStudentExams().catch(() => {});
@@ -14379,6 +14407,10 @@ async function approveRecoveryRequest(requestId, userId, points, deletionId, isA
     showToast('복구가 승인되었습니다', '✅');
     loadRecoveryRequests();
     loadAdminHome();
+    // 계정 복구 요청 뷰도 새로고침 (열려있는 경우)
+    if (document.getElementById('view-admin-recovery')?.style.display !== 'none') {
+      loadAdminRecoveryView();
+    }
 
   } catch (e) {
     showToast('처리 실패: ' + e.message, '❌');
@@ -14401,9 +14433,164 @@ async function rejectRecoveryRequest(requestId) {
     showToast('요청이 거절되었습니다', '✅');
     loadRecoveryRequests();
     loadAdminHome();
+    // 계정 복구 요청 뷰도 새로고침 (열려있는 경우)
+    if (document.getElementById('view-admin-recovery')?.style.display !== 'none') {
+      loadAdminRecoveryView();
+    }
 
   } catch (e) {
     showToast('처리 실패: ' + e.message, '❌');
+  }
+}
+
+// ═══════════════════════════════════════
+//  계정 복구 요청 전용 뷰
+// ═══════════════════════════════════════
+
+let _recoveryFilter = 'pending'; // 기본 필터: 대기중
+
+async function loadAdminRecoveryView() {
+  if (!sbClient || !currentUser) return;
+  const wrap = document.getElementById('admin-recovery-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">불러오는 중...</div></div>';
+
+  // 필터에 따른 쿼리
+  let query = sbClient.from('recovery_requests')
+    .select(`
+      *,
+      profiles:user_id(id, name, email),
+      account_deletions:deletion_id(snapshot_point_balance, deleted_at, recovery_type, recovered_points)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (_recoveryFilter !== 'all') {
+    query = query.eq('status', _recoveryFilter);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-text">오류: ${error.message}</div></div>`;
+    return;
+  }
+
+  // 사이드바 배지 업데이트
+  updateRecoveryBadge();
+
+  if (!data?.length) {
+    const emptyMsg = {
+      all: '복구 요청이 없습니다',
+      pending: '대기 중인 복구 요청이 없습니다',
+      approved: '승인된 복구 요청이 없습니다',
+      rejected: '거절된 복구 요청이 없습니다'
+    }[_recoveryFilter];
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-icon">✅</div><div class="empty-state-text">${emptyMsg}</div></div>`;
+    return;
+  }
+
+  const statusKo = { pending: '대기중', approved: '승인됨', rejected: '거절됨' };
+  const statusColor = { pending: 'var(--yellow)', approved: 'var(--green)', rejected: 'var(--red)' };
+
+  let html = `
+    <div style="font-size:13px;color:var(--text3);margin-bottom:14px">총 ${data.length}건</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>요청일</th><th>사용자</th><th>탈퇴일</th><th>복구 타입</th><th>이의제기 사유</th><th>상태</th><th>액션</th>
+        </tr></thead>
+        <tbody>
+  `;
+
+  data.forEach(req => {
+    const profile = req.profiles || {};
+    const deletion = req.account_deletions || {};
+    const createdAt = new Date(req.created_at).toLocaleDateString('ko-KR');
+    const deletedAt = deletion.deleted_at ? new Date(deletion.deleted_at).toLocaleDateString('ko-KR') : '—';
+
+    const isAdditionalRecovery = deletion.recovery_type === 'auto_50';
+    const recoveryTypeLabel = isAdditionalRecovery ? '추가 복구 (50%)' : '전체 복구 (100%)';
+    const snapshotPoints = deletion.snapshot_point_balance || 0;
+    const alreadyRecovered = deletion.recovered_points || 0;
+    const remainingPoints = isAdditionalRecovery ? (snapshotPoints - alreadyRecovered) : snapshotPoints;
+
+    const reasonShort = (req.message || '').length > 30
+      ? req.message.slice(0, 30) + '...'
+      : (req.message || '(없음)');
+
+    let actionHtml = '';
+    if (req.status === 'pending') {
+      actionHtml = `
+        <button class="btn btn-primary btn-xs" onclick="openRecoveryDetailModal('${req.id}', '${req.user_id}', ${remainingPoints}, '${req.deletion_id}', ${isAdditionalRecovery})">검토하기</button>
+      `;
+    } else if (req.status === 'approved') {
+      actionHtml = `<span style="color:var(--text3);font-size:12px">처리 완료</span>`;
+    } else {
+      actionHtml = `<span style="color:var(--text3);font-size:12px">${req.review_note ? '사유: ' + (req.review_note.length > 15 ? req.review_note.slice(0,15)+'...' : req.review_note) : '처리됨'}</span>`;
+    }
+
+    html += `
+      <tr>
+        <td class="text-sm">${createdAt}</td>
+        <td>
+          <div class="font-bold">${escapeHtml(profile.name || '알 수 없음')}</div>
+          <div class="text-muted text-xs">${escapeHtml(profile.email || '')}</div>
+        </td>
+        <td class="text-sm text-muted">${deletedAt}</td>
+        <td><span style="font-size:12px;padding:2px 6px;border-radius:4px;background:${isAdditionalRecovery ? '#fef3c7' : '#dbeafe'};color:${isAdditionalRecovery ? '#92400e' : '#1e40af'}">${recoveryTypeLabel}</span></td>
+        <td class="text-sm" title="${escapeHtml(req.message || '')}">${escapeHtml(reasonShort)}</td>
+        <td><span style="font-size:12px;font-weight:600;color:${statusColor[req.status]}">${statusKo[req.status]}</span></td>
+        <td>${actionHtml}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+function switchRecoveryFilter(btn, filter) {
+  _recoveryFilter = filter;
+  // 탭 버튼 활성화 상태 변경
+  document.querySelectorAll('#view-admin-recovery .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadAdminRecoveryView();
+}
+
+// 검토 상세 모달 (기존 모달 UI 재활용)
+function openRecoveryDetailModal(requestId, userId, points, deletionId, isAdditional) {
+  const confirmMsg = isAdditional
+    ? `추가 복구 요청을 승인하시겠습니까?\n나머지 50% (${points.toLocaleString()}P)가 추가됩니다.`
+    : `복구 요청을 승인하시겠습니까?\n포인트 100% (${points.toLocaleString()}P)가 복구됩니다.`;
+
+  const action = confirm(confirmMsg);
+  if (action) {
+    approveRecoveryRequest(requestId, userId, points, deletionId, isAdditional);
+  } else {
+    // 거절 여부 확인
+    if (confirm('이 요청을 거절하시겠습니까?')) {
+      rejectRecoveryRequest(requestId);
+    }
+  }
+}
+
+// 사이드바 배지 업데이트
+async function updateRecoveryBadge() {
+  if (!sbClient) return;
+  const { count } = await sbClient
+    .from('recovery_requests')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+
+  const badge = document.getElementById('recovery-pending-badge');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 }
 
@@ -16387,8 +16574,12 @@ async function checkPendingBadge() {
 let _pendingBadgeTimer = null;
 function startPendingBadgePolling() {
   checkPendingBadge();
+  updateRecoveryBadge();
   clearInterval(_pendingBadgeTimer);
-  _pendingBadgeTimer = setInterval(checkPendingBadge, 60000); // 1분마다
+  _pendingBadgeTimer = setInterval(() => {
+    checkPendingBadge();
+    updateRecoveryBadge();
+  }, 60000); // 1분마다
 }
 function stopPendingBadgePolling() {
   clearInterval(_pendingBadgeTimer);
