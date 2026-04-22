@@ -11353,7 +11353,7 @@ async function loadDirectorTeachers() {
 async function loadDirectorStudents() {
   if (!sbClient || !currentUser || !currentProfile) return;
   const orgId = getMyOrgId();
-  let query = sbClient.from('profiles').select('id, name').eq('role', 'teacher').eq('status', 'approved');
+  let query = sbClient.from('profiles').select('id, name').eq('role', 'teacher');
   if (orgId) query = query.eq('organization_id', orgId);
   else query = query.eq('school', currentProfile.school);
   const { data: teacherList } = await query;
@@ -15182,12 +15182,17 @@ async function loadAdminPendingTab() {
   if (!sbClient || !currentUser) return;
   const wrap = document.getElementById('admin-pending-wrap');
   if (!wrap) return;
+  // 선생님 인증 시스템 미구현 - 빈 상태 표시
+  wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">🚧</div><div class="empty-state-text">선생님 인증 시스템은 준비 중입니다</div></div>';
+  return;
+  /* 선생님 인증 시스템 구현 후 활성화
   const { data, error } = await sbClient
     .from('profiles')
     .select('*, organizations(name)')
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
   if (error) { wrap.innerHTML = `<div class="empty-state" style="padding:30px"><div class="empty-state-text">오류: ${error.message}</div></div>`; return; }
+  */
   if (!data?.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">✅</div><div class="empty-state-text">승인 대기 중인 회원이 없습니다</div></div>';
     return;
@@ -15227,9 +15232,7 @@ async function loadAdminHome() {
       { count: totalMatches },
       { count: todayMatches },
       { data: pointData },
-      { count: pendingTeachers },
       { count: pendingQuestions },
-      { count: activeUsers24h },
       { count: pendingInquiries },
       { count: unresolvedBugs },
       { count: pendingRecovery }
@@ -15241,13 +15244,16 @@ async function loadAdminHome() {
       sbClient.from('tutor_matches').select('*', { count: 'exact', head: true }),
       sbClient.from('tutor_matches').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
       sbClient.from('profiles').select('point_balance'),
-      sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending').in('role', ['teacher', 'director']),
       sbClient.from('questions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      sbClient.from('profiles').select('*', { count: 'exact', head: true }).gte('last_login', day24h),
       sbClient.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', 'open'),
       sbClient.from('feedback_posts').select('*', { count: 'exact', head: true }).eq('category', 'bug').eq('is_resolved', false),
       sbClient.from('recovery_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
     ]);
+
+    // 선생님 인증 시스템 미구현 - 0으로 설정
+    const pendingTeachers = 0;
+    // 활성 사용자(24h)는 last_login 컬럼 없음 - 오늘 가입자 수로 대체 표시
+    const activeUsers24h = todayUsers || 0;
 
     // 포인트 합계 계산
     const totalPoints = (pointData || []).reduce((sum, p) => sum + (p.point_balance || 0), 0);
@@ -16349,12 +16355,9 @@ async function loadAdminTeachers() {
 
 async function checkPendingBadge() {
   if (!sbClient || currentProfile?.role !== 'admin') return;
-  const [{ count: memberCount }, { count: orgCount }] = await Promise.all([
-    sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    sbClient.from('organizations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-  ]);
-  const mc = memberCount || 0;
-  const oc = orgCount || 0;
+  // 선생님/기관 인증 시스템 미구현 - 0으로 설정
+  const mc = 0;
+  const oc = 0;
   const navBadge = document.getElementById('pending-badge');
   if (navBadge) navBadge.style.display = (mc + oc > 0) ? '' : 'none';
   const orgBadge = document.getElementById('org-pending-badge');
@@ -16666,7 +16669,7 @@ async function rejectOrg(orgId, ownerId) {
 async function openAdminStudentModal(teacherId, teacherName) {
   const [{ data: students }, { data: allTeachers }] = await Promise.all([
     sbClient.from('students').select('*').eq('teacher_id', teacherId).order('name'),
-    sbClient.from('profiles').select('id, name, school').eq('role', 'teacher').eq('status', 'approved')
+    sbClient.from('profiles').select('id, name, school').eq('role', 'teacher')
   ]);
 
   const modal = document.getElementById('createExamModal');
