@@ -14190,44 +14190,29 @@ async function confirmDeleteAccount() {
   const reason = document.getElementById('deletion-reason').value.trim();
 
   try {
-    // 1. account_deletions에 스냅샷 저장
-    const { error: snapErr } = await sbClient.from('account_deletions').insert({
-      user_id: currentUser.id,
-      snapshot_point_balance: currentProfile.point_balance || 0,
-      snapshot_cash_balance: currentProfile.cash_balance || 0,
-      reason: reason || null
+    // RPC 함수로 원자적 처리 (RLS 우회, 트랜잭션 보장)
+    const { data, error } = await sbClient.rpc('process_account_deletion', {
+      p_user_id: currentUser.id,
+      p_reason: reason || null
     });
-    if (snapErr) throw snapErr;
 
-    // 2. 학생-강사 관계 해제 (teacher_id를 NULL로)
-    if (['teacher', 'director', 'expert'].includes(currentProfile.role)) {
-      await sbClient.from('students')
-        .update({ teacher_id: null })
-        .eq('teacher_id', currentUser.id);
+    if (error) throw error;
+
+    // RPC 함수 내부 에러 체크
+    if (!data.success) {
+      throw new Error(data.error || '탈퇴 처리 중 오류가 발생했습니다');
     }
 
-    // 3. 학원 소속 관계 해제 (organization_id를 NULL로)
-    if (currentProfile.organization_id) {
-      await sbClient.from('profiles')
-        .update({ organization_id: null })
-        .eq('id', currentUser.id);
-    }
-
-    // 4. profiles 업데이트 (탈퇴 처리)
-    const { error: profErr } = await sbClient.from('profiles').update({
-      deleted_at: new Date().toISOString(),
-      deletion_reason: reason || null,
-      point_balance: 0
-    }).eq('id', currentUser.id);
-    if (profErr) throw profErr;
-
-    // 5. 로그아웃
+    // 성공 - 로그아웃
     closeModal('deleteAccountModal');
     await sbClient.auth.signOut();
     currentUser = null;
     currentProfile = null;
 
-    alert('계정이 탈퇴 처리되었습니다.\n30일 이내 로그인하시면 복구하실 수 있습니다.');
+    const studentMsg = data.students_released > 0
+      ? `\n(담당 학생 ${data.students_released}명의 연결이 해제되었습니다)`
+      : '';
+    alert(`계정이 탈퇴 처리되었습니다.${studentMsg}\n30일 이내 로그인하시면 복구하실 수 있습니다.`);
     showLanding();
 
   } catch (e) {
