@@ -6814,10 +6814,15 @@ function updateBalanceDisplay(points, cash) {
 
 function updateTierBadge(tier) {
   tier = tier || 'campus';
-  const label = TIER_LABEL_KO[tier] || tier;
-  const color = TIER_COLOR[tier] || '#888';
 
-  // 상단 topbar 배지
+  // 운영자(admin/staff)는 티어 대신 역할로 표시
+  const role = currentProfile?.role;
+  const isAdmin = role === 'admin' || role === 'staff';
+  const displayKey = isAdmin ? role : tier;
+  const label = TIER_LABEL_KO[displayKey] || TIER_LABEL_KO[tier] || tier;
+  const color = TIER_COLOR[displayKey] || TIER_COLOR[tier] || '#888';
+
+  // 상단 topbar 배지만 표시 (사이드바는 제거)
   const topEl = document.getElementById('topbarTier');
   if (topEl) {
     topEl.textContent = '★ ' + label;
@@ -6827,13 +6832,9 @@ function updateTierBadge(tier) {
     topEl.style.display = '';
   }
 
-  // 사이드바 티어 표시
+  // 사이드바 티어 표시 숨김
   const sideEl = document.getElementById('sidebarTier');
-  if (sideEl) {
-    sideEl.textContent = '★ ' + label;
-    sideEl.style.color = color;
-    sideEl.style.display = '';
-  }
+  if (sideEl) sideEl.style.display = 'none';
 
   if (currentProfile) currentProfile.subscription_tier = tier;
 
@@ -11877,8 +11878,8 @@ const OPEN_EVENT = true;
 const TIER_ORDER       = ['campus', 'basic', 'standard', 'premium', 'pro'];
 const TIER_AI_LIMIT    = { campus: 5, basic: 10, standard: 30, premium: 100, pro: 300 };
 const TIER_STUDENT_LIMIT = { campus: 3, basic: 20, standard: 50, premium: 100, pro: 999 };
-const TIER_LABEL_KO    = { campus: '캠퍼스', basic: '베이직', standard: '스탠다드', premium: '프리미엄', pro: '프로' };
-const TIER_COLOR       = { campus: '#888', basic: '#4c9be8', standard: '#3ecf8e', premium: 'var(--accent)', pro: '#9b59b6' };
+const TIER_LABEL_KO    = { admin: '대표운영자', staff: '운영진', campus: '캠퍼스 (무료)', basic: '베이직', standard: '스탠다드', premium: '프리미엄', pro: '프로' };
+const TIER_COLOR       = { admin: '#FF6B6B', staff: '#FF6B6B', campus: '#888', basic: '#4c9be8', standard: '#3ecf8e', premium: '#D4AF37', pro: '#9b59b6' };
 
 // 티어 비교 함수 (OPEN_EVENT와 무관하게 항상 적용)
 function tierAtLeast(current, required) {
@@ -11901,7 +11902,7 @@ function showTierLockModal(requiredTier) {
   if (!modal) return;
   const requiredLabel = TIER_LABEL_KO[requiredTier] || requiredTier;
   const currentTier = currentProfile?.subscription_tier || 'campus';
-  const currentLabel = TIER_LABEL_KO[currentTier] || '캠퍼스';
+  const currentLabel = TIER_LABEL_KO[currentTier] || '캠퍼스 (무료)';
 
   const titleEl = document.getElementById('tierLockTitle');
   const descEl = document.getElementById('tierLockDesc');
@@ -11910,7 +11911,7 @@ function showTierLockModal(requiredTier) {
   if (titleEl) titleEl.textContent = requiredLabel + ' 전용 기능';
   if (descEl) descEl.innerHTML = `이 기능은 <strong>${requiredLabel}</strong> 이상 구독자만 사용할 수 있습니다.`;
   if (currentEl) {
-    currentEl.textContent = currentLabel + (currentTier === 'campus' ? ' (무료)' : '');
+    currentEl.textContent = currentLabel;
     currentEl.style.color = TIER_COLOR[currentTier] || '#888';
   }
   modal.style.display = 'flex';
