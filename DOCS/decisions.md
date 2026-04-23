@@ -16,6 +16,8 @@
 - `getPaymentStatus(student, thisMonthIncome, today)` — 수금 상태 판정 (paid/upcoming/due_soon/overdue)
 - `getThisMonthPaymentDate(student, today)` — 이번 달 결제일 반환 (monthly 전용)
 - `renderPaymentCollectionStatus()` — 이번 달 수금 현황 섹션 렌더
+- `loadMonthlyTrend(months)` — 월별 수입/지출/순이익 집계 (accounting_income + accounting_expense GROUP BY month_year)
+- `renderMonthlyTrendChart(data)` — Chart.js 혼합 차트(막대+선) 렌더
 
 > **2026-04-24 버그 수정**: getNextPaymentDate는 "다음" 결제일을 반환하므로 결제일 지난 학생이 다음 달로 넘어감.
 > 수금 현황에서는 getThisMonthPaymentDate로 "이번 달" 결제일을 계산하도록 수정.
@@ -65,6 +67,11 @@
 - **파이포인트 ≠ 파이캐쉬** — 포인트는 비환급, 캐쉬는 환급 가능
 - **구독 티어**: `campus`(무료) / `basic` / `standard` / `premium` / `pro`
 - **OPEN_EVENT 플래그는 자료실 포인트 보너스에만 영향** — 티어 기능제한은 항상 유효
+
+### Chart.js 인스턴스 관리 (2026-04-24)
+- 전역 변수 패턴: `_chartName` (예: `_monthlyTrendChart`)
+- 재렌더링 시 `destroy()` 먼저 호출 후 새 인스턴스 생성
+- 기존 차트: `_accIncomePieChart`, `_accExpensePieChart`, `_monthlyTrendChart`
 
 ## 🏛 비즈니스 모델 고정값
 

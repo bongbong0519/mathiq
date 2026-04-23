@@ -15401,10 +15401,17 @@ async function renderAccReport() {
   // 카테고리 분석 섹션 추가 (공통)
   wrap.innerHTML += renderCategoryAnalysis();
 
+  // 월별 추이 데이터 로드 및 섹션 추가
+  const trendData = await loadMonthlyTrend(12);
+  wrap.innerHTML += renderMonthlyTrendSection(trendData);
+
   // 차트 렌더링 (DOM 업데이트 후)
   setTimeout(() => {
     renderIncomePieChart();
     renderExpensePieChart();
+    if (trendData.some(d => d.income > 0 || d.expense > 0)) {
+      renderMonthlyTrendChart(trendData);
+    }
   }, 100);
 }
 
@@ -15618,6 +15625,194 @@ function renderExpensePieChart() {
       <span style="color:var(--text3)">${pct}%</span>
     </div>`;
   }).join('');
+}
+
+// ── 월별 추이 차트 (최근 12개월) ──
+let _monthlyTrendChart = null;
+
+async function loadMonthlyTrend(months = 12) {
+  if (!sbClient || !currentUser) return [];
+
+  const teacherId = currentUser.id;
+  const today = new Date();
+
+  // 최근 12개월 라벨 생성 (현재 달 포함)
+  const monthLabels = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    monthLabels.push(`${yyyy}-${mm}`);
+  }
+
+  // 수입 조회
+  const { data: incomeData, error: incomeErr } = await sbClient.from('accounting_income')
+    .select('month_year, amount')
+    .eq('teacher_id', teacherId)
+    .in('month_year', monthLabels);
+  if (incomeErr) console.error('[회계] 월별 수입 조회 오류:', incomeErr.message);
+
+  // 지출 조회
+  const { data: expenseData, error: expenseErr } = await sbClient.from('accounting_expense')
+    .select('month_year, amount')
+    .eq('teacher_id', teacherId)
+    .in('month_year', monthLabels);
+  if (expenseErr) console.error('[회계] 월별 지출 조회 오류:', expenseErr.message);
+
+  // 월별 집계
+  const incomeByMonth = {};
+  const expenseByMonth = {};
+
+  (incomeData || []).forEach(r => {
+    incomeByMonth[r.month_year] = (incomeByMonth[r.month_year] || 0) + (r.amount || 0);
+  });
+
+  (expenseData || []).forEach(r => {
+    expenseByMonth[r.month_year] = (expenseByMonth[r.month_year] || 0) + (r.amount || 0);
+  });
+
+  // 결과 생성 (빈 달은 0)
+  return monthLabels.map(monthYear => {
+    const income = incomeByMonth[monthYear] || 0;
+    const expense = expenseByMonth[monthYear] || 0;
+    return {
+      monthYear,
+      income,
+      expense,
+      profit: income - expense
+    };
+  });
+}
+
+function renderMonthlyTrendChart(data) {
+  const canvas = document.getElementById('acc-monthly-trend-chart');
+  if (!canvas) return;
+
+  const labels = data.map(d => d.monthYear.slice(5) + '월'); // 'MM월' 형식
+  const incomeData = data.map(d => d.income);
+  const expenseData = data.map(d => d.expense);
+  const profitData = data.map(d => d.profit);
+
+  // 이전 차트 파괴
+  if (_monthlyTrendChart) _monthlyTrendChart.destroy();
+
+  _monthlyTrendChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '수입',
+          data: incomeData,
+          backgroundColor: 'rgba(34, 197, 94, 0.7)',
+          borderColor: '#22C55E',
+          borderWidth: 1,
+          order: 2
+        },
+        {
+          label: '지출',
+          data: expenseData,
+          backgroundColor: 'rgba(239, 68, 68, 0.7)',
+          borderColor: '#EF4444',
+          borderWidth: 1,
+          order: 3
+        },
+        {
+          label: '순이익',
+          data: profitData,
+          type: 'line',
+          borderColor: '#3B82F6',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.3,
+          pointBackgroundColor: '#3B82F6',
+          pointRadius: 3,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+              if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k';
+              return value;
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 16
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ': ' + context.raw.toLocaleString() + '원';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderMonthlyTrendSection(data) {
+  const hasData = data.some(d => d.income > 0 || d.expense > 0);
+
+  // 평균 계산 (0 포함)
+  const avgIncome = Math.round(data.reduce((s, d) => s + d.income, 0) / data.length);
+  const avgExpense = Math.round(data.reduce((s, d) => s + d.expense, 0) / data.length);
+  const avgProfit = avgIncome - avgExpense;
+
+  if (!hasData) {
+    return `
+      <div class="acc-card" style="margin-top:20px">
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📈 월별 추이 (최근 12개월)</div>
+        <div style="padding:40px;text-align:center;color:var(--text3)">
+          <div style="font-size:24px;margin-bottom:8px">📭</div>
+          <div style="font-size:13px">아직 표시할 데이터가 없습니다.<br>수입/지출이 등록되면 추이가 표시됩니다.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="acc-card" style="margin-top:20px">
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📈 월별 추이 (최근 12개월)</div>
+      <div style="position:relative;height:320px;margin-bottom:20px">
+        <canvas id="acc-monthly-trend-chart"></canvas>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="text-align:center">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">평균 수입</div>
+          <div style="font-size:16px;font-weight:700;color:var(--green)">${avgIncome.toLocaleString()}원</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">평균 지출</div>
+          <div style="font-size:16px;font-weight:700;color:var(--red)">${avgExpense.toLocaleString()}원</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">평균 순이익</div>
+          <div style="font-size:16px;font-weight:700;color:${avgProfit >= 0 ? 'var(--green)' : 'var(--red)'}">${avgProfit >= 0 ? '+' : ''}${avgProfit.toLocaleString()}원</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ── 리포트 다운로드 ──
