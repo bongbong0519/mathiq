@@ -38,6 +38,9 @@
 
 누진세율표 기준: 2024년 (1,400만/5천만/8,800만/1.5억/3억/5억/10억 구간)
 
+> **2026-04-24 구현 완료**: `calculateTax(totalIncome, reportType, businessType)` 함수로 분리.
+> 하위 함수: `calculateTaxFreelancer`, `calculateTaxBusiness`, `calculateTaxOther`, `calculateProgressiveTax`
+
 ## 🧭 관례 / 컨벤션
 
 - **모든 쿼리는 teacher_id 필터 필수** (RLS 우회 루트 만들지 말 것)
