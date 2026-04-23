@@ -14276,37 +14276,43 @@ function switchAccTab(tab) {
 async function loadAccData() {
   if (!sbClient || !currentUser || !_accMonth) return;
 
-  const [year, month] = _accMonth.split('-').map(Number);
-  const startDate = `${_accMonth}-01`;
-  const endDate = new Date(year, month, 0).toISOString().slice(0, 10);
+  const teacherId = currentUser.id;
 
-  // 수입 로드
-  const { data: incomeData } = await sbClient.from('accounting_income')
+  // 수입 로드 (RLS + 명시적 teacher_id 필터)
+  const { data: incomeData, error: incomeErr } = await sbClient.from('accounting_income')
     .select('*')
+    .eq('teacher_id', teacherId)
     .eq('month_year', _accMonth)
     .order('payment_date', { ascending: false });
+  if (incomeErr) console.error('[회계] 수입 조회 오류:', incomeErr.message);
   _accData.income = incomeData || [];
 
   // 지출 로드 (교습소/학원)
   if (_accBusinessType !== 'tutoring') {
-    const { data: expenseData } = await sbClient.from('accounting_expense')
+    const { data: expenseData, error: expenseErr } = await sbClient.from('accounting_expense')
       .select('*')
+      .eq('teacher_id', teacherId)
       .eq('month_year', _accMonth)
       .order('expense_date', { ascending: false });
+    if (expenseErr) console.error('[회계] 지출 조회 오류:', expenseErr.message);
     _accData.expense = expenseData || [];
   }
 
   // 강사/급여 로드 (학원)
   if (_accBusinessType === 'academy') {
-    const { data: staffData } = await sbClient.from('academy_staff')
+    const { data: staffData, error: staffErr } = await sbClient.from('academy_staff')
       .select('*')
+      .eq('owner_id', teacherId)
       .eq('is_active', true)
       .order('staff_name');
+    if (staffErr) console.error('[회계] 강사 조회 오류:', staffErr.message);
     _accData.staff = staffData || [];
 
-    const { data: salaryData } = await sbClient.from('accounting_staff_salary')
+    const { data: salaryData, error: salaryErr } = await sbClient.from('accounting_staff_salary')
       .select('*, academy_staff(staff_name, salary_type)')
+      .eq('owner_id', teacherId)
       .eq('month_year', _accMonth);
+    if (salaryErr) console.error('[회계] 급여 조회 오류:', salaryErr.message);
     _accData.salary = salaryData || [];
   }
 
@@ -14782,12 +14788,15 @@ function selectReportYear(year) {
 
 async function renderAccReport() {
   const wrap = document.getElementById('acc-report-content');
+  const teacherId = currentUser?.id;
 
-  // VIEW에서 연간 데이터 조회
-  const { data: yearly } = await sbClient.from('v_yearly_summary')
+  // VIEW에서 연간 데이터 조회 (teacher_id 명시적 필터)
+  const { data: yearly, error: yearlyErr } = await sbClient.from('v_yearly_summary')
     .select('*')
+    .eq('teacher_id', teacherId)
     .eq('year', _accReportYear)
     .maybeSingle();
+  if (yearlyErr) console.error('[회계] 연간 리포트 조회 오류:', yearlyErr.message);
 
   const yearlyIncome = yearly?.yearly_income || 0;
   const yearlyExpense = yearly?.yearly_expense || 0;
