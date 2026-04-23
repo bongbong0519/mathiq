@@ -14635,15 +14635,20 @@ function renderUpcomingPayments() {
 }
 
 function getDdayText(days) {
+  // days > 0: 결제일까지 N일 남음 → D-N
+  // days < 0: 결제일 지남 (연체) → D+N
+  // days === 0: 오늘 → D-day
   if (days === 0) return 'D-day';
-  if (days > 0) return `D+${days}`;
-  return `D${days}`;
+  if (days > 0) return `D-${days}`;  // 미래: D-13 (13일 남음)
+  return `D+${Math.abs(days)}`;      // 과거: D+3 (3일 연체)
 }
 
 function getPaymentStatusColor(days) {
-  if (days > 3) return 'var(--text3)';  // D-4 이상: 회색
-  if (days >= 0) return 'var(--orange)'; // D-3 ~ D-day: 주황
-  return 'var(--red)'; // D+1 이상: 빨강 (연체)
+  // days > 0: 결제일까지 남은 일수
+  // days < 0: 연체 일수
+  if (days > 3) return 'var(--text3)';   // D-4 이상 (4일 이상 남음): 회색
+  if (days >= 0) return 'var(--orange)'; // D-3 ~ D-day (3일 이내): 주황
+  return 'var(--red)';                   // D+1 이상 (연체): 빨강
 }
 
 // 수입 입력으로 이동 + 학생 자동 선택
