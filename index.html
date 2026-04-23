@@ -3888,11 +3888,18 @@
             <!-- 직접 입력 폼 -->
             <div id="income-form-direct">
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
-                <div>
-                  <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">학생</label>
-                  <input type="text" id="inc-student" class="form-input" placeholder="학생 이름 검색" autocomplete="off" style="width:100%">
+                <div style="position:relative">
+                  <label class="form-label" style="font-size:12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+                    <span>학생 <span style="color:var(--red)">*</span></span>
+                    <span id="inc-add-student-link" style="font-size:11px;color:var(--accent);cursor:pointer" onclick="openQuickStudentModal()">+ 새 학생</span>
+                  </label>
+                  <input type="text" id="inc-student" class="form-input" placeholder="학생 이름 검색 (필수)" autocomplete="off" style="width:100%" onfocus="showStudentDropdown()">
                   <input type="hidden" id="inc-student-id">
-                  <div id="inc-student-dropdown" style="display:none;position:absolute;z-index:100;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);max-height:200px;overflow-y:auto;width:100%;box-shadow:var(--shadow)"></div>
+                  <div id="inc-student-dropdown" style="display:none;position:absolute;top:100%;left:0;z-index:100;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);max-height:240px;overflow-y:auto;width:100%;box-shadow:var(--shadow);margin-top:4px"></div>
+                  <div id="inc-no-students-msg" style="display:none;padding:16px;background:var(--bg3);border-radius:var(--radius-sm);margin-top:8px;text-align:center">
+                    <div style="font-size:13px;color:var(--text2);margin-bottom:8px">등록된 학생이 없습니다</div>
+                    <button class="btn btn-ghost btn-sm" onclick="showView('students')">학생 현황에서 등록하기 →</button>
+                  </div>
                 </div>
                 <div>
                   <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">결제일</label>
@@ -14189,6 +14196,9 @@ async function loadAccountingView() {
     return;
   }
 
+  // 학생 캐시 초기화 (새로 진입할 때마다 최신 목록 조회)
+  if (typeof clearIncStudentCache === 'function') clearIncStudentCache();
+
   // 월 선택 초기화
   const monthInput = document.getElementById('acc-month');
   if (!monthInput.value) {
@@ -14535,7 +14545,7 @@ async function saveIncome() {
   const discountAmount = parseAmount(document.getElementById('inc-discount')?.value);
   const materialFee = parseAmount(document.getElementById('inc-material')?.value);
 
-  if (!studentName) { showToast('학생 이름을 입력해주세요', '⚠️'); return; }
+  if (!studentId) { showToast('학생을 선택해주세요 (목록에서 선택 필수)', '⚠️'); return; }
   if (!paymentDate) { showToast('결제일을 선택해주세요', '⚠️'); return; }
   if (amount <= 0) { showToast('금액을 입력해주세요', '⚠️'); return; }
 
@@ -14972,44 +14982,89 @@ function openAccSettings() {
   }
 }
 
-// ── 학생 자동완성 (수입 입력) ──
-let _incStudentTimer = null;
-document.addEventListener('input', async e => {
-  if (e.target.id !== 'inc-student') return;
+// ── 학생 선택 (수입 입력) - 등록된 학생만 선택 가능 ──
+let _incStudentCache = []; // 학생 목록 캐시
 
-  clearTimeout(_incStudentTimer);
-  const query = e.target.value.trim();
+async function showStudentDropdown() {
+  if (!sbClient || !currentUser) return;
   const dropdown = document.getElementById('inc-student-dropdown');
+  const noStudentsMsg = document.getElementById('inc-no-students-msg');
+  const input = document.getElementById('inc-student');
 
-  if (query.length < 1) {
+  // 학생 목록 조회 (캐시가 없거나 비어있으면 다시 조회)
+  if (_incStudentCache.length === 0) {
+    const { data: students, error } = await sbClient.from('students')
+      .select('id, name, school, grade, monthly_tuition')
+      .eq('teacher_id', currentUser.id)
+      .order('name');
+
+    if (error) {
+      console.error('[회계] 학생 목록 조회 오류:', error.message);
+      return;
+    }
+    _incStudentCache = students || [];
+  }
+
+  // 학생이 없으면 안내 메시지 표시
+  if (_incStudentCache.length === 0) {
     dropdown.style.display = 'none';
+    noStudentsMsg.style.display = '';
+    return;
+  }
+  noStudentsMsg.style.display = 'none';
+
+  // 드롭다운 렌더링
+  renderStudentDropdown(_incStudentCache);
+  dropdown.style.display = '';
+}
+
+function renderStudentDropdown(students, query = '') {
+  const dropdown = document.getElementById('inc-student-dropdown');
+  const filtered = query
+    ? students.filter(s => s.name.toLowerCase().includes(query.toLowerCase()))
+    : students;
+
+  if (filtered.length === 0) {
+    dropdown.innerHTML = `<div style="padding:12px;color:var(--text3);text-align:center;font-size:13px">검색 결과 없음</div>`;
     return;
   }
 
-  _incStudentTimer = setTimeout(async () => {
-    const { data: students } = await sbClient.from('students')
-      .select('id, name')
-      .eq('teacher_id', currentUser.id)
-      .ilike('name', `%${query}%`)
-      .limit(10);
+  dropdown.innerHTML = filtered.map(s => {
+    const info = [s.school, s.grade].filter(Boolean).join(' ');
+    const tuition = s.monthly_tuition ? `${s.monthly_tuition.toLocaleString()}원` : '';
+    return `
+      <div class="inc-student-item" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s"
+           onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''"
+           onclick="selectIncStudent('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${s.monthly_tuition || 0})">
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${s.name}</div>
+        ${info || tuition ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">${info}${info && tuition ? ' · ' : ''}${tuition}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
 
-    if (!students || students.length === 0) {
-      dropdown.style.display = 'none';
-      return;
-    }
-
-    dropdown.innerHTML = students.map(s =>
-      `<div style="padding:10px;cursor:pointer;border-bottom:1px solid var(--border)" onclick="selectIncStudent('${s.id}','${s.name}')">${s.name}</div>`
-    ).join('');
-    dropdown.style.display = '';
-  }, 300);
-});
-
-function selectIncStudent(id, name) {
+// 학생 선택
+function selectIncStudent(id, name, monthlyTuition) {
   document.getElementById('inc-student').value = name;
   document.getElementById('inc-student-id').value = id;
   document.getElementById('inc-student-dropdown').style.display = 'none';
+
+  // 수업료 자동 채움 (값이 있고, 현재 금액 필드가 비어있을 때)
+  const amountInput = document.getElementById('inc-amount');
+  if (monthlyTuition > 0 && !parseAmount(amountInput.value)) {
+    amountInput.value = monthlyTuition.toLocaleString();
+  }
 }
+
+// 학생명 검색 필터링 (입력 시)
+document.addEventListener('input', e => {
+  if (e.target.id !== 'inc-student') return;
+  const query = e.target.value.trim();
+  // 사용자가 직접 타이핑하면 student_id 초기화 (다시 선택해야 함)
+  document.getElementById('inc-student-id').value = '';
+  renderStudentDropdown(_incStudentCache, query);
+  document.getElementById('inc-student-dropdown').style.display = '';
+});
 
 // 외부 클릭 시 드롭다운 닫기
 document.addEventListener('click', e => {
@@ -15017,6 +15072,18 @@ document.addEventListener('click', e => {
     document.getElementById('inc-student-dropdown').style.display = 'none';
   }
 });
+
+// 학생 캐시 초기화 (학생 추가/삭제 시 호출)
+function clearIncStudentCache() {
+  _incStudentCache = [];
+}
+
+// 빠른 학생 등록 모달 (선택사항)
+function openQuickStudentModal() {
+  // 학생 현황 페이지로 이동 (Phase 1에서는 간단히 처리)
+  showView('students');
+  showToast('학생 등록 후 회계 화면으로 돌아와 주세요', 'ℹ️');
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  계정 탈퇴·복구 시스템
