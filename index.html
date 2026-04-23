@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="config.js"></script>
 <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
 <script src="https://tikzjax.com/v1/tikzjax.js"></script>
@@ -3908,6 +3909,16 @@
                 <div>
                   <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">금액 (원)</label>
                   <input type="text" id="inc-amount" class="form-input" placeholder="0" oninput="formatAmountInput(this)" style="width:100%">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">카테고리</label>
+                  <select id="inc-category" class="form-input" style="width:100%">
+                    <option value="tuition" selected>📖 정규수강료</option>
+                    <option value="supplement">📝 보충수업</option>
+                    <option value="material">📚 교재비</option>
+                    <option value="special">🎯 특강</option>
+                    <option value="other">📦 기타</option>
+                  </select>
                 </div>
                 <div>
                   <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">결제수단</label>
@@ -14261,14 +14272,24 @@ async function savePaymentSettings() {
 //  회계 관리 Phase 1 (과외/교습소/학원)
 // ══════════════════════════════════════════════════════════════════
 
+const ACC_INCOME_CATEGORIES = {
+  tuition: { icon: '📖', label: '정규수강료', color: '#FF6B6B' },
+  supplement: { icon: '📝', label: '보충수업', color: '#4ECDC4' },
+  material: { icon: '📚', label: '교재비', color: '#45B7D1' },
+  special: { icon: '🎯', label: '특강', color: '#96CEB4' },
+  other: { icon: '📦', label: '기타', color: '#DDA0DD' }
+};
+
 const ACC_EXPENSE_CATEGORIES = {
-  rent: { icon: '🏠', label: '임대료' },
-  utility: { icon: '💡', label: '공과금' },
-  material: { icon: '📚', label: '교재비' },
-  equipment: { icon: '🖥️', label: '비품' },
-  communication: { icon: '📱', label: '통신·광고' },
-  staff_salary: { icon: '👥', label: '인건비' },
-  other: { icon: '📦', label: '기타' }
+  rent: { icon: '🏠', label: '임대료', color: '#FF6B6B' },
+  utility: { icon: '💡', label: '관리비', color: '#4ECDC4' },
+  material: { icon: '📚', label: '교재구입', color: '#45B7D1' },
+  supplies: { icon: '🖊️', label: '사무용품', color: '#96CEB4' },
+  food: { icon: '🍽️', label: '식비', color: '#FFEAA7' },
+  transport: { icon: '🚗', label: '교통비', color: '#DDA0DD' },
+  ads: { icon: '📢', label: '광고비', color: '#74B9FF' },
+  communication: { icon: '📱', label: '통신비', color: '#A29BFE' },
+  other: { icon: '📦', label: '기타', color: '#B2BEC3' }
 };
 
 const ACC_PAY_METHODS = {
@@ -14803,6 +14824,7 @@ async function saveIncome() {
   const studentId = document.getElementById('inc-student-id').value || null;
   const paymentDate = document.getElementById('inc-date').value;
   const amount = parseAmount(document.getElementById('inc-amount').value);
+  const category = document.getElementById('inc-category').value;
   const paymentMethod = document.getElementById('inc-pay-method').value;
   const memo = document.getElementById('inc-memo').value.trim();
 
@@ -14818,12 +14840,16 @@ async function saveIncome() {
   if (!paymentDate) { showToast('결제일을 선택해주세요', '⚠️'); return; }
   if (amount <= 0) { showToast('금액을 입력해주세요', '⚠️'); return; }
 
+  // 카테고리 키 → 한글 라벨 변환
+  const categoryLabel = ACC_INCOME_CATEGORIES[category]?.label || '정규수강료';
+
   const payload = {
     teacher_id: currentUser.id,
     student_name: studentName,
     student_id: studentId,
     payment_date: paymentDate,
     amount,
+    category: categoryLabel,
     payment_method: paymentMethod,
     cash_receipt_issued: cashReceiptIssued,
     cash_receipt_number: cashReceiptNumber,
@@ -14849,6 +14875,7 @@ async function saveIncome() {
   document.getElementById('inc-student').value = '';
   document.getElementById('inc-student-id').value = '';
   document.getElementById('inc-amount').value = '';
+  document.getElementById('inc-category').value = 'tuition';
   document.getElementById('inc-memo').value = '';
   if (document.getElementById('inc-base-amount')) document.getElementById('inc-base-amount').value = '';
   if (document.getElementById('inc-discount')) document.getElementById('inc-discount').value = '';
@@ -15173,6 +15200,191 @@ async function renderAccReport() {
       </div>
     `;
   }
+
+  // 카테고리 분석 섹션 추가 (공통)
+  wrap.innerHTML += renderCategoryAnalysis();
+
+  // 차트 렌더링 (DOM 업데이트 후)
+  setTimeout(() => {
+    renderIncomePieChart();
+    renderExpensePieChart();
+  }, 100);
+}
+
+// ── 카테고리 분석 섹션 HTML ──
+function renderCategoryAnalysis() {
+  return `
+    <div class="acc-card" style="margin-top:20px">
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📊 카테고리 분석 (${_accMonth})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;text-align:center">수입 카테고리</div>
+          <div style="position:relative;height:220px;display:flex;align-items:center;justify-content:center">
+            <canvas id="acc-income-pie" width="200" height="200"></canvas>
+            <div id="acc-income-pie-empty" style="display:none;text-align:center;color:var(--text3)">
+              <div style="font-size:24px;margin-bottom:8px">📭</div>
+              <div style="font-size:13px">수입 데이터 없음</div>
+            </div>
+          </div>
+          <div id="acc-income-pie-legend" style="margin-top:12px"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;text-align:center">지출 카테고리</div>
+          <div style="position:relative;height:220px;display:flex;align-items:center;justify-content:center">
+            <canvas id="acc-expense-pie" width="200" height="200"></canvas>
+            <div id="acc-expense-pie-empty" style="display:none;text-align:center;color:var(--text3)">
+              <div style="font-size:24px;margin-bottom:8px">📭</div>
+              <div style="font-size:13px">지출 데이터 없음</div>
+            </div>
+          </div>
+          <div id="acc-expense-pie-legend" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── 수입 파이차트 렌더링 ──
+let _accIncomePieChart = null;
+function renderIncomePieChart() {
+  const canvas = document.getElementById('acc-income-pie');
+  const emptyEl = document.getElementById('acc-income-pie-empty');
+  const legendEl = document.getElementById('acc-income-pie-legend');
+  if (!canvas) return;
+
+  // 카테고리별 집계
+  const categoryData = {};
+  _accData.income.forEach(i => {
+    const cat = i.category || '정규수강료';
+    categoryData[cat] = (categoryData[cat] || 0) + (i.amount || 0);
+  });
+
+  const labels = Object.keys(categoryData);
+  const values = Object.values(categoryData);
+  const total = values.reduce((a, b) => a + b, 0);
+
+  if (labels.length === 0 || total === 0) {
+    canvas.style.display = 'none';
+    emptyEl.style.display = '';
+    legendEl.innerHTML = '';
+    return;
+  }
+
+  canvas.style.display = '';
+  emptyEl.style.display = 'none';
+
+  // 색상 매핑
+  const colors = labels.map(label => {
+    const entry = Object.values(ACC_INCOME_CATEGORIES).find(c => c.label === label);
+    return entry?.color || '#B2BEC3';
+  });
+
+  // 이전 차트 파괴
+  if (_accIncomePieChart) _accIncomePieChart.destroy();
+
+  _accIncomePieChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: 'var(--bg)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      cutout: '60%'
+    }
+  });
+
+  // 커스텀 범례
+  legendEl.innerHTML = labels.map((label, i) => {
+    const pct = total > 0 ? Math.round(values[i] / total * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px">
+      <span style="width:12px;height:12px;border-radius:3px;background:${colors[i]}"></span>
+      <span style="flex:1;color:var(--text2)">${label}</span>
+      <span style="font-weight:600;color:var(--text)">${values[i].toLocaleString()}원</span>
+      <span style="color:var(--text3)">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ── 지출 파이차트 렌더링 ──
+let _accExpensePieChart = null;
+function renderExpensePieChart() {
+  const canvas = document.getElementById('acc-expense-pie');
+  const emptyEl = document.getElementById('acc-expense-pie-empty');
+  const legendEl = document.getElementById('acc-expense-pie-legend');
+  if (!canvas) return;
+
+  // 카테고리별 집계
+  const categoryData = {};
+  _accData.expense.forEach(e => {
+    const catInfo = ACC_EXPENSE_CATEGORIES[e.category];
+    const label = catInfo?.label || e.category || '기타';
+    categoryData[label] = (categoryData[label] || 0) + (e.amount || 0);
+  });
+
+  const labels = Object.keys(categoryData);
+  const values = Object.values(categoryData);
+  const total = values.reduce((a, b) => a + b, 0);
+
+  if (labels.length === 0 || total === 0) {
+    canvas.style.display = 'none';
+    emptyEl.style.display = '';
+    legendEl.innerHTML = '';
+    return;
+  }
+
+  canvas.style.display = '';
+  emptyEl.style.display = 'none';
+
+  // 색상 매핑
+  const colors = labels.map(label => {
+    const entry = Object.values(ACC_EXPENSE_CATEGORIES).find(c => c.label === label);
+    return entry?.color || '#B2BEC3';
+  });
+
+  // 이전 차트 파괴
+  if (_accExpensePieChart) _accExpensePieChart.destroy();
+
+  _accExpensePieChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: 'var(--bg)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      cutout: '60%'
+    }
+  });
+
+  // 커스텀 범례
+  legendEl.innerHTML = labels.map((label, i) => {
+    const pct = total > 0 ? Math.round(values[i] / total * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px">
+      <span style="width:12px;height:12px;border-radius:3px;background:${colors[i]}"></span>
+      <span style="flex:1;color:var(--text2)">${label}</span>
+      <span style="font-weight:600;color:var(--text)">${values[i].toLocaleString()}원</span>
+      <span style="color:var(--text3)">${pct}%</span>
+    </div>`;
+  }).join('');
 }
 
 // ── 리포트 다운로드 ──
