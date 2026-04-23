@@ -7074,14 +7074,24 @@ function updateTierBadge(tier) {
 
 // 사이드바 메뉴 잠금 배지 업데이트
 function updateNavLockBadges(tier) {
-  const isBasicOrHigher = tierAtLeast(tier, 'basic');
+  const role = currentProfile?.role;
+  const isAdminBypass = (role === 'admin' || role === 'staff'); // 대표운영자는 티어 제한 없음 (admin bypass)
+  const isBasicOrHigher = isAdminBypass || tierAtLeast(tier, 'basic');
 
-  // 회계 관리 메뉴 잠금
+  // 회계 관리 메뉴 잠금 (선생님 사이드바)
   const accNav = document.getElementById('nav-accounting');
   if (accNav) {
     const lockBadge = accNav.querySelector('.nav-lock-badge');
     if (lockBadge) lockBadge.style.display = isBasicOrHigher ? 'none' : '';
     accNav.style.opacity = isBasicOrHigher ? '1' : '0.6';
+  }
+
+  // 회계 관리 메뉴 잠금 (원장님 사이드바)
+  const accNavDir = document.getElementById('nav-accounting-director');
+  if (accNavDir) {
+    const lockBadge = accNavDir.querySelector('.nav-lock-badge');
+    if (lockBadge) lockBadge.style.display = isBasicOrHigher ? 'none' : '';
+    accNavDir.style.opacity = isBasicOrHigher ? '1' : '0.6';
   }
 }
 
@@ -12122,7 +12132,7 @@ function tierAtLeast(current, required) {
 function checkTierAccess(requiredTier) {
   if (!currentProfile) return false;
   const role = currentProfile.role;
-  if (role === 'admin' || role === 'staff') return true;
+  if (role === 'admin' || role === 'staff') return true; // 대표운영자는 티어 제한 없음 (admin bypass)
   return tierAtLeast(currentProfile.subscription_tier, requiredTier);
 }
 
