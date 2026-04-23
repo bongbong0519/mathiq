@@ -14659,22 +14659,44 @@ function getPaymentStatusColor(days) {
 }
 
 // ── 수금 상태 판정 함수 (2026-04-24) ──
+// 이번 달 결제일 계산 (monthly 전용 헬퍼)
+function getThisMonthPaymentDate(student, today) {
+  if (student.payment_cycle !== 'monthly' || !student.payment_day) return null;
+
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0-indexed
+
+  // 이번 달의 payment_day 날짜 생성
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+  const day = Math.min(student.payment_day, lastDayOfMonth);
+
+  const paymentDate = new Date(year, month, day);
+  return getLocalDateStr(paymentDate);
+}
+
 function getPaymentStatus(student, thisMonthIncome, today) {
   // payment_cycle NULL이면 제외
   if (!student.payment_cycle) return 'excluded';
 
-  const thisMonth = getLocalDateStr(today).slice(0, 7); // 'YYYY-MM'
-  const nextDate = getNextPaymentDate(student, today);
+  // 이번 달 결제일 계산 (월납만 지원, 격주/특정일은 기존 로직)
+  let paymentDate;
+  if (student.payment_cycle === 'monthly') {
+    paymentDate = getThisMonthPaymentDate(student, today);
+  } else {
+    // biweekly, custom은 기존 getNextPaymentDate 사용
+    paymentDate = getNextPaymentDate(student, today);
+    const thisMonth = getLocalDateStr(today).slice(0, 7);
+    if (!paymentDate || paymentDate.slice(0, 7) !== thisMonth) return 'excluded';
+  }
 
-  // 다음 결제일이 이번 달이 아니면 제외
-  if (!nextDate || nextDate.slice(0, 7) !== thisMonth) return 'excluded';
+  if (!paymentDate) return 'excluded';
 
   // 이번 달 income에 해당 학생 레코드 존재 확인
   const hasPaid = thisMonthIncome.some(i => i.student_id === student.id);
   if (hasPaid) return 'paid';
 
   // 결제일까지 남은 일수 계산
-  const days = getDaysUntilPayment(nextDate, today);
+  const days = getDaysUntilPayment(paymentDate, today);
 
   if (days < 0) return 'overdue';     // 연체
   if (days <= 3) return 'due_soon';   // 임박 (0~3일)
@@ -14713,8 +14735,14 @@ function renderPaymentCollectionStatus() {
       const status = getPaymentStatus(s, thisMonthIncome, today);
       if (status === 'excluded') return null;
 
-      const nextDate = getNextPaymentDate(s, today);
-      const days = getDaysUntilPayment(nextDate, today);
+      // 이번 달 결제일 계산 (monthly는 이번 달, 그 외는 기존 로직)
+      let paymentDate;
+      if (s.payment_cycle === 'monthly') {
+        paymentDate = getThisMonthPaymentDate(s, today);
+      } else {
+        paymentDate = getNextPaymentDate(s, today);
+      }
+      const days = getDaysUntilPayment(paymentDate, today);
 
       // 납부한 경우 납부일 찾기
       let paidDate = null;
@@ -14723,7 +14751,7 @@ function renderPaymentCollectionStatus() {
         paidDate = paidRecord?.payment_date?.slice(5).replace('-', '/');
       }
 
-      return { ...s, status, nextDate, days, paidDate };
+      return { ...s, status, paymentDate, days, paidDate };
     })
     .filter(Boolean);
 

@@ -14,7 +14,11 @@
 - `getLocalDateStr(date)` — 로컬 타임존 기반 `YYYY-MM-DD` (toISOString 쓰지 말 것)
 - `renderUpcomingPayments()` — paid 판정은 `nextDate가 속한 달`의 income으로만
 - `getPaymentStatus(student, thisMonthIncome, today)` — 수금 상태 판정 (paid/upcoming/due_soon/overdue)
+- `getThisMonthPaymentDate(student, today)` — 이번 달 결제일 반환 (monthly 전용)
 - `renderPaymentCollectionStatus()` — 이번 달 수금 현황 섹션 렌더
+
+> **2026-04-24 버그 수정**: getNextPaymentDate는 "다음" 결제일을 반환하므로 결제일 지난 학생이 다음 달로 넘어감.
+> 수금 현황에서는 getThisMonthPaymentDate로 "이번 달" 결제일을 계산하도록 수정.
 
 ## 📐 스키마 결정
 
