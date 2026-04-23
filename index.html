@@ -317,32 +317,33 @@
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     overflow: hidden;
+    max-width: 900px;
   }
   .calendar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--border);
   }
   .calendar-title {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text);
   }
   .calendar-nav {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .calendar-nav button {
     background: var(--bg3);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text2);
     cursor: pointer;
@@ -358,35 +359,34 @@
   }
   .calendar-grid-wrap {
     flex: 1;
-    padding: 16px 20px;
+    padding: 10px 12px;
   }
   .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 8px;
+    gap: 3px;
+    margin-bottom: 4px;
   }
   .calendar-weekday {
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--text3);
-    padding: 8px 0;
+    padding: 4px 0;
   }
   .calendar-weekday:first-child { color: var(--red); }
   .calendar-weekday:last-child { color: var(--accent); }
   .calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    gap: 3px;
   }
   .calendar-day {
-    aspect-ratio: 1;
-    min-height: 60px;
+    min-height: 44px;
     background: var(--bg3);
     border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 6px;
+    border-radius: 6px;
+    padding: 4px;
     cursor: pointer;
     transition: all 0.15s;
     display: flex;
@@ -408,17 +408,17 @@
     background: var(--accent);
     color: white;
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .calendar-date {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text2);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .calendar-day:first-child .calendar-date,
   .calendar-day:nth-child(7n+1) .calendar-date { color: var(--red); }
@@ -427,13 +427,13 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     overflow: hidden;
   }
   .calendar-event-dot {
-    font-size: 9px;
-    padding: 2px 4px;
-    border-radius: 3px;
+    font-size: 8px;
+    padding: 1px 3px;
+    border-radius: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -441,23 +441,23 @@
     font-weight: 500;
   }
   .calendar-more {
-    font-size: 9px;
+    font-size: 8px;
     color: var(--text3);
-    margin-top: 2px;
+    margin-top: 1px;
   }
   .calendar-sidebar {
-    width: 280px;
+    width: 220px;
     border-left: 1px solid var(--border);
     background: var(--bg3);
-    padding: 16px;
-    max-height: 400px;
+    padding: 10px;
+    max-height: 300px;
     overflow-y: auto;
   }
   .calendar-sidebar-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -465,15 +465,15 @@
   .calendar-sidebar-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   .calendar-sidebar-item {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    padding: 10px;
+    gap: 8px;
+    padding: 8px;
     background: var(--bg2);
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s;
   }
@@ -481,17 +481,17 @@
     background: var(--bg);
   }
   .calendar-sidebar-date {
-    width: 40px;
+    width: 32px;
     text-align: center;
   }
   .calendar-sidebar-date-day {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text);
     line-height: 1;
   }
   .calendar-sidebar-date-dow {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text3);
     margin-top: 2px;
   }
@@ -501,15 +501,15 @@
   }
   .calendar-sidebar-type {
     display: inline-block;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 5px;
+    border-radius: 3px;
     color: white;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
   .calendar-sidebar-title-text {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text);
     white-space: nowrap;
@@ -518,9 +518,9 @@
   }
   .calendar-empty {
     text-align: center;
-    padding: 30px 20px;
+    padding: 20px 14px;
     color: var(--text3);
-    font-size: 13px;
+    font-size: 12px;
   }
   .calendar-day.selected {
     border-color: var(--accent);
@@ -528,56 +528,56 @@
   }
   .calendar-day-detail {
     border-top: 1px solid var(--border);
-    padding: 16px 20px;
+    padding: 10px 14px;
     background: var(--bg3);
   }
   .calendar-day-detail-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   .calendar-day-detail-header span {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text);
   }
   .calendar-day-detail-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   .calendar-day-event {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 10px;
+    padding: 10px 12px;
     background: var(--bg2);
-    border-radius: 8px;
-    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
   }
   .calendar-day-event-info {
     flex: 1;
     min-width: 0;
   }
   .calendar-day-event-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
   .calendar-day-event-meta {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text3);
   }
   .calendar-day-event-actions {
     display: flex;
-    gap: 6px;
+    gap: 5px;
   }
   .calendar-day-event-actions button {
-    padding: 6px 10px;
-    font-size: 11px;
-    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 10px;
+    border-radius: 5px;
     cursor: pointer;
     border: 1px solid var(--border);
     background: var(--bg3);
@@ -3026,53 +3026,8 @@
         </div>
       </div>
 
-      <!-- 월간 캘린더 -->
-      <div class="calendar-wrap" id="dashboard-calendar">
-        <div class="calendar-header">
-          <div class="calendar-title" id="calendar-title">2026년 4월</div>
-          <div class="calendar-nav">
-            <button onclick="calendarPrevMonth()">◀ 이전</button>
-            <button onclick="calendarToday()">오늘</button>
-            <button onclick="calendarNextMonth()">다음 ▶</button>
-            <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="openEventModal()">+ 일정</button>
-          </div>
-        </div>
-        <div class="calendar-body">
-          <div class="calendar-grid-wrap">
-            <div class="calendar-weekdays">
-              <div class="calendar-weekday">일</div>
-              <div class="calendar-weekday">월</div>
-              <div class="calendar-weekday">화</div>
-              <div class="calendar-weekday">수</div>
-              <div class="calendar-weekday">목</div>
-              <div class="calendar-weekday">금</div>
-              <div class="calendar-weekday">토</div>
-            </div>
-            <div class="calendar-days" id="calendar-days">
-              <!-- 동적 생성 -->
-            </div>
-          </div>
-          <div class="calendar-sidebar">
-            <div class="calendar-sidebar-title">
-              <span>이번 달 일정</span>
-              <span id="calendar-event-count" style="font-size:11px;color:var(--text3)">0건</span>
-            </div>
-            <div class="calendar-sidebar-list" id="calendar-sidebar-list">
-              <div class="calendar-empty">등록된 일정이 없습니다</div>
-            </div>
-          </div>
-        </div>
-        <!-- 선택 날짜 상세 패널 -->
-        <div class="calendar-day-detail" id="calendar-day-detail" style="display:none">
-          <div class="calendar-day-detail-header">
-            <span id="calendar-day-detail-title">📌 2026-04-24 (금)</span>
-            <button class="btn btn-primary btn-sm" id="calendar-day-add-btn" onclick="openEventModal(null, _selectedDate)">+ 이 날짜에 추가</button>
-          </div>
-          <div class="calendar-day-detail-list" id="calendar-day-detail-list">
-            <!-- 동적 생성 -->
-          </div>
-        </div>
-      </div>
+      <!-- 월간 캘린더 (공통) -->
+      <div class="calendar-wrap" id="dashboard-calendar"></div>
 
       <div class="stat-grid">
         <div class="stat-card" style="--accent-color: var(--accent)">
@@ -3724,6 +3679,9 @@
           <p class="page-subtitle" id="dir-dashboard-sub">내 학원의 선생님과 학생 현황을 한눈에 확인합니다</p>
         </div>
       </div>
+
+      <!-- 월간 캘린더 (공통) -->
+      <div class="calendar-wrap" id="director-calendar"></div>
 
       <!-- 통계 카드 -->
       <div class="stats-grid" style="margin-bottom:32px">
@@ -4630,6 +4588,9 @@
           <button class="btn btn-ghost btn-sm" onclick="loadAdminHome()">새로고침</button>
         </div>
       </div>
+
+      <!-- 월간 캘린더 (공통) -->
+      <div class="calendar-wrap" id="admin-calendar"></div>
 
       <!-- 섹션 1: 핵심 지표 카드 4개 -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px">
@@ -9903,7 +9864,61 @@ async function loadCalendarEvents(year, month) {
 }
 
 // 캘린더 렌더링
-async function renderCalendar() {
+// 캘린더 컨테이너 초기화 (모든 대시보드 공용)
+function initCalendarContainer(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // 이미 초기화되어 있으면 스킵
+  if (container.querySelector('.calendar-header')) return;
+
+  container.innerHTML = `
+    <div class="calendar-header">
+      <div class="calendar-title" id="calendar-title">2026년 4월</div>
+      <div class="calendar-nav">
+        <button onclick="calendarPrevMonth()">◀ 이전</button>
+        <button onclick="calendarToday()">오늘</button>
+        <button onclick="calendarNextMonth()">다음 ▶</button>
+        <button class="btn btn-primary btn-sm" style="margin-left:6px" onclick="openEventModal()">+ 일정</button>
+      </div>
+    </div>
+    <div class="calendar-body">
+      <div class="calendar-grid-wrap">
+        <div class="calendar-weekdays">
+          <div class="calendar-weekday">일</div>
+          <div class="calendar-weekday">월</div>
+          <div class="calendar-weekday">화</div>
+          <div class="calendar-weekday">수</div>
+          <div class="calendar-weekday">목</div>
+          <div class="calendar-weekday">금</div>
+          <div class="calendar-weekday">토</div>
+        </div>
+        <div class="calendar-days" id="calendar-days"></div>
+      </div>
+      <div class="calendar-sidebar">
+        <div class="calendar-sidebar-title">
+          <span>이번 달 일정</span>
+          <span id="calendar-event-count" style="font-size:10px;color:var(--text3)">0건</span>
+        </div>
+        <div class="calendar-sidebar-list" id="calendar-sidebar-list">
+          <div class="calendar-empty">등록된 일정이 없습니다</div>
+        </div>
+      </div>
+    </div>
+    <div class="calendar-day-detail" id="calendar-day-detail" style="display:none">
+      <div class="calendar-day-detail-header">
+        <span id="calendar-day-detail-title">📌 2026-04-24 (금)</span>
+        <button class="btn btn-primary btn-sm" id="calendar-day-add-btn" onclick="openEventModal(null, _selectedDate)">+ 이 날짜에 추가</button>
+      </div>
+      <div class="calendar-day-detail-list" id="calendar-day-detail-list"></div>
+    </div>
+  `;
+}
+
+async function renderCalendar(containerId = 'dashboard-calendar') {
+  // 컨테이너 초기화
+  initCalendarContainer(containerId);
+
   _calendarEvents = await loadCalendarEvents(_calendarYear, _calendarMonth);
 
   // 첫 로드 시 오늘 날짜 자동 선택 (현재 월에 오늘이 포함된 경우)
@@ -12640,6 +12655,9 @@ async function loadDirectorDashboard() {
         </tr>`).join('') + '</tbody></table></div>';
     }
   }
+
+  // 캘린더 렌더링
+  await renderCalendar('director-calendar');
 }
 
 async function loadDirectorTeachers() {
@@ -18386,6 +18404,9 @@ async function loadAdminHome() {
         clearInterval(_adminHomeRefresh);
       }
     }, 30000);
+
+    // 캘린더 렌더링
+    await renderCalendar('admin-calendar');
 
   } catch (e) {
     console.error('loadAdminHome error:', e);
