@@ -14277,19 +14277,28 @@ const ACC_PAY_METHODS = {
 
 let _accBusinessType = null; // tutoring / institute / academy
 let _accMonth = null;
-let _accData = { income: [], expense: [], staff: [], salary: [], students: [] };
+let _accData = { income: [], expense: [], staff: [], salary: [], students: [], recentIncome: [] };
+
+// ── 로컬 타임존 기반 날짜 문자열 (YYYY-MM-DD) ──
+function getLocalDateStr(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 // ── 결제 예정일 계산 (순수 함수) ──
 function getNextPaymentDate(student, today = new Date()) {
   if (!student.payment_cycle) return null;
 
-  const todayStr = today.toISOString().slice(0, 10);
-  const todayDate = new Date(todayStr);
+  // 로컬 타임존 기반 (UTC 오프셋 버그 방지)
+  const todayStr = getLocalDateStr(today);
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const day = today.getDate();
 
   if (student.payment_cycle === 'monthly' && student.payment_day) {
     // 매달 고정일: 이번 달 또는 다음 달
-    const year = todayDate.getFullYear();
-    const month = todayDate.getMonth();
     let nextDate = new Date(year, month, student.payment_day);
 
     // 해당 월의 마지막 날보다 크면 마지막 날로 조정
@@ -14299,22 +14308,23 @@ function getNextPaymentDate(student, today = new Date()) {
     }
 
     // 이미 지났으면 다음 달로
-    if (nextDate < todayDate) {
+    if (nextDate.getDate() < day || (nextDate.getMonth() < month && nextDate.getFullYear() === year)) {
       nextDate = new Date(year, month + 1, student.payment_day);
       const nextLastDay = new Date(year, month + 2, 0).getDate();
       if (student.payment_day > nextLastDay) {
         nextDate = new Date(year, month + 1, nextLastDay);
       }
     }
-    return nextDate.toISOString().slice(0, 10);
+    return getLocalDateStr(nextDate);
 
   } else if (student.payment_cycle === 'biweekly' && student.payment_start_date) {
     // 격주: 시작일부터 14일씩 더해서 오늘 이후 첫 날짜
-    let baseDate = new Date(student.payment_start_date);
-    while (baseDate < todayDate) {
+    let baseDate = new Date(student.payment_start_date + 'T00:00:00');
+    const todayMidnight = new Date(year, month, day);
+    while (baseDate < todayMidnight) {
       baseDate.setDate(baseDate.getDate() + 14);
     }
-    return baseDate.toISOString().slice(0, 10);
+    return getLocalDateStr(baseDate);
 
   } else if (student.payment_cycle === 'custom' && student.payment_start_date) {
     // 특정일 1회: 그 날짜 그대로 (지났어도 반환, UI에서 처리)
@@ -14327,10 +14337,11 @@ function getNextPaymentDate(student, today = new Date()) {
 // D-day 계산 (음수: D-N, 양수: D+N 연체)
 function getDaysUntilPayment(paymentDate, today = new Date()) {
   if (!paymentDate) return null;
-  const payment = new Date(paymentDate);
-  const todayStr = today.toISOString().slice(0, 10);
-  const todayDate = new Date(todayStr);
-  const diffTime = payment - todayDate;
+  // 로컬 타임존 기반
+  const paymentParts = paymentDate.split('-').map(Number);
+  const payment = new Date(paymentParts[0], paymentParts[1] - 1, paymentParts[2]);
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffTime = payment - todayMidnight;
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 }
@@ -14446,6 +14457,15 @@ async function loadAccData() {
     .order('payment_date', { ascending: false });
   if (incomeErr) console.error('[회계] 수입 조회 오류:', incomeErr.message);
   _accData.income = incomeData || [];
+
+  // 다가오는 결제일 위젯용: 이번 달 + 다음 달 수입 로드 (납부 여부 확인용)
+  const [year, mon] = _accMonth.split('-').map(Number);
+  const nextMonthStr = mon === 12 ? `${year + 1}-01` : `${year}-${String(mon + 1).padStart(2, '0')}`;
+  const { data: recentIncomeData } = await sbClient.from('accounting_income')
+    .select('student_id, payment_date, month_year')
+    .eq('teacher_id', teacherId)
+    .in('month_year', [_accMonth, nextMonthStr]);
+  _accData.recentIncome = recentIncomeData || [];
 
   // 학생 로드 (결제 예정일 위젯용)
   const { data: studentsData, error: studentsErr } = await sbClient.from('students')
@@ -14567,8 +14587,12 @@ function renderUpcomingPayments() {
     .map(s => {
       const nextDate = getNextPaymentDate(s, today);
       const daysUntil = getDaysUntilPayment(nextDate, today);
-      // 이번 달 기준 납부 여부 확인 (같은 학생+월에 수입 있으면 납부 완료)
-      const paid = _accData.income.some(i => i.student_id === s.id);
+      // 납부 여부: nextDate가 속한 달(year-month)에 해당 학생 income이 있는지 확인
+      const nextMonth = nextDate ? nextDate.slice(0, 7) : null; // 'YYYY-MM'
+      const recentIncome = _accData.recentIncome || [];
+      const paid = nextMonth && recentIncome.some(i =>
+        i.student_id === s.id && i.month_year === nextMonth
+      );
       return { ...s, nextDate, daysUntil, paid };
     })
     .filter(s => s.nextDate && s.daysUntil !== null && s.daysUntil <= 14 && !s.paid)
