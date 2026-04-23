@@ -3838,8 +3838,8 @@
       <!-- 탭 네비게이션 -->
       <div class="acc-tabs" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
         <button class="acc-tab active" data-tab="home" onclick="switchAccTab('home')">🏠 홈</button>
-        <button class="acc-tab" data-tab="income" onclick="switchAccTab('income')">💵 수입 입력</button>
-        <button class="acc-tab acc-expense-tab" data-tab="expense" onclick="switchAccTab('expense')" style="display:none">📤 지출 관리</button>
+        <button class="acc-tab" data-tab="income" onclick="switchAccTab('income')">📥 수입 입력</button>
+        <button class="acc-tab acc-expense-tab" data-tab="expense" onclick="switchAccTab('expense')" style="display:none">📤 지출 입력</button>
         <button class="acc-tab acc-salary-tab" data-tab="salary" onclick="switchAccTab('salary')" style="display:none">👥 강사 급여</button>
         <button class="acc-tab" data-tab="report" onclick="switchAccTab('report')">📊 리포트</button>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
@@ -3987,81 +3987,65 @@
         </div>
       </div>
 
-      <!-- ══ EXPENSE TAB (교습소/학원) ══ -->
+      <!-- ══ EXPENSE TAB ══ -->
       <div id="acc-tab-expense" class="acc-tab-content" style="display:none">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:20px">
-          <!-- 손익 요약 -->
-          <div class="acc-card">
-            <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px">이번 달 손익</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <span style="color:var(--green)">수입</span>
-              <span id="exp-income-sum" style="font-weight:700;color:var(--green)">0원</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <span style="color:var(--red)">지출</span>
-              <span id="exp-expense-sum" style="font-weight:700;color:var(--red)">0원</span>
-            </div>
-            <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;align-items:center">
-              <span style="font-weight:700">순이익</span>
-              <span id="exp-profit-sum" style="font-size:18px;font-weight:800;color:var(--accent)">0원</span>
-            </div>
-          </div>
-          <!-- 카테고리 타일 -->
-          <div class="acc-card">
-            <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px">카테고리별 지출</div>
-            <div id="exp-category-tiles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-              <!-- JS로 생성 -->
-            </div>
-          </div>
-        </div>
-        <!-- 지출 등록 -->
+        <!-- 지출 입력 -->
         <div class="card" style="margin-bottom:20px">
           <div style="padding:20px">
-            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📤 지출 등록</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📤 지출 입력</div>
+            <!-- 입력 방식 선택 -->
+            <div style="display:flex;gap:8px;margin-bottom:20px">
+              <span class="acc-chip active">✏️ 직접 입력</span>
+              <span class="acc-chip" style="opacity:0.5;cursor:not-allowed">📷 영수증 스캔 (추후)</span>
+            </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
               <div>
-                <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">날짜</label>
+                <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">지출일 <span style="color:var(--red)">*</span></label>
                 <input type="date" id="exp-date" class="form-input" style="width:100%">
+              </div>
+              <div>
+                <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">금액 (원) <span style="color:var(--red)">*</span></label>
+                <input type="text" id="exp-amount" class="form-input" placeholder="0" oninput="formatAmountInput(this)" style="width:100%">
               </div>
               <div>
                 <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">카테고리</label>
                 <select id="exp-category" class="form-input" style="width:100%">
-                  <option value="rent">🏠 임대료</option>
-                  <option value="utility">💡 공과금</option>
-                  <option value="material">📚 교재비</option>
-                  <option value="equipment">🖥️ 비품</option>
-                  <option value="communication">📱 통신·광고</option>
-                  <option value="staff_salary">👥 인건비</option>
-                  <option value="other">📦 기타</option>
+                  <option value="임대료">🏢 임대료</option>
+                  <option value="관리비">💡 관리비</option>
+                  <option value="교재구입">📚 교재구입</option>
+                  <option value="사무용품">✏️ 사무용품</option>
+                  <option value="식비">🍚 식비</option>
+                  <option value="교통비">🚗 교통비</option>
+                  <option value="광고비">📢 광고비</option>
+                  <option value="통신비">📞 통신비</option>
+                  <option value="기타">📦 기타</option>
                 </select>
               </div>
               <div>
-                <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">금액 (원)</label>
-                <input type="text" id="exp-amount" class="form-input" placeholder="0" oninput="formatAmountInput(this)" style="width:100%">
-              </div>
-              <div>
-                <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">거래처</label>
-                <input type="text" id="exp-payee" class="form-input" placeholder="거래처명" style="width:100%">
+                <label class="form-label" style="font-size:12px;margin-bottom:6px;display:block">결제수단</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px">
+                    <input type="radio" name="exp-method" value="transfer" checked> 계좌이체
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px">
+                    <input type="radio" name="exp-method" value="cash"> 현금
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px">
+                    <input type="radio" name="exp-method" value="card"> 카드
+                  </label>
+                </div>
               </div>
             </div>
             <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;align-items:center">
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-                <input type="checkbox" id="exp-vat-included" checked>
-                <span style="font-size:13px">부가세 포함</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-                <input type="checkbox" id="exp-is-fixed">
-                <span style="font-size:13px">고정비</span>
-              </label>
               <input type="text" id="exp-memo" class="form-input" placeholder="메모 (선택)" style="flex:1;min-width:200px">
-              <button class="btn btn-primary" onclick="saveExpense()">💾 등록</button>
+              <button class="btn btn-primary" onclick="saveExpense()">💾 저장</button>
             </div>
           </div>
         </div>
-        <!-- 지출 내역 -->
+        <!-- 최근 지출 내역 -->
         <div class="card">
           <div style="padding:20px">
-            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📋 지출 내역</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📋 이번 달 지출 내역</div>
             <div id="expense-list">
               <div class="empty-state" style="padding:40px"><div class="empty-state-text">지출 내역이 없습니다</div></div>
             </div>
@@ -14281,15 +14265,15 @@ const ACC_INCOME_CATEGORIES = {
 };
 
 const ACC_EXPENSE_CATEGORIES = {
-  rent: { icon: '🏠', label: '임대료', color: '#FF6B6B' },
-  utility: { icon: '💡', label: '관리비', color: '#4ECDC4' },
-  material: { icon: '📚', label: '교재구입', color: '#45B7D1' },
-  supplies: { icon: '🖊️', label: '사무용품', color: '#96CEB4' },
-  food: { icon: '🍽️', label: '식비', color: '#FFEAA7' },
-  transport: { icon: '🚗', label: '교통비', color: '#DDA0DD' },
-  ads: { icon: '📢', label: '광고비', color: '#74B9FF' },
-  communication: { icon: '📱', label: '통신비', color: '#A29BFE' },
-  other: { icon: '📦', label: '기타', color: '#B2BEC3' }
+  '임대료': { icon: '🏢', color: '#FF6B6B' },
+  '관리비': { icon: '💡', color: '#4ECDC4' },
+  '교재구입': { icon: '📚', color: '#45B7D1' },
+  '사무용품': { icon: '✏️', color: '#96CEB4' },
+  '식비': { icon: '🍚', color: '#FFEAA7' },
+  '교통비': { icon: '🚗', color: '#DDA0DD' },
+  '광고비': { icon: '📢', color: '#74B9FF' },
+  '통신비': { icon: '📞', color: '#A29BFE' },
+  '기타': { icon: '📦', color: '#B2BEC3' }
 };
 
 const ACC_PAY_METHODS = {
@@ -14434,16 +14418,16 @@ function updateAccTabs() {
   const salaryTab = document.querySelector('.acc-salary-tab');
   const extraOptions = document.getElementById('inc-extra-options');
 
+  // 지출 탭은 모든 업태에서 표시
+  expenseTab.style.display = '';
+
   if (_accBusinessType === 'tutoring') {
-    expenseTab.style.display = 'none';
     salaryTab.style.display = 'none';
     if (extraOptions) extraOptions.style.display = 'none';
   } else if (_accBusinessType === 'institute') {
-    expenseTab.style.display = '';
     salaryTab.style.display = 'none';
     if (extraOptions) extraOptions.style.display = '';
   } else if (_accBusinessType === 'academy') {
-    expenseTab.style.display = '';
     salaryTab.style.display = '';
     if (extraOptions) extraOptions.style.display = '';
   }
@@ -14496,16 +14480,14 @@ async function loadAccData() {
   if (studentsErr) console.error('[회계] 학생 결제정보 조회 오류:', studentsErr.message);
   _accData.students = studentsData || [];
 
-  // 지출 로드 (교습소/학원)
-  if (_accBusinessType !== 'tutoring') {
-    const { data: expenseData, error: expenseErr } = await sbClient.from('accounting_expense')
-      .select('*')
-      .eq('teacher_id', teacherId)
-      .eq('month_year', _accMonth)
-      .order('expense_date', { ascending: false });
-    if (expenseErr) console.error('[회계] 지출 조회 오류:', expenseErr.message);
-    _accData.expense = expenseData || [];
-  }
+  // 지출 로드 (모든 업태)
+  const { data: expenseData, error: expenseErr } = await sbClient.from('accounting_expense')
+    .select('*')
+    .eq('teacher_id', teacherId)
+    .eq('month_year', _accMonth)
+    .order('expense_date', { ascending: false });
+  if (expenseErr) console.error('[회계] 지출 조회 오류:', expenseErr.message);
+  _accData.expense = expenseData || [];
 
   // 강사/급여 로드 (학원)
   if (_accBusinessType === 'academy') {
@@ -14538,24 +14520,26 @@ function renderAccHome() {
   const profit = totalIncome - totalExpense;
 
   if (_accBusinessType === 'tutoring') {
-    // 과외: 히어로(이번달 수입) + 납부/미납 카드
-    const paidCount = _accData.income.length;
+    // 과외: 수입/지출/순이익 카드
+    const incomeCount = _accData.income.length;
+    const expenseCount = _accData.expense.length;
     wrap.innerHTML = `
-      <div class="acc-hero" style="margin-bottom:20px">
-        <div style="font-size:13px;opacity:.9;margin-bottom:4px">이번 달 수입</div>
-        <div style="font-size:32px;font-weight:800">${totalIncome.toLocaleString()}원</div>
-        <div style="font-size:13px;margin-top:8px;opacity:.8">${paidCount}건 결제 완료</div>
-      </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px">
-        <div class="acc-card">
-          <div class="acc-stat-label">결제 완료</div>
-          <div class="acc-stat-value" style="color:var(--green)">${paidCount}건</div>
+        <div class="acc-card acc-stat">
+          <div class="acc-stat-label">이번 달 수입</div>
+          <div class="acc-stat-value" style="color:var(--green)">${totalIncome.toLocaleString()}원</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">${incomeCount}건 결제 완료</div>
         </div>
-        <div class="acc-card">
-          <div class="acc-stat-label">미결제</div>
-          <div class="acc-stat-value" style="color:var(--red)">-</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">청구서 연동 시 표시</div>
+        <div class="acc-card acc-stat">
+          <div class="acc-stat-label">이번 달 지출</div>
+          <div class="acc-stat-value" style="color:var(--red)">${totalExpense.toLocaleString()}원</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">${expenseCount}건 지출</div>
         </div>
+      </div>
+      <div class="acc-card" style="margin-bottom:20px;background:linear-gradient(135deg,var(--bg3),var(--bg))">
+        <div class="acc-stat-label">이번 달 순이익</div>
+        <div class="acc-stat-value" style="font-size:24px;color:${profit >= 0 ? 'var(--green)' : 'var(--red)'}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()}원</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">수입 - 지출</div>
       </div>
       ${renderUpcomingPayments()}
       ${renderRecentIncomeList()}
@@ -14896,41 +14880,18 @@ async function deleteIncome(id) {
 
 // ── 지출 탭 렌더링 ──
 function renderAccExpense() {
-  const totalIncome = _accData.income.reduce((s, i) => s + (i.amount || 0), 0);
-  const totalExpense = _accData.expense.reduce((s, e) => s + (e.amount || 0), 0);
-  const profit = totalIncome - totalExpense;
-
-  document.getElementById('exp-income-sum').textContent = totalIncome.toLocaleString() + '원';
-  document.getElementById('exp-expense-sum').textContent = totalExpense.toLocaleString() + '원';
-  const profitEl = document.getElementById('exp-profit-sum');
-  profitEl.textContent = (profit >= 0 ? '+' : '') + profit.toLocaleString() + '원';
-  profitEl.style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
-
-  // 카테고리별 타일
-  const catSums = {};
-  _accData.expense.forEach(e => {
-    catSums[e.category] = (catSums[e.category] || 0) + (e.amount || 0);
-  });
-
-  const tilesWrap = document.getElementById('exp-category-tiles');
-  let tilesHtml = '';
-  Object.entries(ACC_EXPENSE_CATEGORIES).forEach(([key, { icon, label }]) => {
-    const sum = catSums[key] || 0;
-    tilesHtml += `<div style="padding:10px;background:var(--bg3);border-radius:var(--radius-sm);text-align:center">
-      <div style="font-size:20px;margin-bottom:4px">${icon}</div>
-      <div style="font-size:11px;color:var(--text3)">${label}</div>
-      <div style="font-size:13px;font-weight:700;color:var(--text)">${sum.toLocaleString()}원</div>
-    </div>`;
-  });
-  tilesWrap.innerHTML = tilesHtml;
-
-  // 날짜 기본값
+  // 날짜 기본값 (getLocalDateStr 사용)
   const dateInput = document.getElementById('exp-date');
-  if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+  if (!dateInput.value) dateInput.value = getLocalDateStr(new Date());
 
-  // 지출 목록
+  // 결제수단 라벨
+  const methodLabels = { transfer: '계좌이체', cash: '현금', card: '카드' };
+
+  // 지출 목록 (최근 10건)
   const listWrap = document.getElementById('expense-list');
-  if (_accData.expense.length === 0) {
+  const recentExpense = _accData.expense.slice(0, 10);
+
+  if (recentExpense.length === 0) {
     listWrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-state-text">이번 달 지출 내역이 없습니다</div></div>';
     return;
   }
@@ -14940,20 +14901,23 @@ function renderAccExpense() {
       <th style="padding:10px;text-align:left">날짜</th>
       <th style="padding:10px;text-align:left">카테고리</th>
       <th style="padding:10px;text-align:right">금액</th>
-      <th style="padding:10px;text-align:left">거래처</th>
-      <th style="padding:10px;width:80px"></th>
+      <th style="padding:10px;text-align:left">결제수단</th>
+      <th style="padding:10px;text-align:left">메모</th>
+      <th style="padding:10px;width:60px"></th>
     </tr></thead><tbody>`;
 
-  _accData.expense.forEach(e => {
+  recentExpense.forEach(e => {
     const dateStr = e.expense_date?.slice(5).replace('-', '/') || '-';
-    const cat = ACC_EXPENSE_CATEGORIES[e.category] || { icon: '📦', label: e.category };
-    const fixedBadge = e.is_fixed ? '<span style="background:var(--purple);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-left:4px">고정</span>' : '';
+    const cat = ACC_EXPENSE_CATEGORIES[e.category] || { icon: '📦' };
+    const catLabel = e.category || '기타';
+    const methodLabel = methodLabels[e.payment_method] || e.payment_method || '-';
 
     html += `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:10px;color:var(--text2)">${dateStr}</td>
-      <td style="padding:10px">${cat.icon} ${cat.label}${fixedBadge}</td>
+      <td style="padding:10px">${cat.icon} ${catLabel}</td>
       <td style="padding:10px;text-align:right;font-weight:700;color:var(--red)">${(e.amount || 0).toLocaleString()}원</td>
-      <td style="padding:10px;color:var(--text3)">${e.payee || '-'}</td>
+      <td style="padding:10px;color:var(--text3)">${methodLabel}</td>
+      <td style="padding:10px;color:var(--text3);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.memo || '-'}</td>
       <td style="padding:10px;text-align:right">
         <button class="btn btn-ghost btn-sm" onclick="deleteExpenseNew('${e.id}')" style="padding:4px 8px;font-size:11px;color:var(--red)">삭제</button>
       </td>
@@ -14971,38 +14935,30 @@ async function saveExpense() {
   const expenseDate = document.getElementById('exp-date').value;
   const category = document.getElementById('exp-category').value;
   const amount = parseAmount(document.getElementById('exp-amount').value);
-  const payee = document.getElementById('exp-payee').value.trim();
-  const vatIncluded = document.getElementById('exp-vat-included').checked;
-  const isFixed = document.getElementById('exp-is-fixed').checked;
+  const paymentMethod = document.querySelector('input[name="exp-method"]:checked')?.value || 'transfer';
   const memo = document.getElementById('exp-memo').value.trim();
 
   if (!expenseDate) { showToast('날짜를 선택해주세요', '⚠️'); return; }
   if (amount <= 0) { showToast('금액을 입력해주세요', '⚠️'); return; }
-
-  const vatAmount = vatIncluded ? Math.round(amount / 11) : 0;
 
   const { error } = await sbClient.from('accounting_expense').insert({
     teacher_id: currentUser.id,
     expense_date: expenseDate,
     category,
     amount,
-    vat_included: vatIncluded,
-    vat_amount: vatAmount,
-    payee: payee || null,
-    is_fixed: isFixed,
+    payment_method: paymentMethod,
     memo: memo || null
   });
 
   if (error) {
-    showToast('등록 실패: ' + error.message, '❌');
+    showToast('저장 실패: ' + error.message, '❌');
     return;
   }
 
-  showToast('지출이 등록되었습니다', '✅');
+  showToast('지출이 저장되었습니다', '✅');
 
   // 폼 초기화
   document.getElementById('exp-amount').value = '';
-  document.getElementById('exp-payee').value = '';
   document.getElementById('exp-memo').value = '';
 
   await loadAccData();
@@ -15425,11 +15381,10 @@ function renderExpensePieChart() {
   const legendEl = document.getElementById('acc-expense-pie-legend');
   if (!canvas) return;
 
-  // 카테고리별 집계
+  // 카테고리별 집계 (한글 카테고리 키 사용)
   const categoryData = {};
   _accData.expense.forEach(e => {
-    const catInfo = ACC_EXPENSE_CATEGORIES[e.category];
-    const label = catInfo?.label || e.category || '기타';
+    const label = e.category || '기타';
     categoryData[label] = (categoryData[label] || 0) + (e.amount || 0);
   });
 
@@ -15447,9 +15402,9 @@ function renderExpensePieChart() {
   canvas.style.display = '';
   emptyEl.style.display = 'none';
 
-  // 색상 매핑
+  // 색상 매핑 (한글 키로 직접 조회)
   const colors = labels.map(label => {
-    const entry = Object.values(ACC_EXPENSE_CATEGORIES).find(c => c.label === label);
+    const entry = ACC_EXPENSE_CATEGORIES[label];
     return entry?.color || '#B2BEC3';
   });
 

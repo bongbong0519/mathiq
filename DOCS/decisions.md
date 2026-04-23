@@ -26,8 +26,11 @@
 - `category VARCHAR(30) DEFAULT '정규수강료'`
 - 허용값: `정규수강료` / `보충수업` / `교재비` / `특강` / `기타`
 
-### accounting_expense 카테고리 (예정)
-- 허용값: `임대료` / `관리비` / `교재구입` / `사무용품` / `식비` / `교통비` / `광고비` / `통신비` / `기타`
+### accounting_expense 테이블 (2026-04-24)
+- 카테고리 고정값: `임대료` / `관리비` / `교재구입` / `사무용품` / `식비` / `교통비` / `광고비` / `통신비` / `기타`
+- `payment_method`: `transfer` / `cash` / `card`
+- `month_year`: `expense_date` 기준 자동 계산 (트리거)
+- RLS: `teachers_own_rows` 4종 (select/insert/update/delete)
 
 ## 💰 세액 계산 규칙 (2026-04-24)
 
