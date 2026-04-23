@@ -14541,6 +14541,7 @@ function renderAccHome() {
         <div class="acc-stat-value" style="font-size:24px;color:${profit >= 0 ? 'var(--green)' : 'var(--red)'}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()}원</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">수입 - 지출</div>
       </div>
+      ${renderPaymentCollectionStatus()}
       ${renderUpcomingPayments()}
       ${renderRecentIncomeList()}
     `;
@@ -14575,6 +14576,7 @@ function renderAccHome() {
           <div class="acc-stat-value" style="color:var(--accent)">${profitPct}%</div>
         </div>
       </div>
+      ${renderPaymentCollectionStatus()}
       ${renderUpcomingPayments()}
       ${renderPnLChart()}
       ${renderRecentIncomeList()}
@@ -14654,6 +14656,152 @@ function getPaymentStatusColor(days) {
   if (days > 3) return 'var(--text3)';   // D-4 이상 (4일 이상 남음): 회색
   if (days >= 0) return 'var(--orange)'; // D-3 ~ D-day (3일 이내): 주황
   return 'var(--red)';                   // D+1 이상 (연체): 빨강
+}
+
+// ── 수금 상태 판정 함수 (2026-04-24) ──
+function getPaymentStatus(student, thisMonthIncome, today) {
+  // payment_cycle NULL이면 제외
+  if (!student.payment_cycle) return 'excluded';
+
+  const thisMonth = getLocalDateStr(today).slice(0, 7); // 'YYYY-MM'
+  const nextDate = getNextPaymentDate(student, today);
+
+  // 다음 결제일이 이번 달이 아니면 제외
+  if (!nextDate || nextDate.slice(0, 7) !== thisMonth) return 'excluded';
+
+  // 이번 달 income에 해당 학생 레코드 존재 확인
+  const hasPaid = thisMonthIncome.some(i => i.student_id === student.id);
+  if (hasPaid) return 'paid';
+
+  // 결제일까지 남은 일수 계산
+  const days = getDaysUntilPayment(nextDate, today);
+
+  if (days < 0) return 'overdue';     // 연체
+  if (days <= 3) return 'due_soon';   // 임박 (0~3일)
+  return 'upcoming';                   // 예정 (4일 이상)
+}
+
+function getPaymentStatusLabel(status) {
+  const labels = {
+    paid: '완료',
+    upcoming: '예정',
+    due_soon: '임박',
+    overdue: '연체'
+  };
+  return labels[status] || '';
+}
+
+function getPaymentStatusBadgeColor(status) {
+  const colors = {
+    paid: '#22C55E',      // green-500
+    upcoming: '#9CA3AF',  // gray-400
+    due_soon: '#F59E0B',  // amber-500
+    overdue: '#EF4444'    // red-500
+  };
+  return colors[status] || '#9CA3AF';
+}
+
+function renderPaymentCollectionStatus() {
+  const today = new Date();
+  const thisMonth = getLocalDateStr(today).slice(0, 7);
+  const students = _accData.students || [];
+  const thisMonthIncome = _accData.income || [];
+
+  // 각 학생의 수금 상태 계산
+  const statusList = students
+    .map(s => {
+      const status = getPaymentStatus(s, thisMonthIncome, today);
+      if (status === 'excluded') return null;
+
+      const nextDate = getNextPaymentDate(s, today);
+      const days = getDaysUntilPayment(nextDate, today);
+
+      // 납부한 경우 납부일 찾기
+      let paidDate = null;
+      if (status === 'paid') {
+        const paidRecord = thisMonthIncome.find(i => i.student_id === s.id);
+        paidDate = paidRecord?.payment_date?.slice(5).replace('-', '/');
+      }
+
+      return { ...s, status, nextDate, days, paidDate };
+    })
+    .filter(Boolean);
+
+  // 결제 주기 설정된 학생 없으면 안내 메시지
+  if (statusList.length === 0) {
+    return `
+      <div class="acc-card" style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px">💳 이번 달 수금 현황 (${thisMonth.slice(5)}월)</div>
+        <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">
+          결제 주기가 설정된 학생이 없습니다.<br>
+          학생 관리에서 결제 정보를 입력해주세요.
+        </div>
+      </div>
+    `;
+  }
+
+  // 상태별 카운트
+  const counts = { paid: 0, upcoming: 0, due_soon: 0, overdue: 0 };
+  statusList.forEach(s => counts[s.status]++);
+
+  // 정렬: 연체 → 임박 → 예정 → 완료
+  const sortOrder = { overdue: 0, due_soon: 1, upcoming: 2, paid: 3 };
+  statusList.sort((a, b) => sortOrder[a.status] - sortOrder[b.status]);
+
+  // 요약 배지 HTML
+  const badgeHtml = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#22C55E20;color:#22C55E">완료 ${counts.paid}</span>
+      <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#9CA3AF20;color:#6B7280">예정 ${counts.upcoming}</span>
+      <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#F59E0B20;color:#F59E0B">임박 ${counts.due_soon}</span>
+      <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#EF444420;color:#EF4444">연체 ${counts.overdue}</span>
+    </div>
+  `;
+
+  // 리스트 HTML
+  let listHtml = '';
+  statusList.forEach(s => {
+    const color = getPaymentStatusBadgeColor(s.status);
+    const label = getPaymentStatusLabel(s.status);
+    const tuition = s.monthly_tuition ? `${s.monthly_tuition.toLocaleString()}원` : '-';
+    const cycleText = s.payment_cycle === 'monthly' ? `매달 ${s.payment_day}일` :
+                      s.payment_cycle === 'biweekly' ? '격주' : '특정일';
+
+    let rightText = '';
+    if (s.status === 'paid') {
+      rightText = `<span style="color:var(--text3)">${s.paidDate} 결제</span>`;
+    } else if (s.status === 'overdue') {
+      rightText = `<span style="color:#EF4444;font-weight:700">${getDdayText(s.days)} ⚠️</span>`;
+    } else {
+      rightText = `<span style="color:${color};font-weight:600">${getDdayText(s.days)}</span>`;
+    }
+
+    const clickable = s.status !== 'paid';
+    const cursorStyle = clickable ? 'cursor:pointer' : 'cursor:default;opacity:0.7';
+    const clickHandler = clickable ? `onclick="goToIncomeWithStudent('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${s.monthly_tuition || 0})"` : '';
+
+    listHtml += `
+      <div class="acc-list-item" style="${cursorStyle}" ${clickHandler}>
+        <span style="padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${color}20;color:${color}">${label}</span>
+        <div style="flex:1;margin-left:8px">
+          <div style="font-weight:600;font-size:14px">${s.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${cycleText}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700;color:var(--text)">${tuition}</div>
+          <div style="font-size:11px">${rightText}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  return `
+    <div class="acc-card" style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px">💳 이번 달 수금 현황 (${thisMonth.slice(5)}월)</div>
+      ${badgeHtml}
+      ${listHtml}
+    </div>
+  `;
 }
 
 // 수입 입력으로 이동 + 학생 자동 선택

@@ -13,6 +13,8 @@
 - `getDdayText(days)` — 관례: `D-N`=앞으로 N일 / `D+N`=N일 연체 / `D-day`=당일
 - `getLocalDateStr(date)` — 로컬 타임존 기반 `YYYY-MM-DD` (toISOString 쓰지 말 것)
 - `renderUpcomingPayments()` — paid 판정은 `nextDate가 속한 달`의 income으로만
+- `getPaymentStatus(student, thisMonthIncome, today)` — 수금 상태 판정 (paid/upcoming/due_soon/overdue)
+- `renderPaymentCollectionStatus()` — 이번 달 수금 현황 섹션 렌더
 
 ## 📐 스키마 결정
 
@@ -31,6 +33,13 @@
 - `payment_method`: `transfer` / `cash` / `card`
 - `month_year`: `expense_date` 기준 자동 계산 (트리거)
 - RLS: `teachers_own_rows` 4종 (select/insert/update/delete)
+
+### 수금 상태 판정 규칙 (2026-04-24)
+- `paid`: 이번 달 income에 학생 레코드 존재
+- `upcoming`: 결제일까지 4일 이상 남음
+- `due_soon`: 결제일까지 0~3일
+- `overdue`: 결제일 지남 + 이번 달 income 없음
+- `excluded`: payment_cycle NULL 또는 결제일이 이번 달 아님
 
 ## 💰 세액 계산 규칙 (2026-04-24)
 
