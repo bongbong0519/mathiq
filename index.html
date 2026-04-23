@@ -15084,6 +15084,74 @@ function openAddStaffModal() {
 
 // ── 리포트 탭 렌더링 ──
 let _accReportYear = new Date().getFullYear().toString();
+let _accReportIncome = 0; // 전역 변수로 저장 (updateTaxCalc에서 사용)
+let _accSimpleExpenseRate = 0.617;
+
+// 신고 구분별 세액 계산 함수
+function calcTaxByType(type, income, simpleExpenseRate) {
+  let expense = 0;
+  let taxBase = 0;
+  let tax = 0;
+  let localTax = 0;
+  let note = '';
+
+  switch (type) {
+    case 'freelancer':
+      // 프리랜서: 3.3% 원천징수 (소득세 3% + 지방세 0.3%)
+      tax = Math.round(income * 0.033);
+      taxBase = income;
+      note = '3.3% 원천징수 (소득세 3% + 지방세 0.3%). 종합소득세 신고 시 환급 또는 추가 납부 가능.';
+      break;
+
+    case 'business':
+      // 사업소득: 단순경비율 적용 → 종소세 누진세율
+      expense = Math.round(income * simpleExpenseRate);
+      taxBase = Math.max(0, income - expense);
+
+      // 종합소득세 누진세율 (2024년 기준)
+      // 1,400만원 이하: 6%
+      // 1,400~5,000만원: 15% - 126만원
+      // 5,000~8,800만원: 24% - 576만원
+      // 8,800만원~1.5억: 35% - 1,544만원
+      // 1.5억~3억: 38% - 1,994만원
+      // 3억~5억: 40% - 2,594만원
+      // 5억~10억: 42% - 3,594만원
+      // 10억 초과: 45% - 6,594만원
+      if (taxBase <= 14000000) {
+        tax = Math.round(taxBase * 0.06);
+      } else if (taxBase <= 50000000) {
+        tax = Math.round(taxBase * 0.15 - 1260000);
+      } else if (taxBase <= 88000000) {
+        tax = Math.round(taxBase * 0.24 - 5760000);
+      } else if (taxBase <= 150000000) {
+        tax = Math.round(taxBase * 0.35 - 15440000);
+      } else if (taxBase <= 300000000) {
+        tax = Math.round(taxBase * 0.38 - 19940000);
+      } else if (taxBase <= 500000000) {
+        tax = Math.round(taxBase * 0.40 - 25940000);
+      } else if (taxBase <= 1000000000) {
+        tax = Math.round(taxBase * 0.42 - 35940000);
+      } else {
+        tax = Math.round(taxBase * 0.45 - 65940000);
+      }
+      tax = Math.max(0, tax);
+      localTax = Math.round(tax * 0.1);
+
+      const ratePercent = (simpleExpenseRate * 100).toFixed(1);
+      note = `단순경비율 ${ratePercent}% 적용. 종합소득세 누진세율 + 지방소득세(10%) 별도.`;
+      break;
+
+    case 'other':
+      // 기타소득: 필요경비 60% 인정, 22% 원천징수 (소득세 20% + 지방세 2%)
+      expense = Math.round(income * 0.6);
+      taxBase = Math.max(0, income - expense);
+      tax = Math.round(taxBase * 0.22);
+      note = '기타소득 필요경비 60% 인정 후 22% 원천징수 (소득세 20% + 지방세 2%).';
+      break;
+  }
+
+  return { expense, taxBase, tax, localTax, note };
+}
 
 function selectReportYear(year) {
   _accReportYear = year;
@@ -15108,98 +15176,72 @@ async function renderAccReport() {
   const yearlyExpense = yearly?.yearly_expense || 0;
   const yearlyProfit = yearly?.yearly_profit || 0;
 
-  if (_accBusinessType === 'tutoring') {
-    // 과외: 종소세 미리보기
-    const taxBase = Math.max(0, yearlyIncome - yearlyExpense);
-    const estimatedTax = Math.round(taxBase * 0.033); // 간이 3.3%
+  // 종소세 미리보기 (과외/교습소/학원 공통)
+  // 업태별 단순경비율: 학원 55%, 교습소/과외 61.7%
+  const simpleExpenseRate = _accBusinessType === 'academy' ? 0.55 : 0.617;
+  const bizTypeLabel = _accBusinessType === 'academy' ? '학원' : (_accBusinessType === 'institute' ? '교습소' : '과외');
 
-    wrap.innerHTML = `
+  // 전역 변수에 저장 (updateTaxCalc에서 사용)
+  _accReportIncome = yearlyIncome;
+  _accSimpleExpenseRate = simpleExpenseRate;
+
+  // 초기값 (프리랜서 3.3%)
+  const initialTax = calcTaxByType('freelancer', yearlyIncome, simpleExpenseRate);
+
+  // 종소세 미리보기 UI
+  wrap.innerHTML = `
       <div class="acc-card" style="position:relative;margin-bottom:20px">
         <div class="draft-stamp">DRAFT</div>
         <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📊 ${_accReportYear}년 종합소득세 미리보기</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:20px">
           <div class="acc-stat">
             <div class="acc-stat-label">총 수입</div>
-            <div class="acc-stat-value" style="color:var(--green)">${yearlyIncome.toLocaleString()}원</div>
+            <div class="acc-stat-value" style="color:var(--green)" id="tax-total-income">${yearlyIncome.toLocaleString()}원</div>
           </div>
           <div class="acc-stat">
-            <div class="acc-stat-label">필요경비</div>
-            <div class="acc-stat-value" style="color:var(--red)">${yearlyExpense.toLocaleString()}원</div>
+            <div class="acc-stat-label" id="tax-expense-label">필요경비</div>
+            <div class="acc-stat-value" style="color:var(--red)" id="tax-expense">${initialTax.expense.toLocaleString()}원</div>
           </div>
           <div class="acc-stat">
             <div class="acc-stat-label">과세표준</div>
-            <div class="acc-stat-value" style="color:var(--text)">${taxBase.toLocaleString()}원</div>
+            <div class="acc-stat-value" style="color:var(--text)" id="tax-base">${initialTax.taxBase.toLocaleString()}원</div>
           </div>
           <div class="acc-stat">
-            <div class="acc-stat-label">예상 세액 (3.3%)</div>
-            <div class="acc-stat-value" style="color:var(--accent)">${estimatedTax.toLocaleString()}원</div>
+            <div class="acc-stat-label" id="tax-amount-label">예상 세액 (3.3%)</div>
+            <div class="acc-stat-value" style="color:var(--accent)" id="tax-amount">${initialTax.tax.toLocaleString()}원</div>
           </div>
         </div>
+        <div id="tax-local-row" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;color:var(--text2)">지방소득세 (10%)</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text)" id="tax-local">0원</span>
+          </div>
+        </div>
+        <div id="tax-note" style="font-size:11px;color:var(--text3);margin-bottom:16px;line-height:1.6"></div>
         <div style="margin-bottom:16px">
           <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">신고 구분</div>
           <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer">
-            <input type="radio" name="tax-type" value="freelancer" checked> 프리랜서 (3.3% 원천징수)
+            <input type="radio" name="tax-type" value="freelancer" checked onchange="updateTaxCalc()"> 프리랜서 (3.3% 원천징수)
           </label>
           <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer">
-            <input type="radio" name="tax-type" value="business"> 사업소득
+            <input type="radio" name="tax-type" value="business" onchange="updateTaxCalc()"> 사업소득 (단순경비율)
           </label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="radio" name="tax-type" value="other"> 기타소득
+            <input type="radio" name="tax-type" value="other" onchange="updateTaxCalc()"> 기타소득 (강의료 등)
           </label>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:16px;padding:10px;background:var(--bg3);border-radius:var(--radius-sm)">
+          ※ 실제 신고 금액은 세무사와 상담하세요. 본 수치는 참고용 예상액입니다.
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-ghost btn-sm" onclick="downloadAccReportCSV()">📥 CSV 다운로드</button>
           <button class="btn btn-primary btn-sm" onclick="downloadAccReportPDF()">📄 PDF 저장</button>
         </div>
       </div>
-    `;
-  } else {
-    // 교습소/학원: 손익계산서 + 세금 정보
-    const vatAmount = Math.round(yearlyIncome / 11); // 간이계산
+  `;
 
-    wrap.innerHTML = `
-      <div class="acc-card" style="position:relative;margin-bottom:20px">
-        <div class="draft-stamp">DRAFT</div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📊 ${_accReportYear}년 손익계산서</div>
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:12px;font-weight:600">매출액</td>
-            <td style="padding:12px;text-align:right;color:var(--green)">${yearlyIncome.toLocaleString()}원</td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:12px;font-weight:600">매출원가</td>
-            <td style="padding:12px;text-align:right;color:var(--red)">${yearlyExpense.toLocaleString()}원</td>
-          </tr>
-          <tr style="background:var(--bg3)">
-            <td style="padding:12px;font-weight:700">영업이익</td>
-            <td style="padding:12px;text-align:right;font-weight:800;font-size:16px;color:${yearlyProfit >= 0 ? 'var(--green)' : 'var(--red)'}">${yearlyProfit.toLocaleString()}원</td>
-          </tr>
-        </table>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
-        <div class="acc-card">
-          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">💰 부가세 신고 자료</div>
-          <div style="font-size:13px;color:var(--text2);line-height:1.8">
-            과세 매출: ${yearlyIncome.toLocaleString()}원<br>
-            매출세액: ${vatAmount.toLocaleString()}원 (추정)
-          </div>
-        </div>
-        ${_accBusinessType === 'academy' ? `
-        <div class="acc-card">
-          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">👥 원천세 신고 자료</div>
-          <div style="font-size:13px;color:var(--text2);line-height:1.8">
-            강사 급여 지급액: 별도 집계 필요<br>
-            원천징수 세액: 급여 탭 참조
-          </div>
-        </div>
-        ` : ''}
-      </div>
-      <div style="margin-top:20px;display:flex;gap:8px">
-        <button class="btn btn-ghost btn-sm" onclick="downloadAccReportCSV()">📥 CSV 다운로드</button>
-        <button class="btn btn-primary btn-sm" onclick="downloadAccReportPDF()">📄 PDF 저장</button>
-      </div>
-    `;
-  }
+  // 초기 세금 계산 업데이트
+  updateTaxCalc();
 
   // 카테고리 분석 섹션 추가 (공통)
   wrap.innerHTML += renderCategoryAnalysis();
@@ -15209,6 +15251,44 @@ async function renderAccReport() {
     renderIncomePieChart();
     renderExpensePieChart();
   }, 100);
+}
+
+// 신고 구분 라디오 변경 시 세액 재계산
+function updateTaxCalc() {
+  const selectedType = document.querySelector('input[name="tax-type"]:checked')?.value || 'freelancer';
+  const result = calcTaxByType(selectedType, _accReportIncome, _accSimpleExpenseRate);
+
+  // DOM 요소 업데이트
+  const expenseEl = document.getElementById('tax-expense');
+  const expenseLabelEl = document.getElementById('tax-expense-label');
+  const baseEl = document.getElementById('tax-base');
+  const amountEl = document.getElementById('tax-amount');
+  const amountLabelEl = document.getElementById('tax-amount-label');
+  const localRowEl = document.getElementById('tax-local-row');
+  const localEl = document.getElementById('tax-local');
+  const noteEl = document.getElementById('tax-note');
+
+  if (expenseEl) expenseEl.textContent = result.expense.toLocaleString() + '원';
+  if (baseEl) baseEl.textContent = result.taxBase.toLocaleString() + '원';
+  if (amountEl) amountEl.textContent = result.tax.toLocaleString() + '원';
+  if (noteEl) noteEl.textContent = result.note;
+
+  // 라벨 및 스타일 업데이트
+  if (selectedType === 'freelancer') {
+    if (expenseLabelEl) expenseLabelEl.textContent = '필요경비';
+    if (amountLabelEl) amountLabelEl.textContent = '예상 세액 (3.3%)';
+    if (localRowEl) localRowEl.style.display = 'none';
+  } else if (selectedType === 'business') {
+    const ratePercent = (_accSimpleExpenseRate * 100).toFixed(1);
+    if (expenseLabelEl) expenseLabelEl.textContent = `필요경비 (${ratePercent}%)`;
+    if (amountLabelEl) amountLabelEl.textContent = '종합소득세';
+    if (localRowEl) localRowEl.style.display = 'block';
+    if (localEl) localEl.textContent = result.localTax.toLocaleString() + '원';
+  } else if (selectedType === 'other') {
+    if (expenseLabelEl) expenseLabelEl.textContent = '필요경비 (60%)';
+    if (amountLabelEl) amountLabelEl.textContent = '예상 세액 (22%)';
+    if (localRowEl) localRowEl.style.display = 'none';
+  }
 }
 
 // ── 카테고리 분석 섹션 HTML ──
