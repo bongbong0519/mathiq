@@ -312,6 +312,288 @@
   .stat-delta.up { color: var(--green); }
   .stat-delta.down { color: var(--red); }
 
+  /* ── CALENDAR ── */
+  .calendar-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .calendar-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .calendar-nav button {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .calendar-nav button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+  .calendar-body {
+    display: flex;
+    gap: 0;
+  }
+  .calendar-grid-wrap {
+    flex: 1;
+    padding: 16px 20px;
+  }
+  .calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .calendar-weekday {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    padding: 8px 0;
+  }
+  .calendar-weekday:first-child { color: var(--red); }
+  .calendar-weekday:last-child { color: var(--accent); }
+  .calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .calendar-day {
+    aspect-ratio: 1;
+    min-height: 60px;
+    background: var(--bg3);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+  }
+  .calendar-day:hover {
+    border-color: var(--accent);
+    background: rgba(79,142,247,0.05);
+  }
+  .calendar-day.other-month {
+    background: transparent;
+    opacity: 0.4;
+  }
+  .calendar-day.today {
+    border-color: var(--accent);
+    background: rgba(79,142,247,0.1);
+  }
+  .calendar-day.today .calendar-date {
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .calendar-date {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 4px;
+  }
+  .calendar-day:first-child .calendar-date,
+  .calendar-day:nth-child(7n+1) .calendar-date { color: var(--red); }
+  .calendar-day:nth-child(7n) .calendar-date { color: var(--accent); }
+  .calendar-events {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+  }
+  .calendar-event-dot {
+    font-size: 9px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: white;
+    font-weight: 500;
+  }
+  .calendar-more {
+    font-size: 9px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .calendar-sidebar {
+    width: 280px;
+    border-left: 1px solid var(--border);
+    background: var(--bg3);
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .calendar-sidebar-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .calendar-sidebar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .calendar-sidebar-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: var(--bg2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .calendar-sidebar-item:hover {
+    background: var(--bg);
+  }
+  .calendar-sidebar-date {
+    width: 40px;
+    text-align: center;
+  }
+  .calendar-sidebar-date-day {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .calendar-sidebar-date-dow {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .calendar-sidebar-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .calendar-sidebar-type {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: white;
+    margin-bottom: 4px;
+  }
+  .calendar-sidebar-title-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .calendar-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text3);
+    font-size: 13px;
+  }
+  .calendar-day.selected {
+    border-color: var(--accent);
+    background: rgba(79,142,247,0.12);
+  }
+  .calendar-day-detail {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    background: var(--bg3);
+  }
+  .calendar-day-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .calendar-day-detail-header span {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .calendar-day-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .calendar-day-event {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg2);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+  }
+  .calendar-day-event-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .calendar-day-event-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .calendar-day-event-meta {
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .calendar-day-event-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .calendar-day-event-actions button {
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .calendar-day-event-actions button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+  .calendar-day-event-actions button.btn-danger {
+    background: rgba(239,68,68,0.1);
+    border-color: rgba(239,68,68,0.2);
+    color: var(--red);
+  }
+
   /* ── GRID LAYOUTS ── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
@@ -2741,6 +3023,54 @@
         <div class="header-actions">
           <button class="btn btn-ghost btn-sm" onclick="openShareModal('리포트')">🔗 리포트 공유</button>
           <button class="btn btn-primary btn-sm">+ 시험 추가</button>
+        </div>
+      </div>
+
+      <!-- 월간 캘린더 -->
+      <div class="calendar-wrap" id="dashboard-calendar">
+        <div class="calendar-header">
+          <div class="calendar-title" id="calendar-title">2026년 4월</div>
+          <div class="calendar-nav">
+            <button onclick="calendarPrevMonth()">◀ 이전</button>
+            <button onclick="calendarToday()">오늘</button>
+            <button onclick="calendarNextMonth()">다음 ▶</button>
+            <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="openEventModal()">+ 일정</button>
+          </div>
+        </div>
+        <div class="calendar-body">
+          <div class="calendar-grid-wrap">
+            <div class="calendar-weekdays">
+              <div class="calendar-weekday">일</div>
+              <div class="calendar-weekday">월</div>
+              <div class="calendar-weekday">화</div>
+              <div class="calendar-weekday">수</div>
+              <div class="calendar-weekday">목</div>
+              <div class="calendar-weekday">금</div>
+              <div class="calendar-weekday">토</div>
+            </div>
+            <div class="calendar-days" id="calendar-days">
+              <!-- 동적 생성 -->
+            </div>
+          </div>
+          <div class="calendar-sidebar">
+            <div class="calendar-sidebar-title">
+              <span>이번 달 일정</span>
+              <span id="calendar-event-count" style="font-size:11px;color:var(--text3)">0건</span>
+            </div>
+            <div class="calendar-sidebar-list" id="calendar-sidebar-list">
+              <div class="calendar-empty">등록된 일정이 없습니다</div>
+            </div>
+          </div>
+        </div>
+        <!-- 선택 날짜 상세 패널 -->
+        <div class="calendar-day-detail" id="calendar-day-detail" style="display:none">
+          <div class="calendar-day-detail-header">
+            <span id="calendar-day-detail-title">📌 2026-04-24 (금)</span>
+            <button class="btn btn-primary btn-sm" id="calendar-day-add-btn" onclick="openEventModal(null, _selectedDate)">+ 이 날짜에 추가</button>
+          </div>
+          <div class="calendar-day-detail-list" id="calendar-day-detail-list">
+            <!-- 동적 생성 -->
+          </div>
         </div>
       </div>
 
@@ -6269,6 +6599,61 @@
   </div>
 </div>
 
+<!-- 캘린더 일정 모달 -->
+<div class="modal-overlay" id="calendarEventModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title" id="calendarModalTitle">📅 일정 추가</div>
+      <button class="modal-close" onclick="closeModal('calendarEventModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="calEventId">
+      <div class="field-group">
+        <label class="field-label">일정 제목 <span class="text-red">*</span></label>
+        <input type="text" class="form-input" id="calEventTitle" placeholder="예: 중간고사, 학부모 상담">
+      </div>
+      <div class="field-group">
+        <label class="field-label">날짜 <span class="text-red">*</span></label>
+        <input type="date" class="form-input" id="calEventDate">
+      </div>
+      <div class="field-group">
+        <label class="field-label">유형</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px" id="calEventTypeWrap">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:13px;transition:all 0.15s">
+            <input type="radio" name="calEventType" value="시험" style="display:none">
+            <span style="width:12px;height:12px;border-radius:50%;background:#EF4444"></span> 시험
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:13px;transition:all 0.15s">
+            <input type="radio" name="calEventType" value="상담" style="display:none">
+            <span style="width:12px;height:12px;border-radius:50%;background:#8B5CF6"></span> 상담
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:13px;transition:all 0.15s">
+            <input type="radio" name="calEventType" value="수업" style="display:none">
+            <span style="width:12px;height:12px;border-radius:50%;background:#3B82F6"></span> 수업
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:13px;transition:all 0.15s">
+            <input type="radio" name="calEventType" value="휴일" style="display:none">
+            <span style="width:12px;height:12px;border-radius:50%;background:#6B7280"></span> 휴일
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:13px;transition:all 0.15s">
+            <input type="radio" name="calEventType" value="기타" checked style="display:none">
+            <span style="width:12px;height:12px;border-radius:50%;background:#F59E0B"></span> 기타
+          </label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">메모</label>
+        <textarea class="form-input" id="calEventMemo" rows="3" placeholder="상세 내용 (선택)"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeModal('calendarEventModal')">취소</button>
+        <button class="btn btn-danger" id="calEventDeleteBtn" style="display:none" onclick="deleteCalendarEvent()">삭제</button>
+        <button class="btn btn-primary" style="flex:1" onclick="saveCalendarEvent()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast">
   <div class="toast-icon" id="toastIcon">✅</div>
@@ -9434,7 +9819,483 @@ recentExams.map(e => `<tr style="cursor:pointer" onclick="loadExamQuestions('${e
       '</tbody></table></div>';
     }
   }
+
+  // 캘린더 렌더링
+  await renderCalendar();
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 대시보드 캘린더
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _calendarYear = new Date().getFullYear();
+let _calendarMonth = new Date().getMonth(); // 0-indexed
+let _calendarEvents = [];
+let _selectedDate = null; // 선택된 날짜 YYYY-MM-DD
+
+const CALENDAR_EVENT_COLORS = {
+  '시험': '#EF4444',
+  '상담': '#8B5CF6',
+  '수업': '#3B82F6',
+  '휴일': '#6B7280',
+  '기타': '#F59E0B'
+};
+
+// 6주(42칸) 캘린더 매트릭스 생성
+function getCalendarMatrix(year, month) {
+  const today = new Date();
+  const todayStr = getLocalDateStr(today);
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDow = firstDay.getDay();
+  const totalDays = lastDay.getDate();
+  const prevMonthLast = new Date(year, month, 0);
+  const prevMonthDays = prevMonthLast.getDate();
+
+  const matrix = [];
+
+  // 이전 달 날짜들
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = prevMonthDays - i;
+    const prevMonth = month === 0 ? 11 : month - 1;
+    const prevYear = month === 0 ? year - 1 : year;
+    const dateStr = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    matrix.push({ date: dateStr, day: d, isCurrentMonth: false, isToday: dateStr === todayStr });
+  }
+
+  // 이번 달 날짜들
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    matrix.push({ date: dateStr, day: d, isCurrentMonth: true, isToday: dateStr === todayStr });
+  }
+
+  // 다음 달 날짜들 (6주 = 42칸 채우기)
+  const remaining = 42 - matrix.length;
+  for (let d = 1; d <= remaining; d++) {
+    const nextMonth = month === 11 ? 0 : month + 1;
+    const nextYear = month === 11 ? year + 1 : year;
+    const dateStr = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    matrix.push({ date: dateStr, day: d, isCurrentMonth: false, isToday: dateStr === todayStr });
+  }
+
+  return matrix;
+}
+
+// 캘린더 이벤트 로드
+async function loadCalendarEvents(year, month) {
+  if (!sbClient || !currentUser) return [];
+  const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const endDate = new Date(year, month + 1, 0);
+  const endDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+  const { data, error } = await sbClient.from('calendar_events')
+    .select('*')
+    .eq('teacher_id', currentUser.id)
+    .gte('event_date', startDate)
+    .lte('event_date', endDateStr)
+    .order('event_date', { ascending: true });
+
+  if (error) {
+    console.error('[캘린더] 이벤트 로드 오류:', error.message);
+    return [];
+  }
+  return data || [];
+}
+
+// 캘린더 렌더링
+async function renderCalendar() {
+  _calendarEvents = await loadCalendarEvents(_calendarYear, _calendarMonth);
+
+  // 첫 로드 시 오늘 날짜 자동 선택 (현재 월에 오늘이 포함된 경우)
+  const today = new Date();
+  const todayStr = getLocalDateStr(today);
+  if (!_selectedDate && today.getFullYear() === _calendarYear && today.getMonth() === _calendarMonth) {
+    _selectedDate = todayStr;
+  }
+
+  renderCalendarGrid();
+  renderCalendarSidebar();
+  renderDayDetail(_selectedDate);
+}
+
+// 캘린더 그리드 렌더링
+function renderCalendarGrid() {
+  const titleEl = document.getElementById('calendar-title');
+  if (titleEl) {
+    titleEl.textContent = `${_calendarYear}년 ${_calendarMonth + 1}월`;
+  }
+
+  const daysEl = document.getElementById('calendar-days');
+  if (!daysEl) return;
+
+  const today = new Date();
+  const todayStr = getLocalDateStr(today);
+  const firstDay = new Date(_calendarYear, _calendarMonth, 1);
+  const lastDay = new Date(_calendarYear, _calendarMonth + 1, 0);
+  const startDow = firstDay.getDay(); // 일요일=0
+  const totalDays = lastDay.getDate();
+
+  // 이전 달 마지막 날짜들
+  const prevMonthLast = new Date(_calendarYear, _calendarMonth, 0);
+  const prevMonthDays = prevMonthLast.getDate();
+
+  // 이벤트를 날짜별로 그룹화
+  const eventsByDate = {};
+  _calendarEvents.forEach(ev => {
+    if (!eventsByDate[ev.event_date]) eventsByDate[ev.event_date] = [];
+    eventsByDate[ev.event_date].push(ev);
+  });
+
+  let html = '';
+
+  // 이전 달
+  for (let i = startDow - 1; i >= 0; i--) {
+    const day = prevMonthDays - i;
+    html += `<div class="calendar-day other-month"><div class="calendar-date">${day}</div></div>`;
+  }
+
+  // 이번 달
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = `${_calendarYear}-${String(_calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === _selectedDate;
+    const dayEvents = eventsByDate[dateStr] || [];
+
+    let eventsHtml = '';
+    if (dayEvents.length > 0) {
+      const maxShow = 2;
+      dayEvents.slice(0, maxShow).forEach(ev => {
+        const color = ev.color || CALENDAR_EVENT_COLORS[ev.event_type] || CALENDAR_EVENT_COLORS['기타'];
+        eventsHtml += `<div class="calendar-event-dot" style="background:${color}" onclick="event.stopPropagation();openEventModal('${ev.id}')" title="${ev.title}">${ev.title}</div>`;
+      });
+      if (dayEvents.length > maxShow) {
+        eventsHtml += `<div class="calendar-more">+${dayEvents.length - maxShow}개 더</div>`;
+      }
+    }
+
+    const classes = ['calendar-day'];
+    if (isToday) classes.push('today');
+    if (isSelected) classes.push('selected');
+
+    html += `<div class="${classes.join(' ')}" onclick="selectCalendarDay('${dateStr}')">
+      <div class="calendar-date">${d}</div>
+      <div class="calendar-events">${eventsHtml}</div>
+    </div>`;
+  }
+
+  // 다음 달 (6주 맞추기)
+  const totalCells = startDow + totalDays;
+  const remainingCells = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remainingCells; i++) {
+    html += `<div class="calendar-day other-month"><div class="calendar-date">${i}</div></div>`;
+  }
+
+  daysEl.innerHTML = html;
+}
+
+// 캘린더 사이드바 렌더링
+function renderCalendarSidebar() {
+  const listEl = document.getElementById('calendar-sidebar-list');
+  const countEl = document.getElementById('calendar-event-count');
+  if (!listEl) return;
+
+  if (countEl) countEl.textContent = `${_calendarEvents.length}건`;
+
+  if (_calendarEvents.length === 0) {
+    listEl.innerHTML = '<div class="calendar-empty">등록된 일정이 없습니다</div>';
+    return;
+  }
+
+  const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
+  let html = '';
+
+  _calendarEvents.forEach(ev => {
+    const date = new Date(ev.event_date + 'T00:00:00');
+    const day = date.getDate();
+    const dow = dowNames[date.getDay()];
+    const color = CALENDAR_EVENT_COLORS[ev.event_type] || CALENDAR_EVENT_COLORS['기타'];
+
+    html += `<div class="calendar-sidebar-item" onclick="openEventModal('${ev.id}')">
+      <div class="calendar-sidebar-date">
+        <div class="calendar-sidebar-date-day">${day}</div>
+        <div class="calendar-sidebar-date-dow">${dow}</div>
+      </div>
+      <div class="calendar-sidebar-info">
+        <div class="calendar-sidebar-type" style="background:${color}">${ev.event_type}</div>
+        <div class="calendar-sidebar-title-text">${ev.title}</div>
+      </div>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+}
+
+// 월 이동 (통합 함수)
+function navigateMonth(direction) {
+  if (direction === 'today') {
+    const today = new Date();
+    _calendarYear = today.getFullYear();
+    _calendarMonth = today.getMonth();
+    _selectedDate = getLocalDateStr(today);
+  } else if (direction === -1) {
+    _calendarMonth--;
+    if (_calendarMonth < 0) {
+      _calendarMonth = 11;
+      _calendarYear--;
+    }
+    _selectedDate = null; // 월 변경 시 선택 해제
+  } else if (direction === 1) {
+    _calendarMonth++;
+    if (_calendarMonth > 11) {
+      _calendarMonth = 0;
+      _calendarYear++;
+    }
+    _selectedDate = null;
+  }
+  renderCalendar();
+}
+
+// 이전 달
+function calendarPrevMonth() {
+  navigateMonth(-1);
+}
+
+// 다음 달
+function calendarNextMonth() {
+  navigateMonth(1);
+}
+
+// 오늘로 이동
+function calendarToday() {
+  navigateMonth('today');
+}
+
+// 날짜 선택
+function selectCalendarDay(dateStr) {
+  _selectedDate = dateStr;
+  renderCalendarGrid(); // 선택 상태 업데이트
+  renderDayDetail(dateStr);
+}
+
+// 선택 날짜 상세 패널 렌더
+function renderDayDetail(dateStr) {
+  const panel = document.getElementById('calendar-day-detail');
+  const titleEl = document.getElementById('calendar-day-detail-title');
+  const listEl = document.getElementById('calendar-day-detail-list');
+  const addBtn = document.getElementById('calendar-day-add-btn');
+
+  if (!panel || !dateStr) {
+    if (panel) panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = 'block';
+
+  // 날짜 포맷팅
+  const date = new Date(dateStr + 'T00:00:00');
+  const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
+  const dow = dowNames[date.getDay()];
+  const formatted = `${date.getMonth() + 1}/${date.getDate()} (${dow})`;
+  titleEl.textContent = `📌 ${formatted}`;
+
+  // 해당 날짜 이벤트
+  const dayEvents = _calendarEvents.filter(e => e.event_date === dateStr);
+
+  if (dayEvents.length === 0) {
+    listEl.innerHTML = '<div class="calendar-empty" style="padding:20px">이 날짜에 등록된 일정이 없습니다</div>';
+    addBtn.style.display = 'block';
+    return;
+  }
+
+  addBtn.style.display = 'block';
+  let html = '';
+  dayEvents.forEach(ev => {
+    const color = ev.color || CALENDAR_EVENT_COLORS[ev.event_type] || CALENDAR_EVENT_COLORS['기타'];
+    html += `<div class="calendar-day-event" style="border-left-color:${color}">
+      <div class="calendar-day-event-info">
+        <div class="calendar-day-event-title">${ev.title}</div>
+        <div class="calendar-day-event-meta">${ev.event_type}${ev.memo ? ' · ' + ev.memo.slice(0, 30) : ''}</div>
+      </div>
+      <div class="calendar-day-event-actions">
+        <button onclick="openEventModal('${ev.id}')">수정</button>
+        <button class="btn-danger" onclick="deleteCalendarEventDirect('${ev.id}')">삭제</button>
+      </div>
+    </div>`;
+  });
+  listEl.innerHTML = html;
+}
+
+// 상세 패널에서 직접 삭제
+async function deleteCalendarEventDirect(eventId) {
+  if (!confirm('이 일정을 삭제하시겠습니까?')) return;
+
+  const { error } = await sbClient.from('calendar_events')
+    .delete()
+    .eq('id', eventId)
+    .eq('teacher_id', currentUser.id);
+
+  if (error) {
+    console.error('[캘린더] 삭제 오류:', error.message);
+    showToast('삭제에 실패했습니다', 'error');
+    return;
+  }
+
+  showToast('일정이 삭제되었습니다', 'success');
+  await renderCalendar();
+  if (_selectedDate) renderDayDetail(_selectedDate);
+}
+
+// 일정 모달 열기
+function openEventModal(eventId = null, presetDate = null) {
+  const modal = document.getElementById('calendarEventModal');
+  const titleEl = document.getElementById('calendarModalTitle');
+  const idEl = document.getElementById('calEventId');
+  const titleInput = document.getElementById('calEventTitle');
+  const dateInput = document.getElementById('calEventDate');
+  const memoInput = document.getElementById('calEventMemo');
+  const deleteBtn = document.getElementById('calEventDeleteBtn');
+  const typeRadios = document.querySelectorAll('input[name="calEventType"]');
+
+  // 라디오 버튼 스타일 리셋
+  typeRadios.forEach(r => {
+    r.parentElement.style.background = 'var(--bg3)';
+    r.parentElement.style.borderColor = 'var(--border)';
+  });
+
+  if (eventId) {
+    // 수정 모드
+    const event = _calendarEvents.find(e => e.id === eventId);
+    if (!event) return;
+
+    titleEl.textContent = '📅 일정 수정';
+    idEl.value = event.id;
+    titleInput.value = event.title;
+    dateInput.value = event.event_date;
+    memoInput.value = event.memo || '';
+    deleteBtn.style.display = 'block';
+
+    typeRadios.forEach(r => {
+      if (r.value === event.event_type) {
+        r.checked = true;
+        r.parentElement.style.background = 'rgba(79,142,247,0.15)';
+        r.parentElement.style.borderColor = 'var(--accent)';
+      }
+    });
+  } else {
+    // 추가 모드
+    titleEl.textContent = '📅 일정 추가';
+    idEl.value = '';
+    titleInput.value = '';
+    dateInput.value = presetDate || getLocalDateStr(new Date());
+    memoInput.value = '';
+    deleteBtn.style.display = 'none';
+
+    // 기본값: 기타
+    typeRadios.forEach(r => {
+      if (r.value === '기타') {
+        r.checked = true;
+        r.parentElement.style.background = 'rgba(79,142,247,0.15)';
+        r.parentElement.style.borderColor = 'var(--accent)';
+      }
+    });
+  }
+
+  // 라디오 버튼 클릭 이벤트
+  typeRadios.forEach(r => {
+    r.onclick = () => {
+      typeRadios.forEach(r2 => {
+        r2.parentElement.style.background = 'var(--bg3)';
+        r2.parentElement.style.borderColor = 'var(--border)';
+      });
+      r.parentElement.style.background = 'rgba(79,142,247,0.15)';
+      r.parentElement.style.borderColor = 'var(--accent)';
+    };
+  });
+
+  modal.classList.add('open');
+}
+
+// 일정 저장
+async function saveCalendarEvent() {
+  if (!sbClient || !currentUser) return;
+
+  const eventId = document.getElementById('calEventId').value;
+  const title = document.getElementById('calEventTitle').value.trim();
+  const eventDate = document.getElementById('calEventDate').value;
+  const memo = document.getElementById('calEventMemo').value.trim();
+  const eventType = document.querySelector('input[name="calEventType"]:checked')?.value || '기타';
+  const color = CALENDAR_EVENT_COLORS[eventType] || CALENDAR_EVENT_COLORS['기타'];
+
+  if (!title) {
+    showToast('제목을 입력해주세요', 'error');
+    return;
+  }
+  if (!eventDate) {
+    showToast('날짜를 선택해주세요', 'error');
+    return;
+  }
+
+  const payload = {
+    teacher_id: currentUser.id,
+    event_date: eventDate,
+    title,
+    event_type: eventType,
+    memo: memo || null,
+    color
+  };
+
+  let error;
+  if (eventId) {
+    // 수정
+    const result = await sbClient.from('calendar_events')
+      .update(payload)
+      .eq('id', eventId)
+      .eq('teacher_id', currentUser.id);
+    error = result.error;
+  } else {
+    // 추가
+    const result = await sbClient.from('calendar_events')
+      .insert(payload);
+    error = result.error;
+  }
+
+  if (error) {
+    console.error('[캘린더] 저장 오류:', error.message);
+    showToast('저장에 실패했습니다', 'error');
+    return;
+  }
+
+  closeModal('calendarEventModal');
+  showToast(eventId ? '일정이 수정되었습니다' : '일정이 추가되었습니다', 'success');
+  await renderCalendar();
+}
+
+// 일정 삭제
+async function deleteCalendarEvent() {
+  if (!sbClient || !currentUser) return;
+
+  const eventId = document.getElementById('calEventId').value;
+  if (!eventId) return;
+
+  if (!confirm('이 일정을 삭제하시겠습니까?')) return;
+
+  const { error } = await sbClient.from('calendar_events')
+    .delete()
+    .eq('id', eventId)
+    .eq('teacher_id', currentUser.id);
+
+  if (error) {
+    console.error('[캘린더] 삭제 오류:', error.message);
+    showToast('삭제에 실패했습니다', 'error');
+    return;
+  }
+
+  closeModal('calendarEventModal');
+  showToast('일정이 삭제되었습니다', 'success');
+  await renderCalendar();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 
 // ── 학생 목록 로드 ──
 async function loadStudents() {

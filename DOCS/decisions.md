@@ -18,10 +18,14 @@
 - `renderPaymentCollectionStatus()` — 이번 달 수금 현황 섹션 렌더
 - `loadMonthlyTrend(months)` — 월별 수입/지출/순이익 집계 (accounting_income + accounting_expense GROUP BY month_year)
 - `renderMonthlyTrendChart(data)` — Chart.js 혼합 차트(막대+선) 렌더
+- `getCalendarMatrix(year, month)` — 6주(42칸) 캘린더 매트릭스 생성
 - `loadCalendarEvents(year, month)` — 해당 월의 캘린더 이벤트 로드
-- `renderCalendar()` — 캘린더 전체 렌더링 (그리드 + 사이드바)
+- `renderCalendar()` — 캘린더 전체 렌더링 (그리드 + 사이드바 + 상세패널)
 - `renderCalendarGrid()` — 캘린더 날짜 그리드 렌더
 - `renderCalendarSidebar()` — 이번 달 일정 목록 렌더
+- `renderDayDetail(dateStr)` — 선택 날짜 상세 패널 렌더
+- `selectCalendarDay(dateStr)` — 날짜 선택 및 상태 업데이트
+- `navigateMonth(direction)` — 이전달(-1)/다음달(1)/오늘('today') 이동
 - `saveCalendarEvent()` — 일정 추가/수정 저장
 - `deleteCalendarEvent()` — 일정 삭제
 
@@ -52,6 +56,7 @@
 - `color VARCHAR(20)` — 이벤트 색상 HEX (기본 #F59E0B)
 - RLS: `teachers_own_calendar_*` 4종 (select/insert/update/delete)
 - 기본 색상: 시험=#EF4444, 상담=#8B5CF6, 수업=#3B82F6, 휴일=#6B7280, 기타=#F59E0B
+- **1차 범위**: 개인 일정 CRUD만. 결제일 자동 표시/school_events/공휴일 API는 2차.
 
 ### 수금 상태 판정 규칙 (2026-04-24)
 - `paid`: 이번 달 income에 학생 레코드 존재
