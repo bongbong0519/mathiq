@@ -9793,6 +9793,7 @@ let _calendarYear = new Date().getFullYear();
 let _calendarMonth = new Date().getMonth(); // 0-indexed
 let _calendarEvents = [];
 let _selectedDate = null; // 선택된 날짜 YYYY-MM-DD
+let _currentCalendarContainer = null; // 현재 활성 캘린더 컨테이너
 
 const CALENDAR_EVENT_COLORS = {
   '시험': '#EF4444',
@@ -9874,7 +9875,7 @@ function initCalendarContainer(containerId) {
 
   container.innerHTML = `
     <div class="calendar-header">
-      <div class="calendar-title" id="calendar-title">2026년 4월</div>
+      <div class="calendar-title">2026년 4월</div>
       <div class="calendar-nav">
         <button onclick="calendarPrevMonth()">◀ 이전</button>
         <button onclick="calendarToday()">오늘</button>
@@ -9893,29 +9894,33 @@ function initCalendarContainer(containerId) {
           <div class="calendar-weekday">금</div>
           <div class="calendar-weekday">토</div>
         </div>
-        <div class="calendar-days" id="calendar-days"></div>
+        <div class="calendar-days"></div>
       </div>
       <div class="calendar-sidebar">
         <div class="calendar-sidebar-title">
           <span>이번 달 일정</span>
-          <span id="calendar-event-count" style="font-size:10px;color:var(--text3)">0건</span>
+          <span class="calendar-event-count" style="font-size:10px;color:var(--text3)">0건</span>
         </div>
-        <div class="calendar-sidebar-list" id="calendar-sidebar-list">
+        <div class="calendar-sidebar-list">
           <div class="calendar-empty">등록된 일정이 없습니다</div>
         </div>
       </div>
     </div>
-    <div class="calendar-day-detail" id="calendar-day-detail" style="display:none">
+    <div class="calendar-day-detail" style="display:none">
       <div class="calendar-day-detail-header">
-        <span id="calendar-day-detail-title">📌 2026-04-24 (금)</span>
-        <button class="btn btn-primary btn-sm" id="calendar-day-add-btn" onclick="openEventModal(null, _selectedDate)">+ 이 날짜에 추가</button>
+        <span class="calendar-day-detail-title">📌 2026-04-24 (금)</span>
+        <button class="btn btn-primary btn-sm calendar-day-add-btn" onclick="openEventModal(null, _selectedDate)">+ 이 날짜에 추가</button>
       </div>
-      <div class="calendar-day-detail-list" id="calendar-day-detail-list"></div>
+      <div class="calendar-day-detail-list"></div>
     </div>
   `;
 }
 
 async function renderCalendar(containerId = 'dashboard-calendar') {
+  // 현재 활성 컨테이너 설정
+  _currentCalendarContainer = document.getElementById(containerId);
+  if (!_currentCalendarContainer) return;
+
   // 컨테이너 초기화
   initCalendarContainer(containerId);
 
@@ -9935,12 +9940,14 @@ async function renderCalendar(containerId = 'dashboard-calendar') {
 
 // 캘린더 그리드 렌더링
 function renderCalendarGrid() {
-  const titleEl = document.getElementById('calendar-title');
+  if (!_currentCalendarContainer) return;
+
+  const titleEl = _currentCalendarContainer.querySelector('.calendar-title');
   if (titleEl) {
     titleEl.textContent = `${_calendarYear}년 ${_calendarMonth + 1}월`;
   }
 
-  const daysEl = document.getElementById('calendar-days');
+  const daysEl = _currentCalendarContainer.querySelector('.calendar-days');
   if (!daysEl) return;
 
   const today = new Date();
@@ -10010,8 +10017,10 @@ function renderCalendarGrid() {
 
 // 캘린더 사이드바 렌더링
 function renderCalendarSidebar() {
-  const listEl = document.getElementById('calendar-sidebar-list');
-  const countEl = document.getElementById('calendar-event-count');
+  if (!_currentCalendarContainer) return;
+
+  const listEl = _currentCalendarContainer.querySelector('.calendar-sidebar-list');
+  const countEl = _currentCalendarContainer.querySelector('.calendar-event-count');
   if (!listEl) return;
 
   if (countEl) countEl.textContent = `${_calendarEvents.length}건`;
@@ -10046,7 +10055,7 @@ function renderCalendarSidebar() {
 }
 
 // 월 이동 (통합 함수)
-function navigateMonth(direction) {
+async function navigateMonth(direction) {
   if (direction === 'today') {
     const today = new Date();
     _calendarYear = today.getFullYear();
@@ -10067,7 +10076,13 @@ function navigateMonth(direction) {
     }
     _selectedDate = null;
   }
-  renderCalendar();
+  // 현재 활성 컨테이너에 재렌더 (컨테이너 ID를 사용하지 않고 기존 컨테이너 유지)
+  if (_currentCalendarContainer) {
+    _calendarEvents = await loadCalendarEvents(_calendarYear, _calendarMonth);
+    renderCalendarGrid();
+    renderCalendarSidebar();
+    renderDayDetail(_selectedDate);
+  }
 }
 
 // 이전 달
@@ -10094,10 +10109,12 @@ function selectCalendarDay(dateStr) {
 
 // 선택 날짜 상세 패널 렌더
 function renderDayDetail(dateStr) {
-  const panel = document.getElementById('calendar-day-detail');
-  const titleEl = document.getElementById('calendar-day-detail-title');
-  const listEl = document.getElementById('calendar-day-detail-list');
-  const addBtn = document.getElementById('calendar-day-add-btn');
+  if (!_currentCalendarContainer) return;
+
+  const panel = _currentCalendarContainer.querySelector('.calendar-day-detail');
+  const titleEl = _currentCalendarContainer.querySelector('.calendar-day-detail-title');
+  const listEl = _currentCalendarContainer.querySelector('.calendar-day-detail-list');
+  const addBtn = _currentCalendarContainer.querySelector('.calendar-day-add-btn');
 
   if (!panel || !dateStr) {
     if (panel) panel.style.display = 'none';
@@ -10156,7 +10173,7 @@ async function deleteCalendarEventDirect(eventId) {
   }
 
   showToast('일정이 삭제되었습니다', 'success');
-  await renderCalendar();
+  await refreshCurrentCalendar();
   if (_selectedDate) renderDayDetail(_selectedDate);
 }
 
@@ -10282,7 +10299,7 @@ async function saveCalendarEvent() {
 
   closeModal('calendarEventModal');
   showToast(eventId ? '일정이 수정되었습니다' : '일정이 추가되었습니다', 'success');
-  await renderCalendar();
+  await refreshCurrentCalendar();
 }
 
 // 일정 삭제
@@ -10307,7 +10324,16 @@ async function deleteCalendarEvent() {
 
   closeModal('calendarEventModal');
   showToast('일정이 삭제되었습니다', 'success');
-  await renderCalendar();
+  await refreshCurrentCalendar();
+}
+
+// 현재 캘린더 새로고침 (컨테이너 유지)
+async function refreshCurrentCalendar() {
+  if (!_currentCalendarContainer) return;
+  _calendarEvents = await loadCalendarEvents(_calendarYear, _calendarMonth);
+  renderCalendarGrid();
+  renderCalendarSidebar();
+  renderDayDetail(_selectedDate);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
