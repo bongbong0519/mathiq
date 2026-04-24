@@ -9877,12 +9877,16 @@ async function loadCalendarEvents(year, month) {
 
   const events = dbEvents || [];
 
-  // 2. 학생 결제일 가상 이벤트 생성
-  try {
-    const paymentEvents = await loadPaymentVirtualEvents(calendarStart, calendarEnd);
-    events.push(...paymentEvents);
-  } catch (e) {
-    console.error('[캘린더] 결제 이벤트 생성 오류:', e.message);
+  // 2. 학생 결제일 가상 이벤트 생성 (선생님 대시보드에서만)
+  // 운영자/원장 모드에서는 결제일 표시 안 함 (역할별 데이터 분리)
+  const isTeacherDashboard = _currentCalendarContainer?.id === 'dashboard-calendar';
+  if (isTeacherDashboard) {
+    try {
+      const paymentEvents = await loadPaymentVirtualEvents(calendarStart, calendarEnd);
+      events.push(...paymentEvents);
+    } catch (e) {
+      console.error('[캘린더] 결제 이벤트 생성 오류:', e.message);
+    }
   }
 
   // 날짜순 정렬
