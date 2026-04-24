@@ -19,7 +19,7 @@
 - `loadMonthlyTrend(months)` — 월별 수입/지출/순이익 집계 (accounting_income + accounting_expense GROUP BY month_year)
 - `renderMonthlyTrendChart(data)` — Chart.js 혼합 차트(막대+선) 렌더
 - `getCalendarMatrix(year, month)` — 6주(42칸) 캘린더 매트릭스 생성
-- `loadCalendarEvents(year, month)` — 해당 월의 캘린더 이벤트 로드
+- `loadCalendarEvents(year, month)` — 해당 월의 캘린더 이벤트 로드. 결제 가상 이벤트는 선생님 대시보드(`dashboard-calendar`)에서만 로드. 운영자/원장 캘린더는 개인 `calendar_events`만 표시.
 - `renderCalendar()` — 캘린더 전체 렌더링 (그리드 + 사이드바 + 상세패널)
 - `renderCalendarGrid()` — 캘린더 날짜 그리드 렌더
 - `renderCalendarSidebar()` — 이번 달 일정 목록 렌더
@@ -59,7 +59,12 @@
 - RLS: `teachers_own_calendar_*` 4종 (select/insert/update/delete)
 - 기본 색상: 시험=#EF4444, 상담=#8B5CF6, 수업=#3B82F6, 휴일=#6B7280, 기타=#F59E0B
 - **1차 범위**: 개인 일정 CRUD만.
-- **2차 범위**: 결제일 자동 표시 (2026-04-24 구현 완료)
+
+**캘린더 기능 진행 상황:**
+- [x] 1차: 개인 일정 CRUD (2026-04-24 완료)
+- [x] 2차: 결제일 자동 표시 — 가상 이벤트 방식, 6주 범위 (2026-04-24 완료)
+- [ ] 3차: 공공데이터포털 공휴일 API 연동
+- [ ] 4차: school_events (학교 공용 일정)
 
 ### 캘린더 결제일 자동 표시 (2026-04-24)
 
@@ -167,6 +172,15 @@ school_events (
 - 과외 중개 수수료 모델: **폐기**
 - 과외 프로필 연락처 조회: 500pt (연결만, 중개 아님)
 - 교사·학부모 공간 분리: **의도적 설계**. 통합 요청 와도 유지
+
+## 🧹 리팩토링 대기
+
+향후 개선이 필요하지만 당장 기능에 문제 없는 항목:
+
+- `loadCalendarEvents()` 결제 이벤트 분기가 `container.id` 기반 → 역할(`currentRole`) 기반으로 교체 필요
+  - 현재: `_currentCalendarContainer?.id === 'dashboard-calendar'`
+  - 개선: 전역 역할 상태 변수 도입 후 `currentRole === 'teacher'` 체크
+  - 이유: 역할 전환 로직이 명시적으로 드러나지 않아 유지보수 어려움
 
 ## ⚠️ 새 세션 시작 체크리스트
 
