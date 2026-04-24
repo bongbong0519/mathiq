@@ -9803,6 +9803,13 @@ const CALENDAR_EVENT_COLORS = {
   '기타': '#F59E0B'
 };
 
+// 결제 상태별 색상 (가상 이벤트용)
+const PAYMENT_STATUS_COLORS = {
+  overdue: '#EF4444',   // 빨강 (연체)
+  due_soon: '#F59E0B',  // 주황 (임박)
+  upcoming: '#10B981'   // 초록 (예정)
+};
+
 // 6주(42칸) 캘린더 매트릭스 생성
 function getCalendarMatrix(year, month) {
   const today = new Date();
@@ -9846,22 +9853,170 @@ function getCalendarMatrix(year, month) {
 // 캘린더 이벤트 로드
 async function loadCalendarEvents(year, month) {
   if (!sbClient || !currentUser) return [];
-  const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const endDate = new Date(year, month + 1, 0);
-  const endDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
-  const { data, error } = await sbClient.from('calendar_events')
+  // 캘린더 6주 범위 계산 (이전 달 일부 + 이번 달 + 다음 달 일부)
+  const firstDayOfMonth = new Date(year, month, 1);
+  const startDow = firstDayOfMonth.getDay();
+  const calendarStart = new Date(year, month, 1 - startDow); // 6주 시작일
+  const calendarEnd = new Date(year, month, 1 - startDow + 41); // 6주 종료일 (42일)
+
+  const startDateStr = getLocalDateStr(calendarStart);
+  const endDateStr = getLocalDateStr(calendarEnd);
+
+  // 1. DB에서 개인 일정 로드
+  const { data: dbEvents, error } = await sbClient.from('calendar_events')
     .select('*')
     .eq('teacher_id', currentUser.id)
-    .gte('event_date', startDate)
+    .gte('event_date', startDateStr)
     .lte('event_date', endDateStr)
     .order('event_date', { ascending: true });
 
   if (error) {
     console.error('[캘린더] 이벤트 로드 오류:', error.message);
-    return [];
   }
-  return data || [];
+
+  const events = dbEvents || [];
+
+  // 2. 학생 결제일 가상 이벤트 생성
+  try {
+    const paymentEvents = await loadPaymentVirtualEvents(calendarStart, calendarEnd);
+    events.push(...paymentEvents);
+  } catch (e) {
+    console.error('[캘린더] 결제 이벤트 생성 오류:', e.message);
+  }
+
+  // 날짜순 정렬
+  events.sort((a, b) => a.event_date.localeCompare(b.event_date));
+
+  return events;
+}
+
+// 결제일 가상 이벤트 로드
+async function loadPaymentVirtualEvents(calendarStart, calendarEnd) {
+  if (!sbClient || !currentUser) return [];
+
+  // 학생 목록 (payment_cycle이 있는 학생만)
+  const { data: students } = await sbClient.from('students')
+    .select('id, name, payment_cycle, payment_day, payment_start_date, monthly_tuition')
+    .eq('teacher_id', currentUser.id)
+    .not('payment_cycle', 'is', null);
+
+  if (!students || students.length === 0) return [];
+
+  // 캘린더 범위 내 income 로드 (paid 판정용)
+  const startStr = getLocalDateStr(calendarStart);
+  const endStr = getLocalDateStr(calendarEnd);
+  const { data: incomeData } = await sbClient.from('accounting_income')
+    .select('student_id, payment_date')
+    .eq('teacher_id', currentUser.id)
+    .gte('payment_date', startStr)
+    .lte('payment_date', endStr);
+
+  const income = incomeData || [];
+
+  // 가상 이벤트 생성
+  const virtualEvents = [];
+  const today = new Date();
+  const todayStr = getLocalDateStr(today);
+
+  for (const student of students) {
+    // 각 학생의 결제일들을 캘린더 범위 내에서 찾기
+    const paymentDates = getPaymentDatesInRange(student, calendarStart, calendarEnd);
+
+    for (const paymentDate of paymentDates) {
+      // 해당 월의 income에서 paid 여부 확인
+      const paymentMonth = paymentDate.slice(0, 7);
+      const hasPaid = income.some(i =>
+        i.student_id === student.id &&
+        i.payment_date &&
+        i.payment_date.slice(0, 7) === paymentMonth
+      );
+
+      // paid면 숨김 (사용자 결정 3B)
+      if (hasPaid) continue;
+
+      // 상태 계산
+      const daysUntil = getDaysUntilPayment(paymentDate, today);
+      let status;
+      if (daysUntil < 0) status = 'overdue';
+      else if (daysUntil <= 3) status = 'due_soon';
+      else status = 'upcoming';
+
+      const color = PAYMENT_STATUS_COLORS[status];
+      const tuitionStr = student.monthly_tuition ? `${student.monthly_tuition.toLocaleString()}원` : '';
+
+      virtualEvents.push({
+        id: `payment_${student.id}_${paymentDate}`,
+        event_date: paymentDate,
+        title: `💰 ${student.name}`,
+        event_type: '결제',
+        color: color,
+        memo: tuitionStr,
+        // 가상 이벤트 추가 정보
+        _isVirtual: true,
+        _studentId: student.id,
+        _studentName: student.name,
+        _paymentStatus: status,
+        _tuition: student.monthly_tuition
+      });
+    }
+  }
+
+  return virtualEvents;
+}
+
+// 캘린더 범위 내 학생의 결제일 목록 계산
+function getPaymentDatesInRange(student, rangeStart, rangeEnd) {
+  const dates = [];
+  if (!student.payment_cycle) return dates;
+
+  const rangeStartStr = getLocalDateStr(rangeStart);
+  const rangeEndStr = getLocalDateStr(rangeEnd);
+
+  if (student.payment_cycle === 'monthly' && student.payment_day) {
+    // 매달 고정일: 범위 내 각 월의 payment_day
+    let current = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+    const endLimit = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth() + 1, 0);
+
+    while (current <= endLimit) {
+      const year = current.getFullYear();
+      const month = current.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const day = Math.min(student.payment_day, lastDay);
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      if (dateStr >= rangeStartStr && dateStr <= rangeEndStr) {
+        dates.push(dateStr);
+      }
+      current.setMonth(current.getMonth() + 1);
+    }
+
+  } else if (student.payment_cycle === 'biweekly' && student.payment_start_date) {
+    // 격주: 시작일부터 14일씩
+    let baseDate = new Date(student.payment_start_date + 'T00:00:00');
+
+    // rangeStart 이전의 마지막 결제일로 이동
+    while (baseDate < rangeStart) {
+      baseDate.setDate(baseDate.getDate() + 14);
+    }
+    // 범위 내 결제일 수집
+    while (baseDate <= rangeEnd) {
+      const dateStr = getLocalDateStr(baseDate);
+      if (dateStr >= rangeStartStr && dateStr <= rangeEndStr) {
+        dates.push(dateStr);
+      }
+      baseDate.setDate(baseDate.getDate() + 14);
+    }
+
+  } else if (student.payment_cycle === 'custom' && student.payment_start_date) {
+    // 특정일 1회
+    const dateStr = student.payment_start_date;
+    if (dateStr >= rangeStartStr && dateStr <= rangeEndStr) {
+      dates.push(dateStr);
+    }
+  }
+
+  return dates;
 }
 
 // 캘린더 렌더링
@@ -10143,15 +10298,16 @@ function renderDayDetail(dateStr) {
   let html = '';
   dayEvents.forEach(ev => {
     const color = ev.color || CALENDAR_EVENT_COLORS[ev.event_type] || CALENDAR_EVENT_COLORS['기타'];
+    const isVirtual = ev._isVirtual || (ev.id && ev.id.startsWith('payment_'));
     html += `<div class="calendar-day-event" style="border-left-color:${color}">
       <div class="calendar-day-event-info">
         <div class="calendar-day-event-title">${ev.title}</div>
         <div class="calendar-day-event-meta">${ev.event_type}${ev.memo ? ' · ' + ev.memo.slice(0, 30) : ''}</div>
       </div>
-      <div class="calendar-day-event-actions">
+      ${isVirtual ? '' : `<div class="calendar-day-event-actions">
         <button onclick="openEventModal('${ev.id}')">수정</button>
         <button class="btn-danger" onclick="deleteCalendarEventDirect('${ev.id}')">삭제</button>
-      </div>
+      </div>`}
     </div>`;
   });
   listEl.innerHTML = html;

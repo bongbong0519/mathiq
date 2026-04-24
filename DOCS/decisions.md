@@ -28,6 +28,8 @@
 - `navigateMonth(direction)` — 이전달(-1)/다음달(1)/오늘('today') 이동
 - `saveCalendarEvent()` — 일정 추가/수정 저장
 - `deleteCalendarEvent()` — 일정 삭제
+- `loadPaymentVirtualEvents(calendarStart, calendarEnd)` — 캘린더 범위 내 결제 가상 이벤트 생성
+- `getPaymentDatesInRange(student, rangeStart, rangeEnd)` — 학생의 결제일 목록 계산 (monthly/biweekly/custom)
 
 > **2026-04-24 버그 수정**: getNextPaymentDate는 "다음" 결제일을 반환하므로 결제일 지난 학생이 다음 달로 넘어감.
 > 수금 현황에서는 getThisMonthPaymentDate로 "이번 달" 결제일을 계산하도록 수정.
@@ -56,7 +58,26 @@
 - `color VARCHAR(20)` — 이벤트 색상 HEX (기본 #F59E0B)
 - RLS: `teachers_own_calendar_*` 4종 (select/insert/update/delete)
 - 기본 색상: 시험=#EF4444, 상담=#8B5CF6, 수업=#3B82F6, 휴일=#6B7280, 기타=#F59E0B
-- **1차 범위**: 개인 일정 CRUD만. 결제일 자동 표시/school_events/공휴일 API는 2차.
+- **1차 범위**: 개인 일정 CRUD만.
+- **2차 범위**: 결제일 자동 표시 (2026-04-24 구현 완료)
+
+### 캘린더 결제일 자동 표시 (2026-04-24)
+
+**가상 이벤트 패턴:**
+- DB에 저장하지 않고 로드 시점에 학생 결제일로부터 동적 생성
+- 이벤트 ID: `payment_{student_id}_{date}` 형식
+- event_type: `결제`
+- 수정/삭제 버튼 숨김 (`_isVirtual: true` 또는 id.startsWith('payment_'))
+
+**표시 범위:**
+- 캘린더 6주(42칸) 전체 범위 내 결제일 표시
+- monthly/biweekly/custom 전부 포함
+- 완납(paid) 학생은 캘린더에서 숨김
+
+**결제 상태별 색상 (PAYMENT_STATUS_COLORS):**
+- overdue(연체): #EF4444 (빨강)
+- due_soon(임박 D-0~3): #F59E0B (주황)
+- upcoming(예정 D-4 이상): #10B981 (초록)
 
 ### 수금 상태 판정 규칙 (2026-04-24)
 - `paid`: 이번 달 income에 학생 레코드 존재
