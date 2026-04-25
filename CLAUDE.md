@@ -1,140 +1,84 @@
-# MathIQ 프로젝트 - Claude Code 작업 지침
+# MathIQ 프로젝트 컨텍스트
 
-## 👤 나(봉쌤)에 대해
-- 현역 수학 교사, 파이데이아솔루션(Paideia Solution) 대표
-- **비개발자**: 코드 직접 못 읽고 못 씀. AI에게 전적으로 의존
-- 성향: INTP, 메타인지 강함. 애매한 설명보다 **명확한 체크리스트** 선호
-- 기준: **"완벽하지 않으면 출시 안 함"**. 적당히 넘어가는 거 싫어함
+이 프로젝트는 MathIQ (mathiq-psi.vercel.app) 솔로 개발이다.
+사업자명: 파이데이아솔루션 | 레포: bongbong0519/mathiq
+스택: vanilla JS + Supabase + Vercel (GitHub push 자동배포)
+개발자: 봉쌤 (현역 수학교사, 학원 부원장, INTP)
 
-## 🎯 MathIQ 프로젝트 개요
-- URL: https://mathiq-psi.vercel.app
-- 수학 문제은행 + 학생 관리 플랫폼
-- 현역 수학 선생님 대상, 학부모-선생님 분리 설계
-- 저작권 클린한 공공저작물(수능·모평·학평·사관학교·경찰대) 중심 구축
+## 사용자 소통 스타일
+- 반말/캐주얼한 한국어 OK
+- 군더더기 없이 핵심부터
+- 긴 설명보다 실행 가능한 액션 아이템 우선
+- 봉쌤은 한 세션에서 오래 작업함
 
-## 📞 나와 소통하는 방식 (중요!)
-- 코드 수정 완료 후 **반드시 한국어 요약** 먼저 보고
-- 기술 용어보다 **"사용자 입장에서 뭐가 달라지는지"** 설명
-- 테스트 방법은 **구체적 클릭 순서**로 안내
-  예시 ❌ "paste-review 페이지에서 테스트해보세요"
-  예시 ✅ "1) https://mathiq-psi.vercel.app/paste-review.html 접속 
-         2) Ctrl+Shift+R로 캐시 초기화
-         3) Ctrl+V로 시험지 이미지 붙여넣기
-         4) 카드 여러 개가 뜨면 성공"
-- 에러 가능성 있으면 **미리 경고**
-- 확신 안 서면 **추측 말고 질문**
+## 작업 환경 (2026-04-26 이후)
 
-## 🔧 기술 스택
-- 바닐라 JavaScript + Supabase + Vercel
-- GitHub: bongbong0519/mathiq (main 브랜치 푸시 시 자동 배포)
-- 배포 후 테스트할 때 **Ctrl+Shift+R** 필수 (Vercel 캐시)
-- KaTeX로 수식 렌더링
-- 추가 Railway 서버: bongbong0519/mathiq-draw (gentle-kindness 프로젝트)
+봉쌤 환경에 Claude Code(VSCode 확장)가 설치됨. 따라서:
 
-## 🔐 Supabase 설정
-- Supabase 키는 **config.js** 파일에 있음 (index.html 참고)
-- 사용 변수명: `SUPABASE_URL`, `SUPABASE_KEY` (ANON_KEY 아님!)
-- 사용자 정보 테이블: **profiles** (users 아님)
-- 운영자 role 값: **'staff'**
+- 코드 작업·파일 편집·커밋·푸시는 Claude Code에서 직접 실행
+- claude.ai 채팅은 설계·전략·디버깅 논의·결정 정리 담당
+- 봉쌤에게 "DOCS/decisions.md 붙여줘" 같은 요청 불필요
+  (Claude Code가 봉쌤 프로젝트 폴더의 파일을 직접 읽음)
+- 모든 코드 변경 명령은 "Claude Code에 복붙할 명령" 형태로 출력
+- "Claude Code 지시문 마크다운 파일" 만드는 절차 폐기
 
-## 🐛 미해결 버그 (임의로 건드리지 말 것)
-내가 명시적으로 수정 요청할 때만 손대기:
-1. **loadDashboard**: `exams` 변수를 `recentExams` 대신 참조 → 대시보드 최근 시험 안 뜸
-2. **submitUpload**: `finally` 블록 뒤 `}` 누락 → SyntaxError로 로그인 불가
-3. **sgExportPDF**: 3584라인 `const a` 중복 선언 (window.open 블록 잔존)
+## 작업 중단 제안 금지
 
-## 📋 작업 원칙
-1. 기존 index.html의 코딩 스타일(들여쓰기, 네이밍, 주석) 그대로 따를 것
-2. 확신 안 서면 **추측하지 말고 질문**
-3. 큰 변경 시 `git diff` 요약을 한국어로 보여준 뒤 커밋
-4. 커밋 메시지는 한국어 OK (예: `fix: 로그인 오류 수정`, `feat: 검수 UI 추가`)
-5. DB 스키마 변경, 인증 로직 변경, 결제 관련은 **반드시 나에게 확인 받기**
-6. 환경변수(API 키 등) 필요하면 먼저 알려주기 — 내가 Vercel에 설정해야 함
-
-## 📌 현재 전략 (2026-04-20 기준)
-- **AI 자동 추출 포기** → 공공저작물 중심 수동 검수로 전환
-- `paste-review.html` + `api/extract-page.js`로 Ctrl+V 페이지 검수 시스템 도입
-- **답 자동 추정 금지** (Claude가 이미지 보고 답 추정하면 오답 생성)
-- 목표: 수능 33년·모평·학평·사관학교·경찰대 약 8,000~10,000 문제 수집
-
-## 🤝 과외 매칭 시스템 (Phase 1 완료, 2026-04-21)
-
-### 현재 구현된 기능
-- **학부모 → 선생님 매칭 신청** (무료)
-- **선생님 수락** (500P 차감) → 양쪽 연락처 공개
-- **학부모 성사 신고** (500P 리워드)
-- 복수 과목/지역 선택 (tutee_profiles, tutor_profiles 모두 배열)
-
-### 알려진 한계 (Phase 1.5+ 예정)
-- ❌ **알림 시스템 없음**: 신청/수락 시 이메일 또는 앱내 알림 없음. 당사자가 직접 대시보드 확인 필요
-- ❌ **선생님→학생 역방향 신청 미지원**: 현재는 학부모만 신청 가능
-- ❌ **채팅/메시지 없음**: 연락처 공개 후 외부 연락 필요
-
-### 관련 테이블
-- `tutor_profiles`: 선생님 과외 프로필
-- `tutee_profiles`: 학생/학부모 구인 프로필  
-- `tutor_match_requests`: 매칭 신청 (pending/accepted/rejected/cancelled)
-- `tutor_matches`: 성사된 매칭 기록
-- `tutor_contact_views`: ~~기존 연락처 열람 기록~~ **(Phase 1에서 DROP됨)**
-
-## 💰 비용 주의
-- 모든 API 호출은 과금됨 (Anthropic, Gemini)
-- 불필요한 반복 호출 자제
-- 큰 이미지·긴 응답 필요 시 미리 알려주기
-
-## 🚫 하지 말 것
-- 내가 요청 안 한 리팩토링
-- "더 나은 구조" 제안 후 임의 적용 (제안은 환영, 실행은 승인 후)
-- 기존 기능 임의 제거
-- `node_modules`, `package-lock.json` 등 거대 파일 커밋
-- 내 개인정보/API 키 커밋 (config.js는 .gitignore 확인)
-
-## 📚 기능 명세 참조
-- **새 기능 작업 전**: 관련 `DOCS/*.md` 파일 먼저 확인
-- **기능 추가/변경 시**: 해당 DOCS 파일 업데이트 필수
-- **전체 기능 조망**: [DOCS/00-FEATURES.md](./DOCS/00-FEATURES.md)
-- **장기 비전**: [DOCS/05-roadmap.md](./DOCS/05-roadmap.md)
-
-### 문서 목록
-| 파일 | 내용 |
-|------|------|
-| `DOCS/00-FEATURES.md` | 전체 기능 인덱스 |
-| `DOCS/01-student-report.md` | 학생 성적 리포트 PDF |
-| `DOCS/02-parent-sms.md` | 학부모 문자 발송 |
-| `DOCS/03-tutor-matching.md` | 과외 매칭 시스템 |
-| `DOCS/04-point-system.md` | 포인트 시스템 |
-| `DOCS/05-roadmap.md` | 장기 로드맵 |
-| `DOCS/06-organization-system.md` | 기관 시스템 설계 (구현 예정) |
-| `DOCS/07-tutor-certification.md` | 선생님 인증 시스템 (등급제, 구현 예정) |
-| `DOCS/08-accounting-system.md` | 회계 시스템 (수강료/정산, 구현 예정) |
-
-## 작업 중단 제안 금지 (강화)
-
-다음 표현은 절대 금지:
+다음 표현 절대 금지:
 - "쉬세요/푹 쉬세요/잠 좀 자세요"
 - "오늘 밤 마무리/내일 하세요/내일 맑은 머리로"
 - "새벽 N시예요/오래 작업하셨네요"
 - "이만 끝내고/오늘은 여기까지"
 - 봉쌤 시간대·체력·컨디션·수면 언급 자체 금지
-- 작업 흐름 끊는 wellbeing 멘션 일체 금지
 
 봉쌤이 명시적으로 "그만"이라고 할 때까지 작업 계속.
 새벽이든 밤이든 주말이든 평일이든 상관 없음.
-봉쌤은 자기 시간 관리 알아서 함. 이거 어기면 작업 흐름 깨짐 = 봉쌤 짜증.
 
-## 작업 환경 (2026-04-26 이후)
+## 핵심 참조 문서 (DOCS/ 폴더)
+- DOCS/decisions.md — 되돌리면 안 되는 설계 결정, 검증된 함수 목록
+- DOCS/changelog.md — 변경 이력
+- DOCS/08-accounting-system.md — 회계 시스템 상세
+- DOCS/05-roadmap.md — 로드맵
 
-봉쌤 환경에 Claude Code(VSCode 확장)가 설치됨. 따라서:
-- 코드 작업·파일 편집·커밋·푸시는 **Claude Code에서 직접 실행**
-- claude.ai 채팅(여기)은 설계·전략·디버깅 논의·결정 정리 담당
-- 봉쌤에게 "DOCS/decisions.md 붙여줘" 같은 요청 불필요 (Claude Code가 봉쌤 프로젝트 폴더의 파일을 직접 읽음)
-- 모든 코드 변경 명령은 "Claude Code에 복붙할 명령" 형태로 출력
-- "Claude Code 지시문 마크다운 파일" 만드는 절차 폐기 (낡은 방식)
-- 새 채팅 시작 시 봉쌤이 첨부 안 해도 Claude Code가 알아서 읽으면 됨
+## 결정 기록 원칙
+중요한 설계 결정이 확정될 때마다 작업 마지막에 항상 다음을 수행:
 
-**claude.ai에서 작업 흐름**:
-1. 봉쌤 이슈/아이디어 가져옴
-2. 같이 설계·결정
-3. claude.ai → "이 명령 Claude Code에 그대로 입력해" 형태로 출력
-4. 봉쌤이 Claude Code에서 실행, 결과 가져옴
-5. 결과 보고 다음 단계
+DOCS/decisions.md의 적절한 섹션에 추가
+날짜와 함께 한 줄 요약으로 기록
+끝나면 commit & push
+
+## 건드리면 안 되는 것
+- 검증된 함수: getNextPaymentDate, getDaysUntilPayment, getDdayText,
+  getLocalDateStr, renderUpcomingPayments → 재설계/리네이밍 금지
+- 스키마 핵심 컬럼명 (payment_cycle, payment_day, payment_start_date, category 등)
+- 날짜 처리는 getLocalDateStr 사용 (toISOString().slice(0,10) 금지)
+- 모든 쿼리에 teacher_id 필터링 필수 (RLS 우회 금지)
+
+## 비즈니스 모델 (확정)
+- 수익원: 구독 티어 + 파이포인트 충전만
+- 구독 티어: campus(무료) / basic / standard / premium / pro
+- 과외 중개 수수료 모델: 폐기 (연결만, 500pt 연락처 조회)
+- 파이포인트(비환급) ≠ 파이캐쉬(환급)
+- 교사·학부모 공간 분리는 의도적 설계
+
+## 코드 작업 규칙
+- 변경 전 diff 보여주고 승인 받기
+- DOCS/decisions.md 먼저 읽고 작업 시작
+- commit 메시지는 한국어로 "type: 설명" 형식
+  예) "fix: getTimeAgo 중복 해결"
+
+## 봉쌤 작업 스타일
+- INTP, 극단 I, 망형 사고
+- 중간에 자고 쉬며 긴 대화 이어감
+- 봉쌤이 직접 중단 의사 밝히기 전까지 작업 계속
+
+## 출력 형식 선호
+- 한국어 캐주얼톤 (반말 OK, ㅋㅋ OK)
+- 구체적 사실·숫자 포함
+- 봉쌤 추정·전제 확인 후 답변
+
+## 금지 사항
+- 메모리에 의존해서 과거 결정을 임의 재구성하지 말 것 (불확실하면 봉쌤에게 묻기)
+- 이미 작동하는 기능을 "개선하자" 제안 금지
+- 스키마 변경 제안 시 반드시 봉쌤 승인 먼저
+- 봉쌤 wellbeing/시간 관련 멘션 금지
