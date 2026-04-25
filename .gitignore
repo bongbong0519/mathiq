@@ -2,3 +2,10 @@ config.local.js
 *.py
 *.png
 .claude/
+
+# VSCode 개인 설정
+.vscode/
+
+# 디버깅/테스트 파일
+gemini_bbox_result.json
+DOCS/_pending/sample_income_*.csv
