@@ -314,61 +314,65 @@ school_events (
 - 현재 코드 정리·검증 우선
 - 안정화 후 베타 시작
 
-### 발견·해결한 이슈
+### 완료된 작업 (2026-04-25)
 
-**1. KaTeX 중복 로드 (해결 완료)**
-- index.html 라인 15~17 + 21~24 중복
-- 한 세트로 통합 완료
-- 봉쌤 PR/commit 적용 필요
+**작업 1: KaTeX 중복 로드 제거** (commit e453b56)
+- index.html `<head>` 영역에 KaTeX 라이브러리가 두 번 로드되던 문제
+- 한 세트로 통합, 5라인 감소
 
-**2. 자료실 시스템 2개 공존 (해결 완료)**
-- 옛 분류식 자료실 (📚 자료실, view='materials', 학교/학년/학기/영역/단원 필터)
-- 새 폴더식 자료실 (📁 수업 자료, view='teacher-materials')
-- 둘 다 의도적으로 살아있음 (유사문제 작업 중 분기됐던 것)
-- 함수명 충돌 해결: 옛 함수 3개에 `Legacy` 접미사 적용
-  - `submitMaterialUpload` → `submitMaterialUploadLegacy`
-  - `downloadMaterial` → `downloadMaterialLegacy`
-  - `deleteMaterial` → `deleteMaterialLegacy`
-- HTML 호출처 5곳 같이 수정
-- 봉쌤 PR/commit 적용 필요
+**작업 2: 옛 자료실 함수 Legacy 접미사 적용** (commit f6a5c08)
+- 옛 분류식 자료실 (📚 자료실, view='materials') 함수 3개에 Legacy 접미사
+- 새 폴더식 자료실 (📁 수업 자료, view='teacher-materials')과 함수명 충돌 해결
+- 변경 함수: `submitMaterialUpload` → `submitMaterialUploadLegacy`, `downloadMaterial` → `downloadMaterialLegacy`, `deleteMaterial` → `deleteMaterialLegacy`
+- HTML 호출처 5곳 같이 변경
 
-**3. `loadNotices` 함수 중복 (해결 완료)**
-- LP용 (`loadLPNotices`로 변경) + 앱 내부용 (그대로 `loadNotices`)
-- 호출처 2곳 같이 수정
+**작업 3: loadNotices 중복 해결** (commit 502fa4a)
+- LP용 (라인 7,056, DOM ID `noticeListWrap`)을 `loadLPNotices`로 분리
+- 앱 내부용 (라인 19,100, DOM ID `notices-list`)은 그대로 `loadNotices`
+- LP 호출처 2곳 변경
 
-**4. `submitComment` 함수 중복 (해결 완료)**
-- 일반 게시판용 (`submitPostComment`로 변경) + 피드백용 (그대로 `submitComment`)
-- 호출처 1곳 같이 수정
+**작업 4: submitComment 중복 해결** (commit 3187c50)
+- 일반 게시판용 (라인 15,022, `post_comments` 테이블)을 `submitPostComment`로 분리
+- 피드백용 (라인 18,992, `feedback_comments` 테이블)은 그대로 `submitComment`
+- 일반 게시판 호출처 1곳 변경
 
-### 점검 체크리스트 (집 가서 봉쌤이 확인)
+**검증 결과**:
+- 중복 함수: 0개 ✅
+- 파일 크기: 24,393 → 24,392 라인 (-1)
+- 총 5개 commit (위 4개 + 본 문서 업데이트 1개)
 
-**Critical (즉시)**:
+### 점검 체크리스트
+
+**Critical (코드 정리 - 완료)**:
 - [x] KaTeX 중복 로드 제거
 - [x] 옛 자료실 함수 Legacy 처리
 - [x] loadNotices 중복 해결
 - [x] submitComment 중복 해결
+
+**Critical (사용자 플로우 테스트 - 다음 단계)**:
 - [ ] 회원가입·로그인 플로우 전체 테스트
 - [ ] 결제·티어 변경 로직 확인
 - [ ] RLS 정책 누락 점검
+- [ ] 자료실 옛/새 둘 다 작동 확인 (Legacy 변경 검증)
+- [ ] 일반 게시판 댓글 → post_comments 정상 입력 (submitPostComment 검증)
+- [ ] 피드백 게시판 댓글 → feedback_comments 정상 입력 (submitComment 검증)
+- [ ] LP 공지 정상 표시 (loadLPNotices 검증)
+- [ ] 앱 내부 공지 정상 표시 (loadNotices 검증)
 
 **Important (이번 주)**:
 - [ ] 그림판 코드 사용 여부 확인 (코드 850라인)
 - [ ] 문제은행 코드 정리 가능성 검토 (2,500라인)
 - [ ] 모바일 반응형 점검
 - [ ] 콘솔 에러 0개 확인
-- [ ] 관리자 모바일 페이지 점검 (가입 승인 등 외부에서 가능?)
+- [ ] 관리자 모바일 페이지 점검
 
-**Nice-to-have**:
-- [ ] 함수별 주석 보강
-- [ ] 코드 섹션 구분 명확화
-- [ ] 미완성 영역 TODO 마킹
-
-### 코드 현황 (2026-04-25 시점)
+### 코드 현황 (2026-04-25 작업 후)
 
 - 단일 파일: `index.html`
-- 총 라인 수: 24,393
+- 총 라인 수: 24,392 (변경 전 24,393)
 - 파일 크기: 약 1.18MB
 - 함수 개수: 604개
+- 중복 함수: 0개 ✅
 - 모듈 분류:
   - 인증·프로필 (7,300~7,900)
   - 랜딩페이지 (6,637~7,310)
@@ -383,7 +387,31 @@ school_events (
   - 운영자 관리 (18,360~20,150)
   - 문제은행 (20,178~22,500)
   - 자료실 (23,000~23,300)
-  - 그림판 (23,540~24,393)
+  - 그림판 (23,540~24,392)
+
+### 다음 작업 우선순위
+
+**1. 사용자 플로우 테스트 (직접 클릭 테스트)**:
+- 봉쌤이 신규 사용자처럼 전체 플로우 돌려보기
+- 특히 방금 변경한 4곳 (자료실, 일반/피드백 게시판, LP 공지) 작동 확인
+- 콘솔 에러 (F12) 동시 점검
+
+**2. 모바일 관리자 페이지**:
+- 봉쌤이 외출 시 가입 승인 등 가능해야 함
+- 베타 시작 전 필수
+- 반응형 점검 + admin 메뉴 모바일 대응
+
+**3. 회계 + 학생 관리 통합 검토**:
+- 강사 등록을 회계와 학생 관리에 동시 반영
+- 옵션 B (12가지 프리셋) 적용 시점 결정
+- 구현은 회계 Phase 2 시점
+
+### 점검 작업 진행 원칙
+
+- **Critical 코드 정리는 끝남**. 이제 사용자 테스트 단계
+- 새 기능 추가 X (점검 모드 유지)
+- 발견되는 버그는 작업 단위로 분리해서 commit
+- 점검 완료 → 베타 시작 가능 상태로 만드는 것이 목표
 
 ---
 
