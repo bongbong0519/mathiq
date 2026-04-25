@@ -4007,7 +4007,7 @@
         <div id="comment-form" style="padding:16px 20px;border-top:1px solid var(--border);display:none">
           <textarea id="comment-input" class="form-input" rows="2" placeholder="댓글을 입력하세요..." style="resize:vertical"></textarea>
           <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <button class="btn btn-primary btn-sm" onclick="submitComment()">댓글 작성</button>
+            <button class="btn btn-primary btn-sm" onclick="submitPostComment()">댓글 작성</button>
           </div>
         </div>
       </div>
@@ -15023,7 +15023,7 @@ function toggleReplyForm(commentId) {
   }
 }
 
-async function submitComment() {
+async function submitPostComment() {
   const input = document.getElementById('comment-input');
   const content = input.value.trim();
   if (!content) { showToast('댓글 내용을 입력하세요', '⚠️'); return; }
