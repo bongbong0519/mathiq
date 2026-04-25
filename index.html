@@ -10887,7 +10887,7 @@ async function sendBillingInvoice(studentId, studentName, amount) {
 
   // 이번 달 이미 청구했는지 확인
   const { data: existing } = await sbClient.from('billing_invoices')
-    .select('id').eq('student_id', studentId).eq('billing_month', billingMonth).maybeSingle();
+    .select('id').eq('teacher_id', currentUser.id).eq('student_id', studentId).eq('billing_month', billingMonth).maybeSingle();
 
   if (existing) {
     if (!confirm(`이번 달(${monthLabel}) 이미 청구했습니다.\n다시 보내시겠어요?`)) return;
@@ -11004,11 +11004,11 @@ async function openBillingHistory(studentId, studentName) {
 
   // 청구 이력
   const { data: invoices } = await sbClient.from('billing_invoices')
-    .select('*').eq('student_id', studentId).order('created_at', { ascending: false });
+    .select('*').eq('teacher_id', currentUser.id).eq('student_id', studentId).order('created_at', { ascending: false });
 
   // 독촉 이력
   const { data: reminders } = await sbClient.from('payment_reminders')
-    .select('*').eq('student_id', studentId).order('created_at', { ascending: false });
+    .select('*').eq('teacher_id', currentUser.id).eq('student_id', studentId).order('created_at', { ascending: false });
 
   // 합쳐서 시간순 정렬
   const items = [];
@@ -11059,7 +11059,7 @@ async function markInvoicePaid(invoiceId) {
   const { error } = await sbClient.from('billing_invoices').update({
     status: 'paid',
     paid_at: new Date().toISOString()
-  }).eq('id', invoiceId);
+  }).eq('id', invoiceId).eq('teacher_id', currentUser.id);
 
   if (error) {
     showToast('처리 실패: ' + error.message, '❌');
@@ -23515,7 +23515,7 @@ async function deleteMaterial(materialId, title) {
   if (!ok) return;
 
   try {
-    const { error } = await sbClient.from('class_materials').delete().eq('id', materialId);
+    const { error } = await sbClient.from('class_materials').delete().eq('id', materialId).eq('teacher_id', currentUser.id);
     if (error) throw error;
 
     showToast('자료가 삭제되었습니다', '✅');
