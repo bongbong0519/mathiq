@@ -6790,7 +6790,7 @@ function openLpPage(name) {
   el.style.display = 'flex';
   el.scrollTop = 0;
   if (name === 'notices') {
-    loadNotices();
+    loadLPNotices();
     const writeBtn = document.getElementById('noticeWriteBtn');
     if (writeBtn) {
       const canWrite = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'admin');
@@ -7050,10 +7050,10 @@ function openViewFromLanding(view) {
   showView(view);
 }
 
-// ── 공지사항 ──
+// ── 공지사항 (LP용) ──
 let _noticesData = [];
 
-async function loadNotices() {
+async function loadLPNotices() {
   const wrap = document.getElementById('noticeListWrap');
   if (!wrap) return;
   showNoticeList();
@@ -7124,7 +7124,7 @@ async function submitNotice() {
   if (btn) { btn.textContent = '등록'; btn.disabled = false; }
   if (error) { showToast('등록 실패: ' + error.message, '❌'); return; }
   showToast('공지가 등록되었습니다', '✅');
-  await loadNotices();
+  await loadLPNotices();
 }
 
 // ── 문의하기 ──
