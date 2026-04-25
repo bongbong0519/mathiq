@@ -16002,8 +16002,8 @@ function renderAccIncome() {
 
 // ── 수입 입력 방식 전환 ──
 function switchIncomeMethod(method) {
-  document.querySelectorAll('#income-form-direct [data-method]').forEach(c => c.classList.remove('active'));
-  document.querySelector(`[data-method="${method}"]`)?.classList.add('active');
+  document.querySelectorAll('#acc-tab-income [data-method]').forEach(c => c.classList.remove('active'));
+  document.querySelector(`#acc-tab-income [data-method="${method}"]`)?.classList.add('active');
 
   document.getElementById('income-form-direct').style.display = method === 'direct' ? '' : 'none';
   document.getElementById('income-form-csv').style.display = method === 'csv' ? '' : 'none';
