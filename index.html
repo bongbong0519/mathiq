@@ -16207,12 +16207,12 @@ function validateIncomeCSVRow(cols, students, rowNum) {
   }
   const paymentDate = dateMatch ? `${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}` : null;
 
-  const grade = parseInt(gradeStr);
-  if (isNaN(grade)) {
-    errors.push('학년 숫자 아님');
+  const grade = gradeStr.trim();
+  if (!grade) {
+    errors.push('학년 비어있음');
   }
 
-  const student = students.find(s => s.name === name && s.grade == grade && s.school === school);
+  const student = students.find(s => s.name === name && s.grade === grade && s.school === school);
   if (!student) {
     errors.push(`학생 매칭 실패 (${name}/${gradeStr}/${school})`);
   }
