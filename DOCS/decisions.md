@@ -332,28 +332,21 @@ school_events (
 - HTML 호출처 5곳 같이 수정
 - 봉쌤 PR/commit 적용 필요
 
-### 남은 이슈
+**3. `loadNotices` 함수 중복 (해결 완료)**
+- LP용 (`loadLPNotices`로 변경) + 앱 내부용 (그대로 `loadNotices`)
+- 호출처 2곳 같이 수정
 
-**1. `loadNotices` 함수 중복 (라인 7,056 + 19,100)**
-- LP용 (랜딩페이지 공지, DOM ID `noticeListWrap`)
-- 앱 내부용 (가입 후 공지, DOM ID `notices-list`)
-- 같은 이름 → 나중 정의가 앞 정의 덮어씀
-- 영향: 랜딩페이지 공지가 동작 안 했을 가능성
-- **처리안**: 라인 7,056을 `loadLPNotices`로 이름 변경 + LP 측 호출처 수정
-
-**2. `submitComment` 함수 중복 (라인 15,022 + 18,992)**
-- 라인 15,022 (`post_comments` 테이블, 일반 게시판)
-- 라인 18,992 (`feedback_comments` 테이블, 피드백 게시판)
-- 위험: 일반 게시판 댓글 시도 시 feedback_comments에 들어가는 버그 가능
-- **처리안**: 라인 15,022를 `submitPostComment`로 이름 변경 + HTML 호출처 수정
+**4. `submitComment` 함수 중복 (해결 완료)**
+- 일반 게시판용 (`submitPostComment`로 변경) + 피드백용 (그대로 `submitComment`)
+- 호출처 1곳 같이 수정
 
 ### 점검 체크리스트 (집 가서 봉쌤이 확인)
 
 **Critical (즉시)**:
 - [x] KaTeX 중복 로드 제거
 - [x] 옛 자료실 함수 Legacy 처리
-- [ ] loadNotices 중복 해결
-- [ ] submitComment 중복 해결
+- [x] loadNotices 중복 해결
+- [x] submitComment 중복 해결
 - [ ] 회원가입·로그인 플로우 전체 테스트
 - [ ] 결제·티어 변경 로직 확인
 - [ ] RLS 정책 누락 점검
