@@ -30,6 +30,8 @@
 - `deleteCalendarEvent()` — 일정 삭제
 - `loadPaymentVirtualEvents(calendarStart, calendarEnd)` — 캘린더 범위 내 결제 가상 이벤트 생성
 - `getPaymentDatesInRange(student, rangeStart, rangeEnd)` — 학생의 결제일 목록 계산 (monthly/biweekly/custom)
+- `validateIncomeCSVRow(cols, students, rowNum)` — CSV 행 검증 (날짜/학년/금액/카테고리)
+- `handleIncomeCSV(input)` — CSV 일괄 등록 (학생 매칭 엄격, 카테고리 자동 매핑, 500행 제한)
 
 > **2026-04-24 버그 수정**: getNextPaymentDate는 "다음" 결제일을 반환하므로 결제일 지난 학생이 다음 달로 넘어감.
 > 수금 현황에서는 getThisMonthPaymentDate로 "이번 달" 결제일을 계산하도록 수정.
@@ -160,6 +162,7 @@ school_events (
 - **파이포인트 ≠ 파이캐쉬** — 포인트는 비환급, 캐쉬는 환급 가능
 - **구독 티어**: `campus`(무료) / `basic` / `standard` / `premium` / `pro`
 - **OPEN_EVENT 플래그는 자료실 포인트 보너스에만 영향** — 티어 기능제한은 항상 유효
+- **학생 학년(students.grade)는 문자열 형식** ("고1", "고2", "중1" 등). 숫자 변환·비교 금지
 
 ### Chart.js 인스턴스 관리 (2026-04-24)
 - 전역 변수 패턴: `_chartName` (예: `_monthlyTrendChart`)
@@ -181,6 +184,11 @@ school_events (
   - 현재: `_currentCalendarContainer?.id === 'dashboard-calendar'`
   - 개선: 전역 역할 상태 변수 도입 후 `currentRole === 'teacher'` 체크
   - 이유: 역할 전환 로직이 명시적으로 드러나지 않아 유지보수 어려움
+
+- 캘린더 CSS specificity 정리 (`.calendar-day.today` vs 일/토 스타일 충돌)
+  - 현재: `color: white !important`로 패치 (작업 13)
+  - 개선: CSS 선언 순서 재정렬 또는 선택자 명확화
+  - 이유: !important 남발 방지
 
 ---
 
@@ -364,6 +372,51 @@ school_events (
 - 최대 500행 제한
 - +242라인 추가 (점검 모드 원칙 일부 깨고 추가, 사용자 결정)
 
+### 2026-04-26 점검 작업 (Claude Code 협업)
+
+**작업 9: teacher_id 필터 누락 쿼리 5곳 보완** (commit fce54e3)
+- 컨벤션 위반 점검 중 발견
+- 수정 위치:
+  - 라인 10889: 청구 중복 확인 쿼리
+  - 라인 11006: 청구 이력 조회 쿼리
+  - 라인 11010: 독촉 이력 조회 쿼리
+  - 라인 11059: markInvoicePaid (납부 확인 처리)
+  - 라인 23518: deleteMaterial
+- 보안 영향 없음 (RLS가 이미 보호 중), 컨벤션 일관성 목적
+
+**작업 10: CSV 업로드 안내 텍스트 수정** (commit 12aea3d)
+- index.html 4257행
+- Before: "형식: 학생명, 결제일, 금액, 결제수단, 메모" (5컬럼)
+- After: "형식: 날짜, 학생명, 학년, 학교, 카테고리, 금액, 결제방법, 메모" + "첫 행은 헤더로 무시 · 카테고리: 정규수강료/보충수업/교재비/특강/기타"
+- 실제 구현(8컬럼)과 UI 안내 불일치 해결
+
+**작업 11: CSV 일괄 등록 학년 검증 버그 수정** (commit 1c47063)
+- index.html 16210~16215행 (validateIncomeCSVRow)
+- 문제: parseInt(gradeStr)로 학년을 숫자로 검증 → 모든 정상 데이터가 "학년 숫자 아님" 에러로 거부
+- 원인: DB의 students.grade는 VARCHAR("고1","고2","고3","중1" 등 문자열)인데 코드가 숫자로 가정
+- 수정: parseInt 제거 → gradeStr.trim() (빈 문자열 검증만), 매칭 시 == → === (엄격 비교)
+- ⚠️ 새 컨벤션: students.grade는 문자열("고1","중2" 등). 숫자 변환 금지
+
+**작업 12: CSV 일괄 등록 날짜 형식 검증 추가** (commit aab32cb)
+- index.html validateIncomeCSVRow
+- 문제: "2026-04-99" 같은 잘못된 날짜를 검증 통과시킴 → DB INSERT 시점 실패 → 검증 결과(4건)와 실제 입력(3건) 불일치
+- 수정: 정규식 + new Date() + isNaN(date.getTime()) 3중 검증
+- 사용자에게 "유효하지 않은 날짜" 명확한 에러 표시
+
+**작업 13: 캘린더 오늘 날짜 표시 글자색 처리** (commit 4ae91cf)
+- index.html CSS 영역 (.calendar-day.today .calendar-date)
+- 문제: 오늘이 일요일/토요일/공휴일(빨간 글자)일 때 빨간 동그라미 배경과 빨간 글자가 겹쳐 날짜 안 보임
+- 원인: 일/토 스타일(420-421행)이 같은 specificity로 나중 정의되어 today 스타일 덮어씀
+- 수정: color: white !important
+- ⚠️ 향후 캘린더 CSS 리팩토링 시 specificity 정리 검토 (리팩토링 대기 항목)
+
+**작업 14: 회계 수입 탭 활성 상태 표시 버그 수정** (commit b2149a6)
+- index.html switchIncomeMethod 함수
+- 문제: "직접 입력" → "CSV 업로드" 클릭 시 두 탭 모두 활성 상태로 표시
+- 원인: 탭 버튼들(4167-4170행)이 #income-form-direct 바깥에 있어 선택자가 아무것도 못 찾음
+- 수정: 상위 컨테이너 #acc-tab-income으로 선택자 범위 변경
+- 동일 영역(지출/리포트) 점검: 같은 버그 없음
+
 ### 점검 체크리스트
 
 **Critical (코드 정리 - 완료)**:
@@ -375,17 +428,17 @@ school_events (
 **Critical (사용자 플로우 테스트 - 다음 단계)**:
 - [ ] 회원가입·로그인 플로우 전체 테스트
 - [ ] 결제·티어 변경 로직 확인
-- [ ] RLS 정책 누락 점검
-- [ ] 자료실 옛/새 둘 다 작동 확인 (Legacy 변경 검증)
-- [ ] 일반 게시판 댓글 → post_comments 정상 입력 (submitPostComment 검증)
-- [ ] 피드백 게시판 댓글 → feedback_comments 정상 입력 (submitComment 검증)
-- [ ] LP 공지 정상 표시 (loadLPNotices 검증)
-- [ ] 앱 내부 공지 정상 표시 (loadNotices 검증)
+- [x] RLS 정책 누락 점검 (작업 9에서 컨벤션 보완)
+- [x] 자료실 옛/새 둘 다 작동 확인 (Legacy 변경 검증)
+- [x] 일반 게시판 댓글 → post_comments 정상 입력 (submitPostComment 검증)
+- [x] 피드백 게시판 댓글 → feedback_comments 정상 입력 (submitComment 검증)
+- [x] LP 공지 정상 표시 (loadLPNotices 검증)
+- [x] 앱 내부 공지 정상 표시 (loadNotices 검증)
 
 **CSV 수입 일괄 등록 테스트**:
-- [ ] CSV 업로드 실제 동작 테스트 (정상 케이스)
-- [ ] CSV 오류 행 검증 동작 테스트 (날짜 오류, 학생 매칭 실패, 카테고리 자동 매핑)
-- [ ] 500행 초과 거부 테스트
+- [x] CSV 업로드 실제 동작 테스트 (정상 케이스)
+- [x] CSV 오류 행 검증 동작 테스트 (날짜 오류, 학생 매칭 실패, 카테고리 자동 매핑)
+- [x] 500행 초과 거부 테스트
 
 **Important (이번 주)**:
 - [ ] 그림판 코드 사용 여부 확인 (코드 850라인)
