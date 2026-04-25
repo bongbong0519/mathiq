@@ -23427,7 +23427,7 @@ function renderStudentMaterialsList() {
     const m = s.material;
     const fileIcon = getFileIcon(m.file_type);
     const sizeStr = formatFileSize(m.file_size);
-    const sharedAgo = getTimeAgo(s.shared_at);
+    const sharedAgo = getTimeAgoFromStr(s.shared_at);
     const isNew = !s.viewed_at;
 
     return `<div class="card" style="padding:16px;${isNew ? 'border-left:3px solid var(--accent)' : ''}" onclick="markMaterialViewed('${s.id}')">
@@ -23453,7 +23453,7 @@ function renderStudentMaterialsList() {
   }).join('');
 }
 
-function getTimeAgo(dateStr) {
+function getTimeAgoFromStr(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
   if (minutes < 60) return `${minutes}분 전`;
