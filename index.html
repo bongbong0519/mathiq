@@ -18940,7 +18940,6 @@ async function openFeedbackDetail(postId) {
   const actions = document.getElementById('fd-actions');
   if (post.author_id === currentUser.id || currentProfile?.role === 'admin') {
     actions.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="editFeedbackPost()">수정</button>
       <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteFeedbackPost()">삭제</button>
     `;
     if (currentProfile?.role === 'admin' && !post.is_resolved && post.category !== 'notice') {
