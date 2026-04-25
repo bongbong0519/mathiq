@@ -16202,10 +16202,16 @@ function validateIncomeCSVRow(cols, students, rowNum) {
   const [dateStr, name, gradeStr, school, categoryStr, amountStr, methodStr = '', memoStr = ''] = cols;
 
   const dateMatch = dateStr.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);
+  let paymentDate = null;
   if (!dateMatch) {
     errors.push('날짜 형식 오류 (YYYY-MM-DD)');
+  } else {
+    paymentDate = `${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}`;
+    const d = new Date(paymentDate);
+    if (isNaN(d.getTime())) {
+      errors.push('유효하지 않은 날짜');
+    }
   }
-  const paymentDate = dateMatch ? `${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}` : null;
 
   const grade = gradeStr.trim();
   if (!grade) {
