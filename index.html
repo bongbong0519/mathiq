@@ -4254,7 +4254,8 @@
                 <p style="color:var(--text2);margin-bottom:16px">CSV 파일을 드래그하거나 클릭하여 업로드</p>
                 <input type="file" id="inc-csv-file" accept=".csv" style="display:none" onchange="handleIncomeCSV(this)">
                 <button class="btn btn-ghost" onclick="document.getElementById('inc-csv-file').click()">파일 선택</button>
-                <p style="font-size:11px;color:var(--text3);margin-top:12px">형식: 학생명, 결제일, 금액, 결제수단, 메모</p>
+                <p style="font-size:11px;color:var(--text3);margin-top:12px">형식: 날짜, 학생명, 학년, 학교, 카테고리, 금액, 결제방법, 메모</p>
+                <p style="font-size:10px;color:var(--text3);margin-top:4px">첫 행은 헤더로 무시 · 카테고리: 정규수강료/보충수업/교재비/특강/기타</p>
               </div>
             </div>
           </div>
