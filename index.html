@@ -6335,7 +6335,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary w-full" id="matSubmitBtn" onclick="submitMaterialUpload()">업로드</button>
+      <button class="btn btn-primary w-full" id="matSubmitBtn" onclick="submitMaterialUploadLegacy()">업로드</button>
     </div>
   </div>
 </div>
@@ -13040,8 +13040,8 @@ async function loadMaterials() {
         <td class="text-muted text-sm">${m.download_count || 0}회</td>
         <td class="text-muted text-sm">${m.created_at ? new Date(m.created_at).toLocaleDateString('ko-KR') : '—'}</td>
         <td onclick="event.stopPropagation()">
-          <button class="btn btn-primary btn-xs" onclick="downloadMaterial('${m.id}','${m.file_path}','${(m.file_name || '').replace(/'/g,"\\'")}')">다운</button>
-          ${(isOwner || isAdmin) ? `<button class="btn btn-ghost btn-xs" onclick="deleteMaterial('${m.id}','${m.file_path}')">삭제</button>` : ''}
+          <button class="btn btn-primary btn-xs" onclick="downloadMaterialLegacy('${m.id}','${m.file_path}','${(m.file_name || '').replace(/'/g,"\\'")}')">다운</button>
+          ${(isOwner || isAdmin) ? `<button class="btn btn-ghost btn-xs" onclick="deleteMaterialLegacy('${m.id}','${m.file_path}')">삭제</button>` : ''}
         </td>
       </tr>`;
     }).join('') +
@@ -13090,11 +13090,11 @@ async function openMaterialDetail(id) {
       ${metaRows ? `<div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;font-size:14px">${metaRows}</div>` : ''}
       <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
         <div style="font-size:13px;color:var(--text3)">📎 ${escapeHtml(m.file_name || '—')} <span style="margin-left:6px">${fmtSize(m.file_size)}</span></div>
-        <button class="btn btn-primary btn-sm" onclick="downloadMaterial('${m.id}','${m.file_path}','${(m.file_name || '').replace(/'/g,"\\'")}')">다운로드</button>
+        <button class="btn btn-primary btn-sm" onclick="downloadMaterialLegacy('${m.id}','${m.file_path}','${(m.file_name || '').replace(/'/g,"\\'")}')">다운로드</button>
       </div>
       ${(isOwner || isAdmin) ? `
         <div style="padding:12px 24px;display:flex;justify-content:flex-end">
-          <button class="btn btn-ghost btn-sm" onclick="deleteMaterial('${m.id}','${m.file_path}')" style="color:var(--red)">삭제</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteMaterialLegacy('${m.id}','${m.file_path}')" style="color:var(--red)">삭제</button>
         </div>
       ` : ''}
     `;
@@ -13131,7 +13131,9 @@ function openUploadMaterialModal() {
   document.getElementById('uploadMaterialModal').classList.add('open');
 }
 
-async function submitMaterialUpload() {
+// LEGACY: 옛 분류식 자료실 (📚 자료실 메뉴, view='materials')
+// 새 폴더식 자료실(📁 수업 자료, view='teacher-materials')과 별개로 유지됨
+async function submitMaterialUploadLegacy() {
   const title = document.getElementById('matTitle').value.trim();
   const description = document.getElementById('matDesc').value.trim();
   const school_level = document.getElementById('matSchool').value;
@@ -13191,7 +13193,8 @@ async function submitMaterialUpload() {
   }
 }
 
-async function downloadMaterial(id, filePath, fileName) {
+// LEGACY: 옛 자료실용 (file_path 기반)
+async function downloadMaterialLegacy(id, filePath, fileName) {
   try {
     const { data, error } = await sbClient.storage.from('materials').download(filePath);
     if (error) throw error;
@@ -13231,7 +13234,8 @@ async function downloadMaterial(id, filePath, fileName) {
   }
 }
 
-async function deleteMaterial(id, filePath) {
+// LEGACY: 옛 자료실용 (file_path 기반)
+async function deleteMaterialLegacy(id, filePath) {
   if (!confirm('이 자료를 삭제하시겠습니까?')) return;
   try {
     await sbClient.storage.from('materials').remove([filePath]);
