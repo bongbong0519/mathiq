@@ -341,6 +341,29 @@ school_events (
 - 파일 크기: 24,393 → 24,392 라인 (-1)
 - 총 5개 commit (위 4개 + 본 문서 업데이트 1개)
 
+### 추가 발견·해결 (2026-04-25 야간 작업, Claude Code 첫 사용)
+
+**작업 5: getTimeAgo 중복 해결** (commit f51c219)
+- `getTimeAgo(date)` — Date 객체용 (18702행)
+- `getTimeAgoFromStr(dateStr)` — 문자열용 (23456행)
+- 기존에 나중 정의가 덮어쓰던 문제 해결
+
+**작업 6: 미정의 함수 호출 제거** (commit 12fc224)
+- `quUpdateAreaOptions` onchange 제거 (5363행) — quUpdateGradeOptions가 이미 처리
+- `updateDiffPreview` onchange 제거 (6492행) — selectDiff onclick과 중복
+
+**작업 7: editFeedbackPost 수정 버튼 제거** (commit 939228f)
+- 구현되지 않은 기능의 버튼 자체를 제거
+- 삭제 버튼(deleteFeedbackPost)은 유지
+
+**작업 8: handleIncomeCSV 구현** (commit 058776a) ⚠️ 점검 모드 예외
+- 회계 수입 탭 CSV 일괄 등록 기능
+- 컬럼 8개: 날짜/학생명/학년/학교/카테고리/금액/결제방법/메모
+- 학생 매칭 엄격 (이름+학년+학교 정확 일치, 불일치 시 입력 거부)
+- 카테고리 자동 "기타" 매핑 + 결과 모달 표시
+- 최대 500행 제한
+- +242라인 추가 (점검 모드 원칙 일부 깨고 추가, 사용자 결정)
+
 ### 점검 체크리스트
 
 **Critical (코드 정리 - 완료)**:
@@ -359,12 +382,18 @@ school_events (
 - [ ] LP 공지 정상 표시 (loadLPNotices 검증)
 - [ ] 앱 내부 공지 정상 표시 (loadNotices 검증)
 
+**CSV 수입 일괄 등록 테스트**:
+- [ ] CSV 업로드 실제 동작 테스트 (정상 케이스)
+- [ ] CSV 오류 행 검증 동작 테스트 (날짜 오류, 학생 매칭 실패, 카테고리 자동 매핑)
+- [ ] 500행 초과 거부 테스트
+
 **Important (이번 주)**:
 - [ ] 그림판 코드 사용 여부 확인 (코드 850라인)
 - [ ] 문제은행 코드 정리 가능성 검토 (2,500라인)
 - [ ] 모바일 반응형 점검
 - [ ] 콘솔 에러 0개 확인
 - [ ] 관리자 모바일 페이지 점검
+- [ ] students/exams RLS SQL 파일 누락 확인 (Supabase 대시보드에서 직접) ⚠️
 
 ### 코드 현황 (2026-04-25 작업 후)
 
