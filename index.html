@@ -16118,6 +16118,248 @@ async function deleteIncome(id) {
   await loadAccData();
 }
 
+// ── CSV 수입 일괄 등록 ──
+const INCOME_CSV_CATEGORIES = ['정규수강료', '보충수업', '교재비', '특강', '기타'];
+const INCOME_CSV_METHODS = { '이체': 'transfer', '계좌이체': 'transfer', 'transfer': 'transfer', '현금': 'cash', 'cash': 'cash', '카드': 'card', 'card': 'card' };
+
+async function handleIncomeCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 1024 * 1024) {
+    showToast('파일이 너무 큽니다 (최대 1MB)', '❌');
+    input.value = '';
+    return;
+  }
+
+  const text = await file.text();
+  const rows = parseIncomeCSV(text);
+
+  if (rows.length < 2) {
+    showToast('데이터가 없습니다 (헤더 + 최소 1행 필요)', '❌');
+    input.value = '';
+    return;
+  }
+
+  if (rows.length > 501) {
+    showToast('최대 500행까지 처리 가능합니다', '❌');
+    input.value = '';
+    return;
+  }
+
+  const { data: students } = await sbClient.from('students').select('id, name, grade, school').eq('teacher_id', currentUser.id);
+
+  const validRows = [];
+  const errorRows = [];
+  const categoryMappings = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const result = validateIncomeCSVRow(rows[i], students || [], i + 1);
+    if (result.valid) {
+      validRows.push(result.data);
+      if (result.categoryMapped) {
+        categoryMappings.push({ row: i + 1, from: result.categoryMapped.from, to: result.categoryMapped.to });
+      }
+    } else {
+      errorRows.push({ row: i + 1, errors: result.errors, original: rows[i] });
+    }
+  }
+
+  showIncomeCSVPreview(validRows, errorRows, categoryMappings);
+  input.value = '';
+}
+
+function parseIncomeCSV(text) {
+  let clean = text.replace(/^﻿/, '');
+  const lines = clean.split(/\r?\n/).filter(line => line.trim());
+  return lines.map(line => {
+    const cols = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        cols.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    cols.push(current.trim());
+    return cols;
+  });
+}
+
+function validateIncomeCSVRow(cols, students, rowNum) {
+  const errors = [];
+  if (cols.length < 6) {
+    return { valid: false, errors: ['컬럼 수 부족 (최소 6개: 날짜,학생명,학년,학교,카테고리,금액)'] };
+  }
+
+  const [dateStr, name, gradeStr, school, categoryStr, amountStr, methodStr = '', memoStr = ''] = cols;
+
+  const dateMatch = dateStr.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);
+  if (!dateMatch) {
+    errors.push('날짜 형식 오류 (YYYY-MM-DD)');
+  }
+  const paymentDate = dateMatch ? `${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}` : null;
+
+  const grade = parseInt(gradeStr);
+  if (isNaN(grade)) {
+    errors.push('학년 숫자 아님');
+  }
+
+  const student = students.find(s => s.name === name && s.grade == grade && s.school === school);
+  if (!student) {
+    errors.push(`학생 매칭 실패 (${name}/${gradeStr}/${school})`);
+  }
+
+  const amount = parseInt(amountStr.replace(/,/g, ''));
+  if (isNaN(amount) || amount <= 0) {
+    errors.push('금액 오류 (양수 필요)');
+  }
+
+  let category = categoryStr;
+  let categoryMapped = null;
+  if (!INCOME_CSV_CATEGORIES.includes(categoryStr)) {
+    categoryMapped = { from: categoryStr, to: '기타' };
+    category = '기타';
+  }
+
+  const method = INCOME_CSV_METHODS[(methodStr || '').toLowerCase()] || INCOME_CSV_METHODS[methodStr] || 'transfer';
+
+  let memo = memoStr || null;
+  if (categoryMapped && memo) {
+    memo = `${memo} [원본 카테고리: ${categoryMapped.from}]`;
+  } else if (categoryMapped) {
+    memo = `[원본 카테고리: ${categoryMapped.from}]`;
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  const monthYear = paymentDate ? paymentDate.slice(0, 7) : null;
+
+  return {
+    valid: true,
+    data: {
+      teacher_id: currentUser.id,
+      student_id: student?.id || null,
+      student_name: name,
+      payment_date: paymentDate,
+      amount,
+      category,
+      payment_method: method,
+      memo,
+      month_year: monthYear
+    },
+    categoryMapped
+  };
+}
+
+function showIncomeCSVPreview(validRows, errorRows, categoryMappings) {
+  const existingModal = document.getElementById('csvPreviewModal');
+  if (existingModal) existingModal.remove();
+
+  const errorDetails = errorRows.map(e =>
+    `<div style="padding:8px;background:var(--bg2);border-radius:6px;margin-bottom:6px;font-size:12px">
+      <strong>${e.row}행:</strong> ${e.errors.join(', ')}
+      <div style="color:var(--text3);margin-top:4px">원본: ${e.original.join(' | ')}</div>
+    </div>`
+  ).join('');
+
+  const mappingDetails = categoryMappings.map(m =>
+    `<div style="font-size:12px;padding:4px 0">${m.row}행: "${m.from}" → "${m.to}"</div>`
+  ).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'csvPreviewModal';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:500px">
+      <div class="modal-header">
+        <div class="modal-title">📄 CSV 검증 결과</div>
+        <button class="modal-close" onclick="document.getElementById('csvPreviewModal').remove()">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height:60vh;overflow-y:auto">
+        <div style="display:flex;gap:16px;margin-bottom:20px">
+          <div style="flex:1;padding:16px;background:var(--green);background:rgba(62,207,142,0.1);border-radius:8px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:var(--green)">${validRows.length}</div>
+            <div style="font-size:12px;color:var(--text2)">정상</div>
+          </div>
+          <div style="flex:1;padding:16px;background:rgba(245,101,101,0.1);border-radius:8px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:var(--red)">${errorRows.length}</div>
+            <div style="font-size:12px;color:var(--text2)">오류</div>
+          </div>
+        </div>
+        ${categoryMappings.length > 0 ? `
+          <div style="margin-bottom:16px;padding:12px;background:rgba(246,173,85,0.1);border-radius:8px">
+            <div style="font-size:13px;font-weight:600;color:var(--yellow);margin-bottom:8px">⚠️ 카테고리 자동 매핑 ${categoryMappings.length}건</div>
+            ${mappingDetails}
+          </div>
+        ` : ''}
+        ${errorRows.length > 0 ? `
+          <div style="margin-bottom:16px">
+            <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:8px">❌ 오류 상세</div>
+            ${errorDetails}
+          </div>
+        ` : ''}
+        ${validRows.length === 0 ? `
+          <div style="text-align:center;padding:20px;color:var(--text3)">입력 가능한 데이터가 없습니다</div>
+        ` : ''}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('csvPreviewModal').remove()">취소</button>
+        ${validRows.length > 0 ? `
+          <button class="btn btn-primary" onclick="submitIncomeCSVBatch()">정상 행만 입력 (${validRows.length}건)</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  window._csvValidRows = validRows;
+}
+
+async function submitIncomeCSVBatch() {
+  const rows = window._csvValidRows;
+  if (!rows || rows.length === 0) return;
+
+  const modal = document.getElementById('csvPreviewModal');
+  const btn = modal?.querySelector('.btn-primary');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '입력 중...';
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const row of rows) {
+    const { error } = await sbClient.from('accounting_income').insert(row);
+    if (error) {
+      console.error('CSV insert error:', error);
+      failCount++;
+    } else {
+      successCount++;
+    }
+  }
+
+  document.getElementById('csvPreviewModal')?.remove();
+  window._csvValidRows = null;
+
+  if (failCount > 0) {
+    showToast(`${successCount}건 입력 완료, ${failCount}건 실패`, '⚠️');
+  } else {
+    showToast(`${successCount}건 입력 완료`, '✅');
+  }
+
+  await loadAccData();
+}
+
 // ── 지출 탭 렌더링 ──
 function renderAccExpense() {
   // 날짜 기본값 (getLocalDateStr 사용)
