@@ -1,0 +1,359 @@
+{
+  "nodes": [
+    {
+      "id": "title-features",
+      "type": "text",
+      "text": "## 기능 (12개)",
+      "x": 0,
+      "y": -100,
+      "width": 200,
+      "height": 50
+    },
+    {
+      "id": "title-staff",
+      "type": "text",
+      "text": "## 직원 형태 (19개)",
+      "x": 900,
+      "y": -100,
+      "width": 250,
+      "height": 50
+    },
+    {
+      "id": "f1",
+      "type": "text",
+      "text": "대시보드",
+      "x": 0,
+      "y": 0,
+      "width": 150,
+      "height": 50,
+      "color": "4"
+    },
+    {
+      "id": "f2",
+      "type": "text",
+      "text": "학생관리",
+      "x": 0,
+      "y": 70,
+      "width": 150,
+      "height": 50,
+      "color": "4"
+    },
+    {
+      "id": "f3",
+      "type": "text",
+      "text": "시험관리",
+      "x": 0,
+      "y": 140,
+      "width": 150,
+      "height": 50,
+      "color": "4"
+    },
+    {
+      "id": "f4",
+      "type": "text",
+      "text": "AI유사문제",
+      "x": 0,
+      "y": 230,
+      "width": 150,
+      "height": 50,
+      "color": "3"
+    },
+    {
+      "id": "f5",
+      "type": "text",
+      "text": "성적리포트",
+      "x": 0,
+      "y": 300,
+      "width": 150,
+      "height": 50,
+      "color": "3"
+    },
+    {
+      "id": "f6",
+      "type": "text",
+      "text": "학부모문자",
+      "x": 0,
+      "y": 370,
+      "width": 150,
+      "height": 50,
+      "color": "3"
+    },
+    {
+      "id": "f7",
+      "type": "text",
+      "text": "회계 (매출·지출)",
+      "x": 0,
+      "y": 460,
+      "width": 150,
+      "height": 50,
+      "color": "5"
+    },
+    {
+      "id": "f8",
+      "type": "text",
+      "text": "문제은행",
+      "x": 0,
+      "y": 550,
+      "width": 150,
+      "height": 50,
+      "color": "6"
+    },
+    {
+      "id": "f9",
+      "type": "text",
+      "text": "문제등록",
+      "x": 0,
+      "y": 620,
+      "width": 150,
+      "height": 50,
+      "color": "6"
+    },
+    {
+      "id": "f10",
+      "type": "text",
+      "text": "수업자료",
+      "x": 0,
+      "y": 710,
+      "width": 150,
+      "height": 50,
+      "color": "1"
+    },
+    {
+      "id": "f11",
+      "type": "text",
+      "text": "캘린더",
+      "x": 0,
+      "y": 800,
+      "width": 150,
+      "height": 50,
+      "color": "0"
+    },
+    {
+      "id": "f12",
+      "type": "text",
+      "text": "강사관리",
+      "x": 0,
+      "y": 870,
+      "width": 150,
+      "height": 50,
+      "color": "0"
+    },
+    {
+      "id": "label-a",
+      "type": "text",
+      "text": "### A. 강사 (8)",
+      "x": 900,
+      "y": 0,
+      "width": 200,
+      "height": 40
+    },
+    {
+      "id": "s1",
+      "type": "text",
+      "text": "정규직 강사",
+      "x": 900,
+      "y": 50,
+      "width": 180,
+      "height": 40,
+      "color": "4"
+    },
+    {
+      "id": "s2",
+      "type": "text",
+      "text": "시간제 강사",
+      "x": 900,
+      "y": 100,
+      "width": 180,
+      "height": 40,
+      "color": "4"
+    },
+    {
+      "id": "s3",
+      "type": "text",
+      "text": "초단시간 강사",
+      "x": 900,
+      "y": 150,
+      "width": 180,
+      "height": 40,
+      "color": "4"
+    },
+    {
+      "id": "s4",
+      "type": "text",
+      "text": "보조 강사",
+      "x": 900,
+      "y": 200,
+      "width": 180,
+      "height": 40,
+      "color": "4"
+    },
+    {
+      "id": "s5",
+      "type": "text",
+      "text": "프리랜서 강사",
+      "x": 900,
+      "y": 250,
+      "width": 180,
+      "height": 40,
+      "color": "6"
+    },
+    {
+      "id": "s6",
+      "type": "text",
+      "text": "인적용역 강사",
+      "x": 900,
+      "y": 300,
+      "width": 180,
+      "height": 40,
+      "color": "6"
+    },
+    {
+      "id": "s7",
+      "type": "text",
+      "text": "일용 강사",
+      "x": 900,
+      "y": 350,
+      "width": 180,
+      "height": 40,
+      "color": "4"
+    },
+    {
+      "id": "s8",
+      "type": "text",
+      "text": "외국인 강사",
+      "x": 900,
+      "y": 400,
+      "width": 180,
+      "height": 40,
+      "color": "4"
+    },
+    {
+      "id": "label-b",
+      "type": "text",
+      "text": "### B. 관리직 (3)",
+      "x": 900,
+      "y": 470,
+      "width": 200,
+      "height": 40
+    },
+    {
+      "id": "s9",
+      "type": "text",
+      "text": "부원장",
+      "x": 900,
+      "y": 520,
+      "width": 180,
+      "height": 40,
+      "color": "5"
+    },
+    {
+      "id": "s10",
+      "type": "text",
+      "text": "실장 (데스크)",
+      "x": 900,
+      "y": 570,
+      "width": 180,
+      "height": 40,
+      "color": "5"
+    },
+    {
+      "id": "s11",
+      "type": "text",
+      "text": "조교 (행정 보조)",
+      "x": 900,
+      "y": 620,
+      "width": 180,
+      "height": 40,
+      "color": "5"
+    },
+    {
+      "id": "label-c",
+      "type": "text",
+      "text": "### C. 특수 (8)",
+      "x": 900,
+      "y": 690,
+      "width": 200,
+      "height": 40
+    },
+    {
+      "id": "s12",
+      "type": "text",
+      "text": "배우자/자녀/친족",
+      "x": 900,
+      "y": 740,
+      "width": 180,
+      "height": 40,
+      "color": "1"
+    },
+    {
+      "id": "s13",
+      "type": "text",
+      "text": "차량",
+      "x": 900,
+      "y": 790,
+      "width": 180,
+      "height": 40,
+      "color": "0"
+    },
+    {
+      "id": "s14",
+      "type": "text",
+      "text": "청소·시설",
+      "x": 900,
+      "y": 840,
+      "width": 180,
+      "height": 40,
+      "color": "0"
+    },
+    {
+      "id": "s15",
+      "type": "text",
+      "text": "외주 전문가",
+      "x": 900,
+      "y": 890,
+      "width": 180,
+      "height": 40,
+      "color": "0"
+    },
+    {
+      "id": "s16",
+      "type": "text",
+      "text": "인턴·실습생",
+      "x": 900,
+      "y": 940,
+      "width": 180,
+      "height": 40,
+      "color": "0"
+    },
+    {
+      "id": "s17",
+      "type": "text",
+      "text": "위탁운영 인력",
+      "x": 900,
+      "y": 990,
+      "width": 180,
+      "height": 40,
+      "color": "1"
+    },
+    {
+      "id": "s18",
+      "type": "text",
+      "text": "기타 (직접 입력)",
+      "x": 900,
+      "y": 1040,
+      "width": 180,
+      "height": 40,
+      "color": "1"
+    },
+    {
+      "id": "legend",
+      "type": "text",
+      "text": "### 색상 범례\n- 🔵 파랑(4): 학습관리 / 일반강사\n- 🟣 보라(3): AI·분석\n- 🟢 초록(5): 회계 / 관리직\n- 🟡 노랑(6): 문제은행 / 위장도급주의\n- 🟠 빨강(1): 자료 / 특수관계자\n- ⚪ 회색(0): 공통 / 비수업직",
+      "x": 400,
+      "y": -200,
+      "width": 350,
+      "height": 180
+    }
+  ],
+  "edges": []
+}
