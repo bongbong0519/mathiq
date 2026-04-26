@@ -274,7 +274,7 @@ WHERE id = 'c5a39205-83c8-4ac9-9a09-686e9e7aacc6';
   - 대부분 테이블에 ON DELETE CASCADE 적용 가능
   - 예외: account_deletions, recovery_requests (soft delete 기록 보존 필요)
 
-■ #17 구현 방향 메모:
+■ C-1 구현 방향 메모:
   1. 단순 CASCADE 적용이 어려운 이유:
      - account_deletions: 삭제 이력 보존 필요
      - recovery_requests: 복구 요청 이력 보존 필요

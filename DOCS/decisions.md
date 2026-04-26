@@ -1065,7 +1065,7 @@ const STAFF_TYPE_GUIDES = {
 - profiles 1행 (admin), auth.users 1행 (admin)만 남김
 - 테스트 사용자 18명 정리
 
-### 본 작업 (#17)
+### 본 작업 (C-1)
 - cleanup-v3 SQL 또는 migration-017-cascade-delete.sql 적용
 - ON DELETE CASCADE 일괄 적용 + delete_user_permanently RPC 함수
 - **베타 후 진행** (임시 정리로 베타 시작 가능)
