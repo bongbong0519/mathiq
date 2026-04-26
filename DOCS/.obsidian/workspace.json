@@ -1,0 +1,240 @@
+{
+  "main": {
+    "id": "cbe861e7f4ef9958",
+    "type": "split",
+    "children": [
+      {
+        "id": "1c19598fa551a4d2",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c32ffc65895efa03",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "05-roadmap.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "05-roadmap"
+            }
+          },
+          {
+            "id": "84c9dc1432b82b9f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "03-tutor-matching.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "03-tutor-matching"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "d1dcfa6dfdc48c5f",
+    "type": "split",
+    "children": [
+      {
+        "id": "162f28e227113b86",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1e86e1e677140cc7",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "파일 탐색기"
+            }
+          },
+          {
+            "id": "020ad6c0d1894f14",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "검색"
+            }
+          },
+          {
+            "id": "5f1c229570d2efb8",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "북마크"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "785c6d11d8ead754",
+    "type": "split",
+    "children": [
+      {
+        "id": "3e8852e5c9353a1a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f004fb617506c24d",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "05-roadmap.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "05-roadmap 의 백링크"
+            }
+          },
+          {
+            "id": "d0d9cfabab3f01aa",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "05-roadmap.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "05-roadmap 의 나가는 링크"
+            }
+          },
+          {
+            "id": "31450615737a2d4c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "태그"
+            }
+          },
+          {
+            "id": "87d8e2c749a8ad10",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "모든 속성"
+            }
+          },
+          {
+            "id": "dc9c0c2fc0e89cde",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "05-roadmap.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "05-roadmap 의 개요"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:빠른 전환기 열기": false,
+      "graph:그래프 뷰 열기": false,
+      "canvas:새 캔버스 만들기": false,
+      "daily-notes:오늘의 일일 노트 열기": false,
+      "templates:템플릿 삽입": false,
+      "command-palette:명령어 팔레트 열기": false,
+      "bases:새 베이스 생성하기": false
+    }
+  },
+  "active": "84c9dc1432b82b9f",
+  "lastOpenFiles": [
+    "2026-04-26.md",
+    "sessions/2026-04-26-점검.md",
+    "daily/2026-04-26.md",
+    "_archive/daily-2026-04-26-original.md",
+    "sessions",
+    "daily",
+    "_archive",
+    "2026-04-26.md.tmp.24028.1777223657365",
+    "roadmap.md.tmp.24028.1777223638137",
+    "2026-04-26.md.tmp.24028.1777223109366",
+    "changelog.md.tmp.24028.1777223093517",
+    "05-roadmap.md.tmp.24028.1777223081314",
+    "decisions.md.tmp.24028.1777223026852",
+    "_pending/migration-017-cascade-delete.sql",
+    "03-tutor-matching.md",
+    "01-student-report.md",
+    "_pending/CC-instruction-2026-04-26-점검정리.md",
+    "getting-started/01-signup.md",
+    "05-roadmap.md",
+    "roadmap.md",
+    "09_vision.md",
+    "faq.md",
+    "08-accounting-system.md",
+    "07-tutor-certification.md",
+    "06-organization-system.md",
+    "04-point-system.md",
+    "02-parent-sms.md",
+    "00-FEATURES.md",
+    "getting-started/03-first-steps.md",
+    "getting-started/02-roles.md",
+    "features/student-management.md",
+    "features/billing.md",
+    "features/accounting.md",
+    "features/account-recovery.md",
+    "_pending/CC-instruction-2026-04-25.md",
+    "changelog.md"
+  ]
+}
