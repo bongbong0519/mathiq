@@ -25,14 +25,17 @@
             "id": "84c9dc1432b82b9f",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "canvas",
               "state": {
-                "file": "03-tutor-matching.md",
-                "mode": "source",
-                "source": false
+                "file": "sessions/permission-mindmap.canvas",
+                "viewState": {
+                  "x": 720,
+                  "y": 445,
+                  "zoom": -0.9279083768776017
+                }
               },
-              "icon": "lucide-file",
-              "title": "03-tutor-matching"
+              "icon": "lucide-layout-dashboard",
+              "title": "permission-mindmap"
             }
           }
         ],
@@ -200,9 +203,29 @@
   },
   "active": "84c9dc1432b82b9f",
   "lastOpenFiles": [
-    "2026-04-26.md",
+    "sessions/employee-types.md",
     "sessions/2026-04-26-점검.md",
+    "sessions/next-session-context-2026-04-27.md",
+    "sessions/permission-features-tree.md",
+    "sessions/permission-mindmap.canvas",
+    "sessions/permission-roles-tree.md",
+    "00-FEATURES.md",
+    "01-student-report.md",
+    "02-parent-sms.md",
+    "03-tutor-matching.md",
+    "04-point-system.md",
+    "05-roadmap.md",
+    "06-organization-system.md",
+    "07-tutor-certification.md",
+    "08-accounting-system.md",
+    "changelog.md",
+    "decisions.md",
+    "faq.md",
+    "roadmap.md",
+    "sessions/permission-mindmap (1).canvas",
+    "_pending/CC-instruction-2026-04-26-점검정리.md",
     "daily/2026-04-26.md",
+    "2026-04-26.md",
     "_archive/daily-2026-04-26-original.md",
     "sessions",
     "daily",
@@ -214,27 +237,9 @@
     "05-roadmap.md.tmp.24028.1777223081314",
     "decisions.md.tmp.24028.1777223026852",
     "_pending/migration-017-cascade-delete.sql",
-    "03-tutor-matching.md",
-    "01-student-report.md",
-    "_pending/CC-instruction-2026-04-26-점검정리.md",
     "getting-started/01-signup.md",
-    "05-roadmap.md",
-    "roadmap.md",
     "09_vision.md",
-    "faq.md",
-    "08-accounting-system.md",
-    "07-tutor-certification.md",
-    "06-organization-system.md",
-    "04-point-system.md",
-    "02-parent-sms.md",
-    "00-FEATURES.md",
     "getting-started/03-first-steps.md",
-    "getting-started/02-roles.md",
-    "features/student-management.md",
-    "features/billing.md",
-    "features/accounting.md",
-    "features/account-recovery.md",
-    "_pending/CC-instruction-2026-04-25.md",
-    "changelog.md"
+    "getting-started/02-roles.md"
   ]
 }
