@@ -7546,7 +7546,8 @@ async function loadProfile(autoNavigate = true) {
   const adminBtn = document.getElementById('role-btn-admin');
   [teacherBtn, directorBtn, adminBtn].forEach(b => { if (b) b.style.display = 'none'; });
   if (data.role === 'admin') {
-    [teacherBtn, directorBtn, adminBtn].forEach(b => { if (b) b.style.display = ''; });
+    if (adminBtn) adminBtn.style.display = '';
+    // admin은 운영자 메뉴만 (선생님/원장님 전환 버튼 숨김)
     startPendingBadgePolling();
   } else if (data.role === 'director') {
     if (directorBtn) directorBtn.style.display = '';
