@@ -2457,8 +2457,8 @@
 </div>
 
 <!-- 티어 잠금 안내 모달 -->
-<div class="modal-overlay" id="tierLockModal" style="z-index:1001">
-  <div class="modal" style="max-width:400px">
+<div class="modal-overlay" id="tierLockModal" style="z-index:1001" onclick="closeModal('tierLockModal')">
+  <div class="modal" style="max-width:400px" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title" id="tierLockTitle">프리미엄 전용 기능</div>
       <button class="modal-close" onclick="closeModal('tierLockModal')">✕</button>
@@ -7945,7 +7945,11 @@ function openShareModal(name) {
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.remove('open');
+    el.style.display = 'none';
+  }
 }
 
 function selectShareMethod(el, type) {
@@ -13317,6 +13321,16 @@ function showTierLockModal(requiredTier) {
   }
   modal.style.display = 'flex';
 }
+
+// 티어 잠금 모달 ESC 키로 닫기
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('tierLockModal');
+    if (modal && modal.style.display === 'flex') {
+      closeModal('tierLockModal');
+    }
+  }
+});
 
 // 업그레이드 안내 (PG사 미연동)
 function showUpgradeNotice() {
@@ -18710,17 +18724,12 @@ async function loadAdminPendingTab() {
   if (!sbClient || !currentUser) return;
   const wrap = document.getElementById('admin-pending-wrap');
   if (!wrap) return;
-  // 선생님 인증 시스템 미구현 - 빈 상태 표시
-  wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">🚧</div><div class="empty-state-text">선생님 인증 시스템은 준비 중입니다</div></div>';
-  return;
-  /* 선생님 인증 시스템 구현 후 활성화
   const { data, error } = await sbClient
     .from('profiles')
     .select('*, organizations(name)')
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
   if (error) { wrap.innerHTML = `<div class="empty-state" style="padding:30px"><div class="empty-state-text">오류: ${error.message}</div></div>`; return; }
-  */
   if (!data?.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">✅</div><div class="empty-state-text">승인 대기 중인 회원이 없습니다</div></div>';
     return;
