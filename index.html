@@ -13286,6 +13286,19 @@ const TIER_AI_LIMIT    = { campus: 5, basic: 10, standard: 30, premium: 100, pro
 const TIER_STUDENT_LIMIT = { campus: 3, basic: 20, standard: 50, premium: 100, pro: 999 };
 const TIER_LABEL_KO    = { admin: '대표운영자', staff: '운영진', campus: '캠퍼스 (무료)', basic: '베이직', standard: '스탠다드', premium: '프리미엄', pro: '프로' };
 const TIER_COLOR       = { admin: '#FF6B6B', staff: '#FF6B6B', campus: '#888', basic: '#4c9be8', standard: '#3ecf8e', premium: '#D4AF37', pro: '#9b59b6' };
+const SMS_WEEKLY_LIMITS = { campus: 2, basic: 3, standard: 3, premium: 5, pro: 5 };
+
+// 이번 주 월요일 00:00 KST를 UTC ISO 문자열로 반환
+function getWeekStartUTC() {
+  const now = new Date();
+  const kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const dayOfWeek = kstDate.getUTCDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const mondayKST = new Date(kstDate);
+  mondayKST.setUTCDate(kstDate.getUTCDate() - daysFromMonday);
+  mondayKST.setUTCHours(0, 0, 0, 0);
+  return new Date(mondayKST.getTime() - 9 * 60 * 60 * 1000).toISOString();
+}
 
 // 티어 비교 함수 (OPEN_EVENT와 무관하게 항상 적용)
 function tierAtLeast(current, required) {
@@ -18092,22 +18105,6 @@ const SMS_SECTION_TEMPLATES = {
 async function loadSmsView() {
   const wrap = document.getElementById('sms-view-content');
   if (!wrap) return;
-  const tier = currentProfile?.subscription_tier || 'campus';
-  const canSms = tierAtLeast(tier, 'standard');
-  if (!canSms) {
-    const tierKo = TIER_LABEL_KO[tier] || tier;
-    wrap.innerHTML = `
-      <div class="card" style="text-align:center;padding:56px 24px">
-        <div style="font-size:48px;margin-bottom:20px">🔒</div>
-        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:10px">스탠다드 이상 구독이 필요합니다</div>
-        <div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:28px">
-          현재 구독: <strong>${tierKo}</strong><br>
-          학부모 문자 발송 기능은 <strong>스탠다드 (월 10,000원)</strong> 이상 구독에서 사용할 수 있습니다.
-        </div>
-        <button class="btn btn-primary" onclick="showLanding();openLpPage('pricing')" style="padding:12px 28px;font-size:14px">요금제 보기 →</button>
-      </div>`;
-    return;
-  }
 
   // 학생 및 시험 데이터 로드
   const [{ data: students }, { data: exams }] = await Promise.all([
@@ -18513,7 +18510,48 @@ async function smsSendMessages() {
     return;
   }
 
-  let msg = `${targets.length}명의 학부모에게 문자를 발송 예약하시겠습니까?`;
+  // ── 주간 발송 한도 체크 ──
+  const tier = currentProfile?.subscription_tier || 'campus';
+  const weeklyLimit = SMS_WEEKLY_LIMITS[tier] || 2;
+  const weekStart = getWeekStartUTC();
+
+  // 선택된 학생들의 이번 주 발송 횟수 조회
+  const studentIds = targets.map(s => s.id);
+  const { data: weekCounts } = await sbClient
+    .from('sms_history')
+    .select('student_id')
+    .eq('sender_id', currentUser.id)
+    .in('student_id', studentIds)
+    .gte('created_at', weekStart);
+
+  // 학생별 발송 횟수 집계
+  const countMap = {};
+  (weekCounts || []).forEach(r => {
+    countMap[r.student_id] = (countMap[r.student_id] || 0) + 1;
+  });
+
+  // 한도 초과 학생 필터링
+  const overLimit = [];
+  const canSend = targets.filter(s => {
+    const used = countMap[s.id] || 0;
+    if (used >= weeklyLimit) {
+      overLimit.push({ name: s.name, used, limit: weeklyLimit });
+      return false;
+    }
+    return true;
+  });
+
+  // 전원 한도 초과
+  if (canSend.length === 0) {
+    showToast('전원 주간 한도 초과. 다음 주 월요일에 발송 가능', '⛔');
+    return;
+  }
+
+  let msg = `${canSend.length}명의 학부모에게 문자를 발송 예약하시겠습니까?`;
+  if (overLimit.length > 0) {
+    const names = overLimit.map(o => o.name).join(', ');
+    msg = `${canSend.length}명에게 발송 예약하시겠습니까?\n(${names}: 주간 한도 초과로 제외)`;
+  }
   if (noPhoneCount > 0) msg += `\n(${noPhoneCount}명은 연락처가 없어 제외됩니다)`;
   msg += '\n\n※ 실제 발송은 사업자등록 완료 후 시작됩니다.';
 
@@ -18523,7 +18561,7 @@ async function smsSendMessages() {
   const typesJson = JSON.stringify([...smsState.selectedTypes]);
 
   // DB에 저장
-  const records = targets.map(s => {
+  const records = canSend.map(s => {
     const finalContent = buildSmsContent(s);
     return {
       sender_id: currentUser.id,
@@ -18543,7 +18581,12 @@ async function smsSendMessages() {
     return;
   }
 
-  showToast(`${targets.length}명에게 문자 발송 예약됨`, '📲');
+  let resultMsg = `${canSend.length}명 발송 예약 완료`;
+  if (overLimit.length > 0) {
+    const excluded = overLimit.map(o => `${o.name}(${o.used}/${o.limit})`).join(', ');
+    resultMsg += `. ${excluded} 한도 초과로 제외`;
+  }
+  showToast(resultMsg, '📲');
 
   // 선택 초기화
   smsState.selectedStudents.clear();
