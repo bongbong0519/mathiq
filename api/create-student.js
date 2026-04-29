@@ -63,6 +63,7 @@ export default async function handler(req, res) {
 
     await supabaseAdmin.from('students').insert({
       id: userId,
+      user_id: userId,
       teacher_id,
       name,
       email,
