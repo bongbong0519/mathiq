@@ -23288,7 +23288,7 @@ async function renderTeacherMaterialsList() {
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
           <button class="btn btn-ghost btn-sm" onclick="openMaterialShareModal('${m.id}', '${m.title.replace(/'/g, "\\'")}')">공유</button>
-          <button class="btn btn-ghost btn-sm" onclick="previewMaterial('${m.file_url}', '${m.file_type}')">👁 보기</button>
+          <button class="btn btn-ghost btn-sm" onclick="previewMaterial('${m.id}')">👁 보기</button>
           <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteMaterial('${m.id}', '${m.title.replace(/'/g, "\\'")}')">삭제</button>
         </div>
       </div>
@@ -23599,15 +23599,28 @@ async function deleteMaterial(materialId, title) {
   }
 }
 
-// ── 자료 미리보기 ──
-async function previewMaterial(filePath, fileType) {
-  if (!filePath || !sbClient) return;
+// ── 자료 미리보기 (강사용) ──
+async function previewMaterial(materialId) {
+  if (!materialId || !sbClient || !currentUser) return;
 
   try {
+    // 권한 검증: 본인 자료인지 확인
+    const { data: material, error: dbError } = await sbClient
+      .from('class_materials')
+      .select('file_url, file_name, file_type')
+      .eq('id', materialId)
+      .eq('teacher_id', currentUser.id)
+      .maybeSingle();
+
+    if (dbError || !material) {
+      showToast('접근 권한이 없는 자료입니다', '🔒');
+      return;
+    }
+
     // 비공개 버킷이므로 signed URL 생성 (1시간 유효)
     const { data, error } = await sbClient.storage
       .from('class-materials')
-      .createSignedUrl(filePath, 3600);
+      .createSignedUrl(material.file_url, 3600);
 
     if (error) throw error;
     window.open(data.signedUrl, '_blank');
@@ -23760,8 +23773,8 @@ function renderStudentMaterialsList() {
           <div style="font-size:11px;color:var(--text3)">${sizeStr}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();previewStudentMaterial('${s.id}', '${m.file_url}')">👁 보기</button>
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();downloadStudentMaterial('${s.id}', '${m.file_url}', '${m.file_name.replace(/'/g, "\\'")}')">📥 다운로드</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();previewStudentMaterial('${s.id}')">👁 보기</button>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();downloadStudentMaterial('${s.id}')">📥 다운로드</button>
         </div>
       </div>
     </div>`;
@@ -23802,15 +23815,42 @@ async function markMaterialViewed(shareId) {
   renderStudentMaterialsList();
 }
 
-async function previewStudentMaterial(shareId, filePath) {
-  if (!sbClient) return;
-  await markMaterialViewed(shareId);
+async function previewStudentMaterial(shareId) {
+  if (!sbClient || !currentUser) return;
 
   try {
+    // 1단계: share + 학생 본인 검증
+    const { data: share } = await sbClient
+      .from('material_shares')
+      .select('material_id, student_id, students!inner(user_id)')
+      .eq('id', shareId)
+      .eq('students.user_id', currentUser.id)
+      .maybeSingle();
+
+    if (!share) {
+      showToast('접근 권한이 없는 자료입니다', '🔒');
+      return;
+    }
+
+    // 2단계: 자료 조회
+    const { data: material } = await sbClient
+      .from('class_materials')
+      .select('file_url, file_name, file_type')
+      .eq('id', share.material_id)
+      .maybeSingle();
+
+    if (!material) {
+      showToast('자료를 찾을 수 없습니다', '❌');
+      return;
+    }
+
+    // 조회 기록
+    await markMaterialViewed(shareId);
+
     // 비공개 버킷이므로 signed URL 생성
     const { data, error } = await sbClient.storage
       .from('class-materials')
-      .createSignedUrl(filePath, 3600);
+      .createSignedUrl(material.file_url, 3600);
 
     if (error) throw error;
     window.open(data.signedUrl, '_blank');
@@ -23819,24 +23859,49 @@ async function previewStudentMaterial(shareId, filePath) {
   }
 }
 
-async function downloadStudentMaterial(shareId, filePath, fileName) {
-  if (!sbClient) return;
-
-  // 다운로드 시간 기록
-  await sbClient.from('material_shares').update({ downloaded_at: new Date().toISOString() }).eq('id', shareId);
+async function downloadStudentMaterial(shareId) {
+  if (!sbClient || !currentUser) return;
 
   try {
+    // 1단계: share + 학생 본인 검증
+    const { data: share } = await sbClient
+      .from('material_shares')
+      .select('material_id, student_id, students!inner(user_id)')
+      .eq('id', shareId)
+      .eq('students.user_id', currentUser.id)
+      .maybeSingle();
+
+    if (!share) {
+      showToast('접근 권한이 없는 자료입니다', '🔒');
+      return;
+    }
+
+    // 2단계: 자료 조회
+    const { data: material } = await sbClient
+      .from('class_materials')
+      .select('file_url, file_name, file_type')
+      .eq('id', share.material_id)
+      .maybeSingle();
+
+    if (!material) {
+      showToast('자료를 찾을 수 없습니다', '❌');
+      return;
+    }
+
+    // 다운로드 시간 기록
+    await sbClient.from('material_shares').update({ downloaded_at: new Date().toISOString() }).eq('id', shareId);
+
     // 비공개 버킷이므로 signed URL 생성
     const { data, error } = await sbClient.storage
       .from('class-materials')
-      .createSignedUrl(filePath, 3600);
+      .createSignedUrl(material.file_url, 3600);
 
     if (error) throw error;
 
     // 다운로드 실행
     const a = document.createElement('a');
     a.href = data.signedUrl;
-    a.download = fileName;
+    a.download = material.file_name;
     a.target = '_blank';
     document.body.appendChild(a);
     a.click();
