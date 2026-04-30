@@ -18689,7 +18689,8 @@ async function smsSendMessages() {
       message_content: finalContent,
       related_exam_id: smsState.selectedExamId || null,
       include_report_url: smsState.includeReportUrl && smsState.selectedTypes.has('grade'),
-      status: 'pending'
+      status: 'pending',
+      student_name_snapshot: s.name
     };
   });
 
