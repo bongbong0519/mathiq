@@ -13335,7 +13335,7 @@ function showTierLockModal(requiredTier) {
     if (titleEl) titleEl.textContent = '준비 중';
     if (descEl) descEl.innerHTML = '이 기능은 준비 중입니다.<br>곧 만나보실 수 있습니다.';
     if (currentEl) currentEl.style.display = 'none';
-    modal.style.display = 'flex';
+    modal.classList.add('open');
     return;
   }
 
@@ -13353,7 +13353,7 @@ function showTierLockModal(requiredTier) {
     currentEl.textContent = currentLabel;
     currentEl.style.color = TIER_COLOR[currentTier] || '#888';
   }
-  modal.style.display = 'flex';
+  modal.classList.add('open');
 }
 
 // 티어 잠금 모달 ESC 키로 닫기
