@@ -4050,15 +4050,6 @@
             <option value="1">1학기</option>
             <option value="2">2학기</option>
           </select>
-          <select id="mat-filter-area" class="form-input" onchange="loadMaterials()">
-            <option value="">전체 영역</option>
-            <option value="수와 연산">수와 연산</option>
-            <option value="문자와 식">문자와 식</option>
-            <option value="함수">함수</option>
-            <option value="기하">기하</option>
-            <option value="확률과 통계">확률과 통계</option>
-            <option value="미적분">미적분</option>
-          </select>
           <input type="text" id="mat-filter-unit" class="form-input" placeholder="단원 검색" onkeyup="if(event.key==='Enter')loadMaterials()">
         </div>
         <div style="display:flex;gap:8px">
@@ -5274,12 +5265,6 @@
             </select>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">영역</div>
-            <select id="qbFltArea" class="input" style="width:130px;padding:7px 10px;font-size:13px" onchange="loadQuestionBankView()">
-              <option value="">전체</option>
-            </select>
-          </div>
-          <div>
             <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">유형</div>
             <select id="qbFltType" class="input" style="width:90px;padding:7px 10px;font-size:13px" onchange="loadQuestionBankView()">
               <option value="">전체</option>
@@ -5329,10 +5314,10 @@
           <div>
             <div class="card" style="padding:20px">
               <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px">문제 정보</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:12px">
                 <div>
-                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학교급 *</div>
-                  <select id="quLevel" class="input" style="width:100%;padding:8px 10px;font-size:13px" onchange="quUpdateGradeOptions()">
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학교급 * <span style="font-weight:400;font-size:10px">(2022 개정)</span></div>
+                  <select id="quLevel" class="input" style="width:100%;padding:8px 10px;font-size:13px" onchange="quOnLevelChange()">
                     <option value="">선택</option>
                     <option value="초등">초등</option>
                     <option value="중등">중등</option>
@@ -5341,26 +5326,24 @@
                 </div>
                 <div>
                   <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학년 *</div>
-                  <select id="quGrade" class="input" style="width:100%;padding:8px 10px;font-size:13px">
+                  <select id="quGrade" class="input" style="width:100%;padding:8px 10px;font-size:13px" onchange="quOnGradeChange()">
                     <option value="">선택</option>
                   </select>
                 </div>
                 <div>
-                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">학기</div>
-                  <select id="quSemester" class="input" style="width:100%;padding:8px 10px;font-size:13px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px" id="quSemesterLabel">학기</div>
+                  <select id="quSemester" class="input" style="width:100%;padding:8px 10px;font-size:13px" onchange="quOnSemesterChange()">
                     <option value="">선택</option>
-                    <option value="1">1학기</option>
-                    <option value="2">2학기</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">단원</div>
+                  <select id="quUnit" class="input" style="width:100%;padding:8px 10px;font-size:13px">
+                    <option value="">선택</option>
                   </select>
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-                <div>
-                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">영역</div>
-                  <select id="quArea" class="input" style="width:100%;padding:8px 10px;font-size:13px">
-                    <option value="">선택</option>
-                  </select>
-                </div>
                 <div>
                   <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">유형 *</div>
                   <select id="quType" class="input" style="width:100%;padding:8px 10px;font-size:13px">
@@ -5368,12 +5351,6 @@
                     <option value="객관식">객관식</option>
                     <option value="서술형">서술형</option>
                   </select>
-                </div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-                <div>
-                  <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">단원</div>
-                  <input id="quUnit" class="input" type="text" placeholder="예: 이차방정식" style="width:100%;padding:8px 10px;font-size:13px">
                 </div>
                 <div>
                   <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">소단원</div>
@@ -13277,7 +13254,26 @@ const QB_AREAS = {
   '중등': ['수와 연산','문자와 식','함수','기하','확률과 통계'],
   '고등': ['수와 연산','문자와 식','함수','기하','확률과 통계','수열','극한','미적분','벡터']
 };
-const QB_GRADES = { '초등': [1,2,3,4,5,6], '중등': [1,2,3], '고등': [1,2,3] };
+const QB_GRADES = { '초등': [1,2,3,4,5,6], '중등': [1,2,3], '고등': ['1학년','2-3학년'] };
+const CURRICULUM_2022 = {
+  '초등': {
+    1: { 1: ['9까지의 수','여러 가지 모양','덧셈과 뺄셈','비교하기','50까지의 수'], 2: ['100까지의 수','덧셈과 뺄셈(1)','여러 가지 모양','덧셈과 뺄셈(2)','시계 보기와 규칙 찾기','덧셈과 뺄셈(3)'] },
+    2: { 1: ['세 자리 수','여러 가지 도형','덧셈과 뺄셈','길이 재기','분류하기','곱셈'], 2: ['네 자리 수','곱셈구구','길이 재기','시각과 시간','표와 그래프','규칙 찾기'] },
+    3: { 1: ['덧셈과 뺄셈','평면도형','나눗셈','곱셈','길이와 시간','분수와 소수'], 2: ['곱셈','나눗셈','원','분수','들이와 무게','자료의 정리'] },
+    4: { 1: ['큰 수','각도','곱셈과 나눗셈','평면도형의 이동','막대그래프','규칙 찾기'], 2: ['분수의 덧셈과 뺄셈','삼각형','소수의 덧셈과 뺄셈','사각형','꺾은선그래프','다각형'] },
+    5: { 1: ['자연수의 혼합 계산','약수와 배수','규칙과 대응','약분과 통분','분수의 덧셈과 뺄셈','다각형의 둘레와 넓이'], 2: ['수의 범위와 어림하기','분수의 곱셈','합동과 대칭','소수의 곱셈','직육면체','평균과 가능성'] },
+    6: { 1: ['분수의 나눗셈','각기둥과 각뿔','소수의 나눗셈','비와 비율','여러 가지 그래프','직육면체의 부피와 겉넓이'], 2: ['분수의 나눗셈','소수의 나눗셈','공간과 입체','비례식과 비례배분','원의 넓이','원기둥, 원뿔, 구'] }
+  },
+  '중등': {
+    1: { 1: ['수와 연산','문자와 식','좌표평면과 그래프'], 2: ['기하','자료와 가능성'] },
+    2: { 1: ['유리수와 순환소수','문자와 식','함수'], 2: ['기하','자료와 가능성'] },
+    3: { 1: ['제곱근과 실수','문자와 식','함수'], 2: ['기하','자료와 가능성'] }
+  },
+  '고등': {
+    '1학년': { '공통수학1': ['다항식','방정식과 부등식','경우의 수','행렬'], '공통수학2': ['도형의 방정식','집합과 명제','함수와 그래프'] },
+    '2-3학년': { '대수': ['지수함수와 로그함수','삼각함수','수열'], '미적분Ⅰ': ['함수의 극한과 연속','미분','적분'], '미적분Ⅱ': ['수열의 극한','여러 가지 함수의 미분','미분법','적분법'], '기하': ['이차곡선','벡터','공간도형'], '확률과 통계': ['경우의 수','확률','통계'] }
+  }
+};
 const QB_DIFF_LABEL = { 1:'매우쉬움', 2:'쉬움', 3:'보통', 4:'어려움', 5:'매우어려움' };
 const QB_DIFF_COLOR = { 1:'var(--green)', 2:'#3ecf8e', 3:'var(--accent)', 4:'var(--yellow)', 5:'var(--red)' };
 let _qbSearchTimer = null;
@@ -20486,13 +20482,7 @@ function qbUpdateGradeOptions() {
   const sel = document.getElementById('qbFltGrade');
   if (!sel) return;
   sel.innerHTML = '<option value="">전체</option>';
-  (QB_GRADES[level] || []).forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g + '학년'; sel.appendChild(o); });
-  // 영역도 업데이트
-  const areaSel = document.getElementById('qbFltArea');
-  if (areaSel) {
-    areaSel.innerHTML = '<option value="">전체</option>';
-    (QB_AREAS[level] || []).forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSel.appendChild(o); });
-  }
+  (QB_GRADES[level] || []).forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = (level === '고등') ? g : g + '학년'; sel.appendChild(o); });
 }
 function qbSearchDebounce() {
   clearTimeout(_qbSearchTimer);
@@ -20507,16 +20497,14 @@ async function loadQuestionBankView() {
   const level    = document.getElementById('qbFltLevel')?.value;
   const grade    = document.getElementById('qbFltGrade')?.value;
   const semester = document.getElementById('qbFltSemester')?.value;
-  const area     = document.getElementById('qbFltArea')?.value;
   const type     = document.getElementById('qbFltType')?.value;
   const diff     = document.getElementById('qbFltDiff')?.value;
   const keyword  = document.getElementById('qbFltKeyword')?.value?.trim();
 
-  let q = sbClient.from('questions').select('id,title,content,answer,school_level,grade,semester,area,unit,sub_unit,question_type,difficulty,uploader_id,created_at').eq('status','approved');
+  let q = sbClient.from('questions').select('id,title,content,answer,school_level,grade,semester,subject_type,area,unit,sub_unit,question_type,difficulty,uploader_id,created_at').eq('status','approved');
   if (level)    q = q.eq('school_level', level);
-  if (grade)    q = q.eq('grade', parseInt(grade));
-  if (semester) q = q.eq('semester', parseInt(semester));
-  if (area)     q = q.eq('area', area);
+  if (grade)    q = q.eq('grade', grade);
+  if (semester) q = q.eq('semester', semester);
   if (type)     q = q.eq('question_type', type);
   if (diff)     q = q.eq('difficulty', parseInt(diff));
   if (keyword)  q = q.or(`content.ilike.%${keyword}%,title.ilike.%${keyword}%,unit.ilike.%${keyword}%`);
@@ -20541,8 +20529,7 @@ function qbRenderCard(q, canAdd) {
   return `<div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
     <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(79,142,247,0.1);color:var(--accent);border:1px solid rgba(79,142,247,0.2)">${q.question_type}</span>
-      ${q.school_level ? `<span style="font-size:12px;color:var(--text3)">${q.school_level} ${q.grade ? q.grade+'학년' : ''} ${q.semester ? q.semester+'학기' : ''}</span>` : ''}
-      ${q.area ? `<span style="font-size:12px;color:var(--text2);font-weight:600">${q.area}</span>` : ''}
+      ${q.school_level ? `<span style="font-size:12px;color:var(--text3)">${q.school_level} ${q.grade ? (q.school_level === '고등' ? q.grade : q.grade + '학년') : ''} ${q.subject_type ? q.subject_type : (q.semester ? q.semester + '학기' : '')}</span>` : ''}
       ${q.unit ? `<span style="font-size:12px;color:var(--text3)">${q.unit}${q.sub_unit ? ' · '+q.sub_unit : ''}</span>` : ''}
       <span style="margin-left:auto;font-size:12px;font-weight:700;color:${diffColor}">${stars}</span>
     </div>
@@ -20583,7 +20570,7 @@ function qbAddToExam(qid, qtitle) {
 // ── 문제 등록 뷰 초기화 ──
 function loadQuestionUploadView() {
   switchQuTab('A');
-  quUpdateGradeOptions();
+  quOnLevelChange();
   selectQuDiff(3);
   quUpdatePreview();
   // 저장된 API Key 를 Tab B 입력창에 반영
@@ -20630,18 +20617,57 @@ function switchQuTab(tab) {
   if (tab === 'B') _updateGeminiStatus();
 }
 
-function quUpdateGradeOptions() {
+function quOnLevelChange() {
   const level = document.getElementById('quLevel')?.value;
   const gradeSel = document.getElementById('quGrade');
-  const areaSel  = document.getElementById('quArea');
-  if (gradeSel) {
-    gradeSel.innerHTML = '<option value="">선택</option>';
-    (QB_GRADES[level] || []).forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g + '학년'; gradeSel.appendChild(o); });
+  const semSel = document.getElementById('quSemester');
+  const unitSel = document.getElementById('quUnit');
+  const semLabel = document.getElementById('quSemesterLabel');
+  gradeSel.innerHTML = '<option value="">선택</option>';
+  semSel.innerHTML = '<option value="">선택</option>';
+  unitSel.innerHTML = '<option value="">선택</option>';
+  if (!level) return;
+  (QB_GRADES[level] || []).forEach(g => {
+    const o = document.createElement('option');
+    o.value = g;
+    o.textContent = (level === '고등') ? g : g + '학년';
+    gradeSel.appendChild(o);
+  });
+  semLabel.textContent = (level === '고등') ? '과목' : '학기';
+}
+
+function quOnGradeChange() {
+  const level = document.getElementById('quLevel')?.value;
+  const grade = document.getElementById('quGrade')?.value;
+  const semSel = document.getElementById('quSemester');
+  const unitSel = document.getElementById('quUnit');
+  semSel.innerHTML = '<option value="">선택</option>';
+  unitSel.innerHTML = '<option value="">선택</option>';
+  if (!level || !grade) return;
+  if (level === '고등') {
+    const subjects = Object.keys(CURRICULUM_2022['고등'][grade] || {});
+    subjects.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; semSel.appendChild(o); });
+  } else {
+    [1, 2].forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s + '학기'; semSel.appendChild(o); });
   }
-  if (areaSel) {
-    areaSel.innerHTML = '<option value="">선택</option>';
-    (QB_AREAS[level] || []).forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSel.appendChild(o); });
+}
+
+function quOnSemesterChange() {
+  const level = document.getElementById('quLevel')?.value;
+  const grade = document.getElementById('quGrade')?.value;
+  const sem = document.getElementById('quSemester')?.value;
+  const unitSel = document.getElementById('quUnit');
+  unitSel.innerHTML = '<option value="">선택</option>';
+  if (!level || !grade || !sem) return;
+  let units = [];
+  if (level === '고등') {
+    units = CURRICULUM_2022['고등']?.[grade]?.[sem] || [];
+  } else {
+    const g = parseInt(grade);
+    const s = parseInt(sem);
+    units = CURRICULUM_2022[level]?.[g]?.[s] || [];
   }
+  units.forEach(u => { const o = document.createElement('option'); o.value = u; o.textContent = u; unitSel.appendChild(o); });
 }
 
 function selectQuDiff(val) {
@@ -20704,10 +20730,9 @@ async function quAutoTag() {
     const match = text.match(/\{[\s\S]*?\}/);
     if (!match) throw new Error('파싱 실패');
     const tag = JSON.parse(match[0]);
-    if (tag.school_level) document.getElementById('quLevel').value = tag.school_level, quUpdateGradeOptions();
+    if (tag.school_level) document.getElementById('quLevel').value = tag.school_level, quOnLevelChange();
     if (tag.grade)    { setTimeout(() => { if(document.getElementById('quGrade')) document.getElementById('quGrade').value = tag.grade; }, 50); }
     if (tag.semester) document.getElementById('quSemester').value = tag.semester;
-    if (tag.area)     { setTimeout(() => { if(document.getElementById('quArea')) document.getElementById('quArea').value = tag.area; }, 50); }
     if (tag.unit)     document.getElementById('quUnit').value = tag.unit;
     if (tag.sub_unit) document.getElementById('quSubUnit').value = tag.sub_unit;
     if (tag.type)     document.getElementById('quType').value = tag.type;
@@ -20726,9 +20751,24 @@ async function saveQuestionManual() {
   const content = document.getElementById('quContent')?.value?.trim();
   const level   = document.getElementById('quLevel')?.value;
   const grade   = document.getElementById('quGrade')?.value;
+  const semOrSubj = document.getElementById('quSemester')?.value;
+  const unit    = document.getElementById('quUnit')?.value;
   const type    = document.getElementById('quType')?.value;
+
+  // 검증
   if (!content) { showToast('문제 본문을 입력하세요', '⚠️'); return; }
   if (!level)   { showToast('학교급을 선택하세요', '⚠️'); return; }
+  if (!grade)   { showToast('학년을 선택하세요', '⚠️'); return; }
+  if (!semOrSubj) { showToast(level === '고등' ? '과목을 선택하세요' : '학기를 선택하세요', '⚠️'); return; }
+  if (!unit)    { showToast('단원을 선택하세요', '⚠️'); return; }
+
+  // 학교급별 분기
+  let semester = null, subject_type = null;
+  if (level === '고등') {
+    subject_type = semOrSubj;
+  } else {
+    semester = semOrSubj;
+  }
 
   const payload = {
     title:        document.getElementById('quTitle')?.value?.trim() || null,
@@ -20736,11 +20776,12 @@ async function saveQuestionManual() {
     answer:       document.getElementById('quAnswer')?.value?.trim() || null,
     solution:     document.getElementById('quSolution')?.value?.trim() || null,
     school_level: level,
-    grade:        grade ? parseInt(grade) : null,
-    semester:     document.getElementById('quSemester')?.value ? parseInt(document.getElementById('quSemester').value) : null,
-    area:         document.getElementById('quArea')?.value || null,
-    unit:          document.getElementById('quUnit')?.value?.trim() || null,
-    sub_unit:      document.getElementById('quSubUnit')?.value?.trim() || null,
+    grade:        grade,
+    semester:     semester,
+    subject_type: subject_type,
+    area:         null,
+    unit:         unit,
+    sub_unit:     document.getElementById('quSubUnit')?.value?.trim() || null,
     question_type: type,
     difficulty:    _quSelectedDiff,
     status:       'pending',
@@ -22880,7 +22921,6 @@ function aqRenderCard(q, status) {
           <option value="1" ${q.semester===1?'selected':''}>1학기</option>
           <option value="2" ${q.semester===2?'selected':''}>2학기</option>
         </select>
-        <input id="aqArea-${q.id}" type="text" placeholder="영역" value="${q.area||''}" style="width:110px;font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
         <input id="aqUnit-${q.id}" type="text" placeholder="단원" value="${q.unit||''}" style="width:110px;font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
         <select id="aqDiff-${q.id}" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
           ${[1,2,3,4,5].map(d => `<option value="${d}" ${q.difficulty===d?'selected':''}>${'★'.repeat(d)} ${QB_DIFF_LABEL[d]}</option>`).join('')}
@@ -22922,11 +22962,10 @@ async function aqSaveTagging(qid) {
   if (!sbClient) return;
   const payload = {
     school_level: document.getElementById('aqLevel-' + qid)?.value || null,
-    grade:        parseInt(document.getElementById('aqGrade-' + qid)?.value) || null,
-    semester:     parseInt(document.getElementById('aqSem-' + qid)?.value)   || null,
-    area:         document.getElementById('aqArea-' + qid)?.value?.trim()    || null,
-    unit:         document.getElementById('aqUnit-' + qid)?.value?.trim()    || null,
-    difficulty:   parseInt(document.getElementById('aqDiff-' + qid)?.value)  || 3
+    grade:        document.getElementById('aqGrade-' + qid)?.value || null,
+    semester:     document.getElementById('aqSem-' + qid)?.value || null,
+    unit:         document.getElementById('aqUnit-' + qid)?.value?.trim() || null,
+    difficulty:   parseInt(document.getElementById('aqDiff-' + qid)?.value) || 3
   };
   const { error } = await sbClient.from('questions').update(payload).eq('id', qid);
   if (error) { showToast('저장 실패: ' + error.message, '❌'); return; }
