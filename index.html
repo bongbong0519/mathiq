@@ -23673,11 +23673,26 @@ async function submitMaterialShare() {
   }
 
   try {
-    const shares = studentIds.map(studentId => ({
-      material_id: materialId,
-      student_id: studentId,
-      shared_by: currentUser.id
-    }));
+    // 박제용 학생 정보 일괄 조회
+    const { data: students } = await sbClient.from('students')
+      .select('id, name, grade, school').in('id', studentIds);
+    if (!students || students.length < studentIds.length) {
+      alert('일부 학생 정보 조회에 실패했습니다. 다시 시도해주세요.');
+      return;
+    }
+    const studentMap = new Map(students.map(s => [s.id, s]));
+
+    const shares = studentIds.map(studentId => {
+      const stu = studentMap.get(studentId);
+      return {
+        material_id: materialId,
+        student_id: studentId,
+        shared_by: currentUser.id,
+        student_name_snapshot: stu.name,
+        student_grade_snapshot: stu.grade || null,
+        student_school_snapshot: stu.school || null
+      };
+    });
 
     const { error } = await sbClient.from('material_shares').insert(shares);
     if (error) throw error;
