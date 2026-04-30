@@ -2271,10 +2271,6 @@
             oninput="onOrgSearchInput(this.value)">
           <div id="orgDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:999;max-height:200px;overflow-y:auto"></div>
         </div>
-        <div id="orgSelectedBadge" style="display:none;margin-top:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;display:none;align-items:center;justify-content:space-between;font-size:13px">
-          <span id="orgSelectedName" style="font-weight:600;color:var(--text)"></span>
-          <button type="button" onclick="clearOrgSelection()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 2px;line-height:1">✕</button>
-        </div>
         <div id="orgNoResult" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);line-height:1.6">
           검색된 기관이 없습니다.<br>
           <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="closeModal('orgApplyModal');document.getElementById('authOverlay').style.display='none';openOrgApplyModal()">기관이 없으신가요? 기관 등록 신청하기 →</span>
@@ -7653,12 +7649,17 @@ function onOrgSearchInput(value) {
   clearTimeout(orgSearchTimer);
   const dropdown = document.getElementById('orgDropdown');
   const noResult = document.getElementById('orgNoResult');
-  if (selectedOrgId) return; // 이미 선택된 상태면 무시
+  // 입력값이 선택된 기관명과 다르면 선택 해제
+  if (selectedOrgId && value !== selectedOrgName) {
+    selectedOrgId = null;
+    selectedOrgName = '';
+  }
   if (!value.trim()) {
     dropdown.style.display = 'none';
     noResult.style.display = 'none';
     return;
   }
+  if (selectedOrgId) return; // 선택 완료 상태면 검색 안 함
   orgSearchTimer = setTimeout(() => searchOrgs(value.trim()), 300);
 }
 
@@ -7707,16 +7708,12 @@ function selectOrg(id, name) {
   document.getElementById('orgSearchInput').value = name;
   document.getElementById('orgDropdown').style.display = 'none';
   document.getElementById('orgNoResult').style.display = 'none';
-  const badge = document.getElementById('orgSelectedBadge');
-  document.getElementById('orgSelectedName').textContent = name;
-  badge.style.display = 'flex';
 }
 
 function clearOrgSelection() {
   selectedOrgId = null;
   selectedOrgName = '';
-  const badge = document.getElementById('orgSelectedBadge');
-  if (badge) badge.style.display = 'none';
+  document.getElementById('orgSearchInput').value = '';
 }
 
 // ── 회원가입 ──
