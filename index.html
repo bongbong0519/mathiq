@@ -23617,9 +23617,10 @@ async function previewMaterial(materialId) {
     }
 
     // 비공개 버킷이므로 signed URL 생성 (1시간 유효)
+    // download: false → Content-Disposition: inline 강제 (미리보기)
     const { data, error } = await sbClient.storage
       .from('class-materials')
-      .createSignedUrl(material.file_url, 3600);
+      .createSignedUrl(material.file_url, 3600, { download: false });
 
     if (error) throw error;
     window.open(data.signedUrl, '_blank');
@@ -23847,9 +23848,10 @@ async function previewStudentMaterial(shareId) {
     await markMaterialViewed(shareId);
 
     // 비공개 버킷이므로 signed URL 생성
+    // download: false → Content-Disposition: inline 강제 (미리보기)
     const { data, error } = await sbClient.storage
       .from('class-materials')
-      .createSignedUrl(material.file_url, 3600);
+      .createSignedUrl(material.file_url, 3600, { download: false });
 
     if (error) throw error;
     window.open(data.signedUrl, '_blank');
