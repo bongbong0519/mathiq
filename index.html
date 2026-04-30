@@ -6157,6 +6157,14 @@
           </optgroup>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label">학부모 전화 (필수)</label>
+        <input type="tel" class="form-input" id="stu-parent-phone" placeholder="010-0000-0000" oninput="autoHyphenPhone(this)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">학생 전화 (선택)</label>
+        <input type="tel" class="form-input" id="stu-student-phone" placeholder="010-0000-0000" oninput="autoHyphenPhone(this)">
+      </div>
       <div id="stu-error" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px"></div>
       <button class="btn btn-primary w-full" onclick="submitAddStudent()">추가하기</button>
     </div>
@@ -6189,6 +6197,14 @@
           <option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option>
           <option value="고1">고1</option><option value="고2">고2</option><option value="고3">고3</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">학부모 전화 (필수)</label>
+        <input type="tel" class="form-input" id="edit-stu-parent-phone" placeholder="010-0000-0000" oninput="autoHyphenPhone(this)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">학생 전화 (선택)</label>
+        <input type="tel" class="form-input" id="edit-stu-student-phone" placeholder="010-0000-0000" oninput="autoHyphenPhone(this)">
       </div>
       <!-- 결제 정보 섹션 -->
       <div style="margin-top:16px;padding:16px;background:var(--bg3);border-radius:var(--radius-sm)">
@@ -10573,6 +10589,8 @@ function openAddStudentModal() {
   document.getElementById('stu-school-selected').value = '';
   document.getElementById('stu-school-dropdown').style.display = 'none';
   document.getElementById('stu-grade').value = '중1';
+  document.getElementById('stu-parent-phone').value = '';
+  document.getElementById('stu-student-phone').value = '';
   document.getElementById('stu-error').style.display = 'none';
 }
 
@@ -10697,11 +10715,16 @@ async function submitAddStudent() {
   const schoolInput = document.getElementById('stu-school').value.trim();
   const schoolSelected = document.getElementById('stu-school-selected').value.trim();
   const grade = document.getElementById('stu-grade').value;
+  const parentPhoneRaw = document.getElementById('stu-parent-phone').value.replace(/\D/g, '');
+  const studentPhoneRaw = document.getElementById('stu-student-phone').value.replace(/\D/g, '');
   const errEl = document.getElementById('stu-error');
 
   if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.style.display = 'block'; return; }
   if (!email) { errEl.textContent = '이메일을 입력해주세요'; errEl.style.display = 'block'; return; }
   if (!password || password.length < 8) { errEl.textContent = '비밀번호는 8자 이상이어야 합니다'; errEl.style.display = 'block'; return; }
+  if (!parentPhoneRaw) { errEl.textContent = '학부모 전화번호를 입력해주세요'; errEl.style.display = 'block'; return; }
+  if (parentPhoneRaw.length !== 11) { errEl.textContent = '학부모 전화번호는 11자리여야 합니다'; errEl.style.display = 'block'; return; }
+  if (studentPhoneRaw && studentPhoneRaw.length !== 11) { errEl.textContent = '학생 전화번호는 11자리여야 합니다'; errEl.style.display = 'block'; return; }
 
   // 학교 검증: 입력은 있는데 선택 안 한 경우
   if (schoolInput && !schoolSelected) {
@@ -10712,6 +10735,8 @@ async function submitAddStudent() {
 
   // 저장할 학교명 (선택된 NEIS 표준명 또는 빈값)
   const school = schoolSelected || '';
+  const parent_phone = parentPhoneRaw;
+  const student_phone = studentPhoneRaw || null;
 
   errEl.style.display = 'none';
   const btn = document.querySelector('#addStudentModal .btn-primary');
@@ -10722,7 +10747,7 @@ async function submitAddStudent() {
     const res = await fetch('/api/create-student', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name, school, grade, teacher_id: currentUser.id })
+      body: JSON.stringify({ email, password, name, school, grade, teacher_id: currentUser.id, parent_phone, student_phone })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '계정 생성 실패');
@@ -10770,6 +10795,8 @@ async function openStudentEditModal(studentId) {
   document.getElementById('edit-stu-school').value = student.school || '';
   document.getElementById('edit-stu-grade').value = student.grade || '';
   document.getElementById('edit-stu-tuition').value = student.monthly_tuition || '';
+  document.getElementById('edit-stu-parent-phone').value = formatPhone(student.parent_phone);
+  document.getElementById('edit-stu-student-phone').value = formatPhone(student.student_phone);
 
   // 결제 설정 로드
   document.getElementById('edit-stu-payment-cycle').value = student.payment_cycle || '';
@@ -10823,9 +10850,13 @@ async function submitEditStudent() {
   const notifyDday = document.getElementById('edit-stu-notify-dday').checked;
   const notifyD1 = document.getElementById('edit-stu-notify-d1').checked;
 
+  const parentPhone = document.getElementById('edit-stu-parent-phone').value.replace(/\D/g, '');
+  const studentPhone = document.getElementById('edit-stu-student-phone').value.replace(/\D/g, '');
+
   const errEl = document.getElementById('edit-stu-error');
 
   if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.style.display = 'block'; return; }
+  if (!parentPhone) { errEl.textContent = '학부모 연락처를 입력해주세요'; errEl.style.display = 'block'; return; }
   if (paymentCycle === 'monthly' && !paymentDay) {
     errEl.textContent = '매월 결제일을 입력해주세요'; errEl.style.display = 'block'; return;
   }
@@ -10840,7 +10871,9 @@ async function submitEditStudent() {
     payment_start_date: paymentStartDate,
     payment_notify_d3: notifyD3,
     payment_notify_dday: notifyDday,
-    payment_notify_d1_overdue: notifyD1
+    payment_notify_d1_overdue: notifyD1,
+    parent_phone: parentPhone || null,
+    student_phone: studentPhone || null
   }).eq('id', id);
 
   if (error) { errEl.textContent = '저장 실패: ' + error.message; errEl.style.display = 'block'; return; }
@@ -18679,6 +18712,21 @@ async function loadSmsHistory() {
 function maskPhone(phone) {
   if (!phone || phone.length < 4) return phone;
   return phone.slice(0, -4) + '****';
+}
+
+function formatPhone(num) {
+  if (!num) return '';
+  const digits = num.replace(/\D/g, '');
+  if (digits.length === 11) return digits.slice(0, 3) + '-' + digits.slice(3, 7) + '-' + digits.slice(7);
+  return num;
+}
+
+function autoHyphenPhone(input) {
+  let val = input.value.replace(/\D/g, '');
+  if (val.length > 11) val = val.slice(0, 11);
+  if (val.length > 7) val = val.slice(0, 3) + '-' + val.slice(3, 7) + '-' + val.slice(7);
+  else if (val.length > 3) val = val.slice(0, 3) + '-' + val.slice(3);
+  input.value = val;
 }
 
 function escHtml(str) {

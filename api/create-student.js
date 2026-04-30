@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { email, password, name, school, grade, teacher_id } = req.body;
+  const { email, password, name, school, grade, teacher_id, parent_phone, student_phone } = req.body;
 
   if (!email || !password || !name || !teacher_id) {
     return res.status(400).json({ error: '필수 항목이 누락되었습니다' });
@@ -69,6 +69,8 @@ export default async function handler(req, res) {
       email,
       school: school || null,
       grade: grade || null,
+      parent_phone: parent_phone || null,
+      student_phone: student_phone || null,
     });
 
     return res.status(200).json({ success: true, userId });
