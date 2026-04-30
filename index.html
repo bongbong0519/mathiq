@@ -10738,6 +10738,17 @@ async function submitAddStudent() {
   const parent_phone = parentPhoneRaw;
   const student_phone = studentPhoneRaw || null;
 
+  // 전화번호 경고 검증
+  if (student_phone) {
+    const { data: dup } = await sbClient.from('students').select('id').eq('student_phone', student_phone);
+    if (dup && dup.length > 0) {
+      if (!confirm('이 학생 전화번호는 이미 다른 학생이 사용 중입니다. 그래도 저장하시겠어요?')) return;
+    }
+    if (parent_phone === student_phone) {
+      if (!confirm('학부모 전화와 학생 전화가 같습니다. 맞으신가요?')) return;
+    }
+  }
+
   errEl.style.display = 'none';
   const btn = document.querySelector('#addStudentModal .btn-primary');
   btn.textContent = '생성 중...'; btn.disabled = true;
@@ -10862,6 +10873,17 @@ async function submitEditStudent() {
   }
   if ((paymentCycle === 'biweekly' || paymentCycle === 'custom') && !paymentStartDate) {
     errEl.textContent = '첫 결제일을 선택해주세요'; errEl.style.display = 'block'; return;
+  }
+
+  // 전화번호 경고 검증
+  if (studentPhone) {
+    const { data: dup } = await sbClient.from('students').select('id').eq('student_phone', studentPhone).neq('id', id);
+    if (dup && dup.length > 0) {
+      if (!confirm('이 학생 전화번호는 이미 다른 학생이 사용 중입니다. 그래도 저장하시겠어요?')) return;
+    }
+    if (parentPhone === studentPhone) {
+      if (!confirm('학부모 전화와 학생 전화가 같습니다. 맞으신가요?')) return;
+    }
   }
 
   const { error } = await sbClient.from('students').update({
