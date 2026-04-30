@@ -11579,8 +11579,17 @@ async function startExam(examId, title, timeLimit, sessionId) {
     session = data;
   }
   if (!session) {
+    // 박제용 학생 정보 조회
+    const { data: stu, error: stuErr } = await sbClient.from('students')
+      .select('name, grade, school, teacher_id').eq('id', examTaking.studentId).single();
+    if (stuErr || !stu) { alert('학생 정보를 찾을 수 없습니다'); return; }
+
     const { data, error: sErr } = await sbClient.from('exam_sessions').insert({
-      exam_id: examId, student_id: examTaking.studentId, answers: {}
+      exam_id: examId, student_id: examTaking.studentId, answers: {},
+      student_name_snapshot: stu.name,
+      student_grade_snapshot: stu.grade || null,
+      student_school_snapshot: stu.school || null,
+      teacher_id_snapshot: stu.teacher_id || null
     }).select().maybeSingle();
     if (sErr) { showToast('시험 시작 실패: ' + sErr.message, '❌'); return; }
     session = data;
