@@ -6158,6 +6158,10 @@
         </select>
       </div>
       <div class="form-group">
+        <label class="form-label">학부모 이름 (선택)</label>
+        <input type="text" class="form-input" id="stu-parent-name" placeholder="홍길동">
+      </div>
+      <div class="form-group">
         <label class="form-label">학부모 전화 (필수)</label>
         <input type="tel" class="form-input" id="stu-parent-phone" placeholder="010-0000-0000" oninput="autoHyphenPhone(this)">
       </div>
@@ -6197,6 +6201,10 @@
           <option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option>
           <option value="고1">고1</option><option value="고2">고2</option><option value="고3">고3</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">학부모 이름 (선택)</label>
+        <input type="text" class="form-input" id="edit-stu-parent-name" placeholder="홍길동">
       </div>
       <div class="form-group">
         <label class="form-label">학부모 전화 (필수)</label>
@@ -10589,6 +10597,7 @@ function openAddStudentModal() {
   document.getElementById('stu-school-selected').value = '';
   document.getElementById('stu-school-dropdown').style.display = 'none';
   document.getElementById('stu-grade').value = '중1';
+  document.getElementById('stu-parent-name').value = '';
   document.getElementById('stu-parent-phone').value = '';
   document.getElementById('stu-student-phone').value = '';
   document.getElementById('stu-error').style.display = 'none';
@@ -10735,6 +10744,7 @@ async function submitAddStudent() {
 
   // 저장할 학교명 (선택된 NEIS 표준명 또는 빈값)
   const school = schoolSelected || '';
+  const parent_name = document.getElementById('stu-parent-name').value.trim() || null;
   const parent_phone = parentPhoneRaw;
   const student_phone = studentPhoneRaw || null;
 
@@ -10758,7 +10768,7 @@ async function submitAddStudent() {
     const res = await fetch('/api/create-student', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name, school, grade, teacher_id: currentUser.id, parent_phone, student_phone })
+      body: JSON.stringify({ email, password, name, school, grade, teacher_id: currentUser.id, parent_name, parent_phone, student_phone })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '계정 생성 실패');
@@ -10806,6 +10816,7 @@ async function openStudentEditModal(studentId) {
   document.getElementById('edit-stu-school').value = student.school || '';
   document.getElementById('edit-stu-grade').value = student.grade || '';
   document.getElementById('edit-stu-tuition').value = student.monthly_tuition || '';
+  document.getElementById('edit-stu-parent-name').value = student.parent_name || '';
   document.getElementById('edit-stu-parent-phone').value = formatPhone(student.parent_phone);
   document.getElementById('edit-stu-student-phone').value = formatPhone(student.student_phone);
 
@@ -10861,6 +10872,7 @@ async function submitEditStudent() {
   const notifyDday = document.getElementById('edit-stu-notify-dday').checked;
   const notifyD1 = document.getElementById('edit-stu-notify-d1').checked;
 
+  const parentName = document.getElementById('edit-stu-parent-name').value.trim() || null;
   const parentPhone = document.getElementById('edit-stu-parent-phone').value.replace(/\D/g, '');
   const studentPhone = document.getElementById('edit-stu-student-phone').value.replace(/\D/g, '');
 
@@ -10894,6 +10906,7 @@ async function submitEditStudent() {
     payment_notify_d3: notifyD3,
     payment_notify_dday: notifyDday,
     payment_notify_d1_overdue: notifyD1,
+    parent_name: parentName,
     parent_phone: parentPhone || null,
     student_phone: studentPhone || null
   }).eq('id', id);
