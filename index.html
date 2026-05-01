@@ -23493,12 +23493,13 @@ async function renderTeacherMaterialsList() {
     return;
   }
 
-  // 공유 현황 조회
+  // 공유 현황 조회 (회수되지 않은 것만)
   const materialIds = filtered.map(m => m.id);
   const { data: shares } = await sbClient
     .from('material_shares')
     .select('material_id, viewed_at')
-    .in('material_id', materialIds);
+    .in('material_id', materialIds)
+    .is('revoked_at', null);
 
   const shareStats = {};
   (shares || []).forEach(s => {
@@ -23721,21 +23722,24 @@ async function openMaterialShareModal(materialId, materialTitle) {
     return;
   }
 
-  // 이미 공유된 학생 확인
+  // 이미 공유된 학생 확인 (회수되지 않은 것만)
   const { data: existingShares } = await sbClient
     .from('material_shares')
-    .select('student_id')
-    .eq('material_id', materialId);
+    .select('id, student_id')
+    .eq('material_id', materialId)
+    .is('revoked_at', null);
 
-  const sharedSet = new Set((existingShares || []).map(s => s.student_id));
+  const sharedMap = new Map((existingShares || []).map(s => [s.student_id, s.id]));
 
   listWrap.innerHTML = students.map(s => {
-    const isShared = sharedSet.has(s.id);
+    const shareId = sharedMap.get(s.id);
+    const isShared = !!shareId;
     return `<label style="display:flex;align-items:center;gap:10px;padding:8px;cursor:pointer;border-radius:var(--radius-sm)" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
       <input type="checkbox" class="ms-student-checkbox" value="${s.id}" ${isShared ? 'checked disabled' : ''} onchange="updateShareSelectedCount()">
       <span style="flex:1">${s.name}</span>
       <span style="font-size:11px;color:var(--text3)">${s.grade || ''}</span>
-      ${isShared ? '<span style="font-size:10px;color:var(--green)">공유됨</span>' : ''}
+      ${isShared ? `<span style="font-size:10px;color:var(--green)">공유됨</span>
+        <button type="button" onclick="revokeMaterialShare('${shareId}', '${s.name.replace(/'/g, "\\'")}'); event.preventDefault();" style="font-size:10px;padding:2px 6px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:4px;cursor:pointer;margin-left:4px">회수</button>` : ''}
     </label>`;
   }).join('');
 
@@ -23802,6 +23806,34 @@ async function submitMaterialShare() {
 
   } catch (err) {
     showToast('공유 실패: ' + err.message, '❌');
+  }
+}
+
+// ── 자료 공유 회수 ──
+async function revokeMaterialShare(shareId, studentName) {
+  if (!sbClient || !currentUser) return;
+  if (!confirm(`${studentName} 학생에게 공유한 자료를 회수하시겠습니까?\n학생 화면에서 사라집니다.`)) return;
+
+  try {
+    const { error } = await sbClient
+      .from('material_shares')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('id', shareId)
+      .eq('shared_by', currentUser.id);
+
+    if (error) throw error;
+
+    showToast('자료 공유가 회수되었습니다', '✅');
+    // 공유 모달 목록 새로고침
+    const materialId = document.getElementById('ms-material-id')?.value;
+    const materialTitle = document.getElementById('ms-material-title')?.textContent || '';
+    if (materialId) {
+      openMaterialShareModal(materialId, materialTitle);
+    }
+    renderTeacherMaterialsList();
+
+  } catch (err) {
+    showToast('회수 실패: ' + err.message, '❌');
   }
 }
 
@@ -23928,7 +23960,7 @@ async function loadStudentMaterials() {
 
   const studentIds = studentRecords.map(s => s.id);
 
-  // 공유된 자료 조회
+  // 공유된 자료 조회 (회수되지 않은 것만)
   const { data: shares, error } = await sbClient
     .from('material_shares')
     .select(`
@@ -23936,6 +23968,7 @@ async function loadStudentMaterials() {
       material:class_materials(*)
     `)
     .in('student_id', studentIds)
+    .is('revoked_at', null)
     .order('shared_at', { ascending: false });
 
   if (error) {
