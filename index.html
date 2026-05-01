@@ -12961,10 +12961,11 @@ async function loadDirectorTeachers() {
   }
   const sLabel = { approved: '승인됨', pending: '대기중', rejected: '거절됨' };
   const sClass = { approved: 'approved', pending: 'pending', rejected: 'rejected' };
-  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
+  wrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>이름</th><th>이메일</th><th>연락처 공개</th><th>상태</th><th>관리</th></tr></thead><tbody>' +
     teachers.map(t => `<tr>
       <td class="font-bold">${t.name || '—'}</td>
       <td class="text-muted text-sm">${t.email || t.id.slice(0, 8) + '...'}</td>
+      <td><span style="font-size:12px;padding:3px 8px;border-radius:4px;${t.report_contact_visible ? 'background:rgba(62,207,142,0.1);color:var(--green)' : 'background:var(--bg3);color:var(--text3)'}">${t.report_contact_visible ? '공개' : '비공개'}</span></td>
       <td><span class="status-badge ${sClass[t.status] || ''}">${sLabel[t.status] || t.status}</span></td>
       <td>
         ${t.status === 'pending' ? `<button class="btn btn-green btn-sm" onclick="dirApproveTeacher('${t.id}')">승인</button> <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="dirRejectTeacher('${t.id}')">거절</button>` : ''}
@@ -15382,6 +15383,29 @@ async function loadProfileView() {
     </div>`;
   }
 
+  // 강사용: 연락처 공개 설정
+  if (role === 'teacher') {
+    const isVisible = profile.report_contact_visible || false;
+    html += `
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:18px">📋</span>
+        <span style="font-size:15px;font-weight:700;color:var(--text)">성적 리포트 설정</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;background:var(--bg3);border-radius:var(--radius-sm)">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--text)">내 연락처(이메일/전화) 공개</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">끄면 학생/학부모에게 이름만 표시됩니다</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:48px;height:26px;cursor:pointer">
+          <input type="checkbox" id="report-contact-toggle" ${isVisible ? 'checked' : ''} onchange="saveReportContactSetting(this.checked)" style="opacity:0;width:0;height:0">
+          <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${isVisible ? 'var(--accent)' : 'var(--border)'};border-radius:26px;transition:0.3s"></span>
+          <span style="position:absolute;content:'';height:20px;width:20px;left:${isVisible ? '24px' : '3px'};bottom:3px;background:#fff;border-radius:50%;transition:0.3s;box-shadow:0 2px 4px rgba(0,0,0,0.2)"></span>
+        </label>
+      </div>
+    </div>`;
+  }
+
   // 포인트 추가 복구 요청 섹션 (조건: auto_50 복구 후 30일 이내, 이의제기 미신청)
   const additionalRecoveryHtml = await checkAdditionalRecoveryEligibility();
   if (additionalRecoveryHtml) {
@@ -15440,6 +15464,20 @@ async function submitProfile() {
   Object.assign(currentProfile, updates);
   document.getElementById('userName').textContent = currentProfile.name || currentUser.email;
   document.getElementById('userAvatar').textContent = (currentProfile.name || '?')[0];
+}
+
+// ── 성적 리포트 연락처 공개 설정 ──
+async function saveReportContactSetting(visible) {
+  if (!sbClient || !currentUser) return;
+  const { error } = await sbClient.from('profiles')
+    .update({ report_contact_visible: visible })
+    .eq('id', currentUser.id);
+  if (error) {
+    showToast('설정 저장 실패: ' + error.message, '❌');
+    return;
+  }
+  currentProfile.report_contact_visible = visible;
+  showToast(visible ? '연락처가 공개됩니다' : '이름만 표시됩니다', '✅');
 }
 
 // ── 입금 정보 저장 ──
@@ -20496,6 +20534,17 @@ async function loadStudentView() {
 
   if (!student) return;
 
+  // 담당 선생님 정보 조회
+  let teacher = null;
+  if (student.teacher_id) {
+    const { data: teacherData } = await sbClient
+      .from('profiles')
+      .select('id, name, email, phone, report_contact_visible')
+      .eq('id', student.teacher_id)
+      .maybeSingle();
+    teacher = teacherData;
+  }
+
   // 성적 불러오기
   const { data: results } = await sbClient
     .from('exam_results')
@@ -20559,6 +20608,25 @@ async function loadStudentView() {
           <div style="font-size:24px;font-weight:800;font-family:'Space Mono',monospace">${recentScore != null ? recentScore+'점' : '—'}</div>
           <div style="font-size:12px;color:var(--text3);margin-top:4px">최근 점수</div>
         </div>
+      </div>
+
+      <!-- 내 강사 -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px">👨‍🏫 담당 선생님</div>
+        ${teacher
+          ? `<div style="display:flex;align-items:center;gap:16px">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800">${(teacher.name || '?')[0]}</div>
+              <div>
+                <div style="font-size:15px;font-weight:700;color:var(--text)">${teacher.name || '—'}</div>
+                ${teacher.report_contact_visible
+                  ? `<div style="font-size:13px;color:var(--text3);margin-top:4px">${teacher.email || ''}</div>
+                     <div style="font-size:13px;color:var(--text3)">${teacher.phone || ''}</div>`
+                  : ''
+                }
+              </div>
+            </div>`
+          : `<div style="text-align:center;padding:20px;color:var(--text3)">담당 선생님 정보가 없습니다</div>`
+        }
       </div>
 
       <!-- 선생님 코멘트 -->
