@@ -23924,8 +23924,10 @@ async function previewMaterial(materialId) {
 
     const response = await fetch(data.signedUrl);
     const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+    const blobUrl = URL.createObjectURL(pdfBlob);
     window.open(blobUrl, '_blank');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   } catch (err) {
     showToast('파일을 열 수 없습니다: ' + err.message, '❌');
   }
@@ -24166,8 +24168,10 @@ async function previewStudentMaterial(shareId) {
 
     const response = await fetch(data.signedUrl);
     const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+    const blobUrl = URL.createObjectURL(pdfBlob);
     window.open(blobUrl, '_blank');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   } catch (err) {
     showToast('파일을 열 수 없습니다: ' + err.message, '❌');
   }
