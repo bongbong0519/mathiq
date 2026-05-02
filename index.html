@@ -11011,6 +11011,23 @@ ${tossLine}
     return;
   }
 
+  // sms_history INSERT (I-19)
+  try {
+    const { error: smsError } = await sbClient.from('sms_history').insert({
+      sender_id: currentUser.id,
+      student_id: studentId,
+      recipient_phone: student.parent_phone,
+      message_type: 'billing',
+      message_content: smsBody,
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      student_name_snapshot: student.name
+    });
+    if (smsError) console.error('sms_history INSERT 실패 (billing):', smsError);
+  } catch (e) {
+    console.error('sms_history INSERT 예외 (billing):', e);
+  }
+
   showToast('청구 문자 발송됨 (시뮬레이션)', '💳');
 }
 
@@ -11084,6 +11101,23 @@ MathIQ 운영팀 드림`;
   if (error) {
     showToast('독촉 기록 저장 실패: ' + error.message, '❌');
     return;
+  }
+
+  // sms_history INSERT (I-19)
+  try {
+    const { error: smsError } = await sbClient.from('sms_history').insert({
+      sender_id: currentUser.id,
+      student_id: studentId,
+      recipient_phone: student.parent_phone,
+      message_type: 'reminder',
+      message_content: smsBody,
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      student_name_snapshot: student.name
+    });
+    if (smsError) console.error('sms_history INSERT 실패 (reminder):', smsError);
+  } catch (e) {
+    console.error('sms_history INSERT 예외 (reminder):', e);
   }
 
   showToast('MathIQ 독촉 문자 발송됨 (시뮬레이션)', '📢');
@@ -18725,8 +18759,14 @@ async function smsSendMessages() {
 
   if (!confirm(msg)) return;
 
-  // 선택된 유형들 JSON 문자열로
-  const typesJson = JSON.stringify([...smsState.selectedTypes]);
+  // message_type 표준화 (I-20)
+  const types = [...smsState.selectedTypes];
+  let messageType;
+  if (types.length === 1) {
+    messageType = 'parent_' + types[0];  // parent_grade, parent_attendance 등
+  } else {
+    messageType = 'parent_mixed';
+  }
 
   // DB에 저장
   const records = canSend.map(s => {
@@ -18735,7 +18775,7 @@ async function smsSendMessages() {
       sender_id: currentUser.id,
       student_id: s.id,
       recipient_phone: s.parent_phone,
-      message_type: typesJson,  // JSON 배열 문자열
+      message_type: messageType,
       message_content: finalContent,
       related_exam_id: smsState.selectedExamId || null,
       include_report_url: smsState.includeReportUrl && smsState.selectedTypes.has('grade'),
@@ -18785,15 +18825,17 @@ async function loadSmsHistory() {
   }
 
   const statusLabel = { pending: '🟡 예약됨', sent: '✅ 발송 완료', failed: '❌ 실패' };
-  const typeLabel = { grade: '📊 성적', attendance: '📋 출결', homework: '📚 숙제', custom: '✏️ 자유' };
+  const typeLabel = {
+    parent_grade: '📊 성적',
+    parent_attendance: '📋 출결',
+    parent_homework: '📚 숙제',
+    parent_custom: '✏️ 자유',
+    parent_mixed: '📑 복합',
+    billing: '💳 청구',
+    reminder: '📢 독촉'
+  };
 
   function parseTypes(mt) {
-    try {
-      const arr = JSON.parse(mt);
-      if (Array.isArray(arr)) {
-        return arr.map(t => typeLabel[t] || t).join(', ');
-      }
-    } catch (e) {}
     return typeLabel[mt] || mt;
   }
 
