@@ -1073,3 +1073,70 @@ const STAFF_TYPE_GUIDES = {
 - cleanup-v3 SQL 또는 migration-017-cascade-delete.sql 적용
 - ON DELETE CASCADE 일괄 적용 + delete_user_permanently RPC 함수
 - **베타 후 진행** (임시 정리로 베타 시작 가능)
+
+---
+
+## 2026-05-01 큰 결정
+
+### 방향 전환: 베타 → 정상 오픈
+- 베타(지인 10명 카톡) 취소
+- 정상 오픈 목표로 전환
+- 점검 순서: 강사 → 원장 → 학생 → 정상 오픈
+- 이유: 점검 작업 진행하면서 강사 점검 마무리되면 충분히 정상 오픈 가능 판단
+
+### C-1 외래키 처리 정책 (9개 테이블)
+
+#### 박제 (snapshot) 칼럼 도입 원칙
+- 학생 삭제 시 student_id를 NULL로(SET NULL), 학생 정보는 박제 칼럼에 시점 보존
+- 외래키 없이 uuid 값만 저장 (강사 ID 등) — 시점의 정보 보존 일관성
+- 박제 항목은 테이블 용도에 따라 다름
+
+#### 테이블별 정책
+| 테이블 | 외래키 정책 | 박제 항목 |
+|---|---|---|
+| billing_invoices | SET NULL | 학생이름, 학생전화, 학부모전화 |
+| accounting_income | SET NULL 유지 | (이미 student_name) |
+| exam_assignments | CASCADE 유지 | (단순 매핑, 박제 불필요) |
+| exam_results | SET NULL | 학생이름, 학년, 학교, 강사ID |
+| exam_sessions | SET NULL | 학생이름, 학년, 학교, 강사ID |
+| material_shares | SET NULL | 학생이름, 학년, 학교 |
+| payment_reminders | SET NULL | 학생이름, 학생전화, 학부모전화 |
+| sms_history | SET NULL | 학생이름 (recipient_phone, message_content는 기존 칼럼) |
+| teacher_comments | SET NULL | 학생이름, 학년 |
+
+#### 박제 의도
+- 학원 자산 보호 (재무 기록, 강사 코멘트, 학습 데이터)
+- 강사 포트폴리오 자산화 (강사별 학생 시험 결과 추적)
+- 분쟁 대비 (재무, SMS 발송 이력)
+- 통계/분석 가능성 보존 (졸업생 데이터)
+
+### 전화번호 입력 형식 정책
+- 학부모 전화: 필수
+- 학생 전화: 선택 (저학년 본인 폰 없는 경우 대비)
+- 입력 시: 자동 하이픈 (010-XXXX-XXXX)
+- DB 저장: 숫자만 (01036412050)
+- 표시: formatPhone() 공통 함수로 010-XXXX-XXXX 변환
+
+### 청구서/독촉 발송 검증 정책
+- 학부모 전화 NULL인 학생은 청구서/독촉 발송 막음
+- alert: "학부모 전화번호가 등록되지 않은 학생입니다. 학생 정보를 수정해서 학부모 전화를 입력해주세요"
+- 1차 방어선: 학생 추가/수정 폼에서 학부모 전화 필수
+- 2차 방어선: 청구서/독촉 발송 함수 내부 검증 (DB 직접 수정 등 비정상 경로 대비)
+
+### 박제 일관성 정책
+- 박제 정보는 그 시점의 학생 정보를 보존
+- 학생 학년/학교가 NULL이어도 박제 NULL 그대로 저장 OK
+- 학생 정보 조회 실패 시 INSERT 자체 중단 (alert + return)
+- 일괄 작업 (예: 자료 일괄 공유) 시 학생 한 명이라도 조회 실패하면 전체 중단
+
+---
+
+## 2026-05-02
+
+### 개인 비서 에이전트 v1 구축
+- Vercel Cron 3시간 주기 (KST 9/12/15/18/21시)
+- 텔레그램 발송
+- 데이터 소스: 광주 날씨 (OpenWeatherMap) + 네이버 뉴스 (입시·교육)
+- Claude Opus 4.7로 포맷 정리
+- 모듈화 구조: `lib/assistant/collectors/` 에 파일 추가 시 확장 용이
+- v2 추가 예정: Google Calendar, GitHub 커밋, 옵시디언 결정사항
