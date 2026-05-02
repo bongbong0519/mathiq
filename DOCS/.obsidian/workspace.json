@@ -200,6 +200,7 @@
   },
   "active": "84c9dc1432b82b9f",
   "lastOpenFiles": [
+    "_pending/migration-022-material-shares-drop-viewed-at.sql",
     "_README.md",
     "decisions.md",
     "_현재진행중.md",
@@ -234,7 +235,6 @@
     "sessions/next-session-context-2026-04-27.md",
     "00-FEATURES.md",
     "01-student-report.md",
-    "02-parent-sms.md",
     "sessions/permission-mindmap (1).canvas",
     "sessions",
     "daily"
