@@ -9,6 +9,8 @@
   <meta property="og:description" content="평가원·교육부 공식 자료 + 현역 교사 검수">
   <meta property="og:type" content="website">
   <link rel="icon" href="/favicon.ico">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F9FAFB; color: #111827; line-height: 1.6; }
@@ -74,13 +76,8 @@
     <p>© 2026 MathIQ · <a href="/">홈으로</a></p>
   </footer>
 
-  <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-    const SUPABASE_URL = 'https://fexrfqywzusoowgjvbng.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZleHJmcXl3enVzb293Z2p2Ym5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5ODE1NDksImV4cCI6MjA2MDU1NzU0OX0.GqfPdOC40T9jE9VXVXiMYJDCmIRfU6zNWDOY-dcw6bM';
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <script>
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentFilter = 'all';
     let offset = 0;
