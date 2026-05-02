@@ -23915,14 +23915,17 @@ async function previewMaterial(materialId) {
       return;
     }
 
-    // 비공개 버킷이므로 signed URL 생성 (1시간 유효)
-    // download: false → Content-Disposition: inline 강제 (미리보기)
+    // signed URL 생성 후 blob으로 변환 (inline 보장)
     const { data, error } = await sbClient.storage
       .from('class-materials')
-      .createSignedUrl(material.file_url, 3600, { download: false });
+      .createSignedUrl(material.file_url, 600);
 
     if (error) throw error;
-    window.open(data.signedUrl, '_blank');
+
+    const response = await fetch(data.signedUrl);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+    window.open(blobUrl, '_blank');
   } catch (err) {
     showToast('파일을 열 수 없습니다: ' + err.message, '❌');
   }
@@ -24154,14 +24157,17 @@ async function previewStudentMaterial(shareId) {
     // 조회 기록
     await markMaterialViewed(shareId);
 
-    // 비공개 버킷이므로 signed URL 생성
-    // download: false → Content-Disposition: inline 강제 (미리보기)
+    // signed URL 생성 후 blob으로 변환 (inline 보장)
     const { data, error } = await sbClient.storage
       .from('class-materials')
-      .createSignedUrl(material.file_url, 3600, { download: false });
+      .createSignedUrl(material.file_url, 600);
 
     if (error) throw error;
-    window.open(data.signedUrl, '_blank');
+
+    const response = await fetch(data.signedUrl);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+    window.open(blobUrl, '_blank');
   } catch (err) {
     showToast('파일을 열 수 없습니다: ' + err.message, '❌');
   }
