@@ -1140,3 +1140,17 @@ const STAFF_TYPE_GUIDES = {
 - Claude Opus 4.7로 포맷 정리
 - 모듈화 구조: `lib/assistant/collectors/` 에 파일 추가 시 확장 용이
 - v2 추가 예정: Google Calendar, GitHub 커밋, 옵시디언 결정사항
+
+---
+
+## 2026-05-03
+
+### 입시 인사이트 시스템 v2 구축
+- 키워드 6개 → 39개 확장 (정부·교육청·대학·특목고·입시데이터)
+- AI 자동 분류 (출처·카테고리·학년·과목·태그) — Haiku 사용
+- Supabase `news_archive` 테이블 누적 저장 (장기 데이터 모트)
+- 1시간 수집 (GitHub Actions) + 1회/일 알림 (Vercel Cron Hobby) 분리
+- `/insights.html` 사이트 페이지 — 누구나 접근, SEO 마케팅 채널
+- `/admin/insights-add.html` 봉쌤 전용 입력 도구 (AI 자동 채우기)
+- 데이터 누적 시작 = 장기 모트 형성
+- 1차 출처 직접 스크래핑은 향후 안정화 후 추가 검토
