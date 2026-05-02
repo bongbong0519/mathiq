@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>인사이트 추가 - MathIQ Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F9FAFB; color: #111827; line-height: 1.6; }
+    .container { max-width: 600px; margin: 20px auto; padding: 20px; }
+    h1 { margin-bottom: 8px; }
+    .subtitle { color: #6B7280; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px; }
+    textarea { min-height: 100px; resize: vertical; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+    .checkbox-group label { font-weight: normal; display: flex; align-items: center; gap: 4px; }
+    .btn { padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #4338CA; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: #6B7280; margin-left: 8px; }
+    .ai-btn { background: #10B981; margin-left: 8px; padding: 10px 12px; }
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+    .alert { padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+    .alert-error { background: #FEE2E2; color: #DC2626; }
+    .alert-success { background: #D1FAE5; color: #059669; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>📝 인사이트 추가</h1>
+    <p class="subtitle">봉쌤이 발견한 자료를 빠르게 입력하세요.</p>
+
+    <div id="alert" style="display:none;"></div>
+
+    <form id="insightForm">
+      <div class="form-group">
+        <label>원문 URL *</label>
+        <div class="input-row">
+          <input type="url" id="url" required placeholder="https://...">
+          <button type="button" id="aiBoost" class="btn ai-btn">🤖 AI 자동</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>제목 *</label>
+        <input type="text" id="title" required>
+      </div>
+
+      <div class="form-group">
+        <label>요약 *</label>
+        <textarea id="summary" required placeholder="봉쌤 관점에서 2~3줄 요약"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>출처 *</label>
+        <select id="source" required>
+          <option value="교육부">교육부</option>
+          <option value="평가원">한국교육과정평가원</option>
+          <option value="시도교육청">시도교육청</option>
+          <option value="대학">대학</option>
+          <option value="특목고">특목고</option>
+          <option value="대교협">대교협</option>
+          <option value="EBSi">EBSi</option>
+          <option value="뉴스기관">뉴스기관</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>카테고리 *</label>
+        <select id="category" required>
+          <option value="정책">정책</option>
+          <option value="모의고사">모의고사</option>
+          <option value="수능">수능</option>
+          <option value="입시">입시</option>
+          <option value="특목고">특목고</option>
+          <option value="대학">대학</option>
+          <option value="의대">의대</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>대상 학년</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="grade" value="고1"> 고1</label>
+          <label><input type="checkbox" name="grade" value="고2"> 고2</label>
+          <label><input type="checkbox" name="grade" value="고3"> 고3</label>
+          <label><input type="checkbox" name="grade" value="N수"> N수</label>
+          <label><input type="checkbox" name="grade" value="중등"> 중등</label>
+          <label><input type="checkbox" name="grade" value="전체" checked> 전체</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>태그 (쉼표 구분)</label>
+        <input type="text" id="tags" placeholder="예: 모의고사, 미적분, 6월">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="isImportant"> 🔴 중요 (학부모 상담·수업에 즉시 영향)
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="sendNotification"> 📱 텔레그램으로 즉시 발송
+        </label>
+      </div>
+
+      <button type="submit" class="btn">저장</button>
+      <a href="/insights.html" class="btn btn-secondary" style="text-decoration:none;display:inline-block;">목록으로</a>
+    </form>
+  </main>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://fexrfqywzusoowgjvbng.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZleHJmcXl3enVzb293Z2p2Ym5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5ODE1NDksImV4cCI6MjA2MDU1NzU0OX0.GqfPdOC40T9jE9VXVXiMYJDCmIRfU6zNWDOY-dcw6bM';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function showAlert(message, type = 'error') {
+      const alert = document.getElementById('alert');
+      alert.className = `alert alert-${type}`;
+      alert.textContent = message;
+      alert.style.display = 'block';
+      setTimeout(() => { alert.style.display = 'none'; }, 5000);
+    }
+
+    // 인증 체크
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showAlert('로그인이 필요합니다');
+      setTimeout(() => { window.location.href = '/index.html'; }, 2000);
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role !== 'admin') {
+        showAlert('관리자만 접근 가능합니다');
+        setTimeout(() => { window.location.href = '/'; }, 2000);
+      }
+    }
+
+    // AI 자동 채우기
+    document.getElementById('aiBoost').addEventListener('click', async () => {
+      const url = document.getElementById('url').value;
+      if (!url) return showAlert('URL을 먼저 입력하세요');
+
+      const btn = document.getElementById('aiBoost');
+      btn.disabled = true;
+      btn.textContent = '🤖 분석 중...';
+
+      try {
+        const res = await fetch('/api/admin/ai-extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error);
+
+        if (data.title) document.getElementById('title').value = data.title;
+        if (data.summary) document.getElementById('summary').value = data.summary;
+        if (data.source) document.getElementById('source').value = data.source;
+        if (data.category) document.getElementById('category').value = data.category;
+        if (data.tags) document.getElementById('tags').value = data.tags.join(', ');
+
+        showAlert('AI 분석 완료!', 'success');
+      } catch (error) {
+        showAlert('AI 분석 실패: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🤖 AI 자동';
+      }
+    });
+
+    // 폼 제출
+    document.getElementById('insightForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const grades = Array.from(document.querySelectorAll('input[name="grade"]:checked'))
+        .map(cb => cb.value);
+      const tags = document.getElementById('tags').value
+        .split(',').map(t => t.trim()).filter(Boolean);
+
+      const url = document.getElementById('url').value;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(url);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const urlHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+
+      const record = {
+        source: document.getElementById('source').value,
+        source_detail: '봉쌤 직접 입력',
+        category: document.getElementById('category').value,
+        title: document.getElementById('title').value,
+        summary: document.getElementById('summary').value,
+        original_url: url,
+        published_at: new Date().toISOString(),
+        tags,
+        target_grade: grades.length ? grades : ['전체'],
+        target_subject: ['전체'],
+        urgency: document.getElementById('isImportant').checked ? 'important' : 'normal',
+        is_manual: true,
+        created_by: user.id,
+        url_hash: urlHash,
+      };
+
+      const { error } = await supabase.from('news_archive').insert(record);
+
+      if (error) {
+        if (error.code === '23505') {
+          return showAlert('이미 등록된 URL입니다');
+        }
+        return showAlert('저장 실패: ' + error.message);
+      }
+
+      // 즉시 발송 옵션
+      if (document.getElementById('sendNotification').checked) {
+        try {
+          await fetch('/api/admin/send-manual-briefing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(record),
+          });
+        } catch (e) {
+          console.error('Telegram send failed:', e);
+        }
+      }
+
+      showAlert('저장 완료!', 'success');
+      e.target.reset();
+      document.querySelector('input[name="grade"][value="전체"]').checked = true;
+    });
+  </script>
+</body>
+</html>
