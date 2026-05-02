@@ -17,6 +17,9 @@
     .checkbox-group { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
     .checkbox-group label { font-weight: normal; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
     .checkbox-group input[type="checkbox"] { width: auto; margin: 0; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .checkbox-row input[type="checkbox"] { margin: 0; width: auto; flex-shrink: 0; }
+    .checkbox-row label { margin: 0; font-weight: normal; cursor: pointer; }
     .btn { padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
     .btn:hover { background: #4338CA; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -102,16 +105,14 @@
         <input type="text" id="tags" placeholder="예: 모의고사, 미적분, 6월">
       </div>
 
-      <div class="form-group">
-        <label>
-          <input type="checkbox" id="isImportant"> 🔴 중요 (학부모 상담·수업에 즉시 영향)
-        </label>
+      <div class="checkbox-row">
+        <input type="checkbox" id="isImportant">
+        <label for="isImportant">🔴 중요 (학부모 상담·수업에 즉시 영향)</label>
       </div>
 
-      <div class="form-group">
-        <label>
-          <input type="checkbox" id="sendNotification"> 📱 텔레그램으로 즉시 발송
-        </label>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sendNotification">
+        <label for="sendNotification">📱 텔레그램으로 즉시 발송</label>
       </div>
 
       <button type="submit" class="btn">저장</button>
