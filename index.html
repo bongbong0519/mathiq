@@ -23923,7 +23923,18 @@ async function previewMaterial(materialId) {
     if (error) throw error;
 
     const response = await fetch(data.signedUrl);
+
+    // 진단 로그
+    console.log('=== I-23 진단 (previewMaterial) ===');
+    console.log('Content-Type:', response.headers.get('content-type'));
+    console.log('Content-Disposition:', response.headers.get('content-disposition'));
+    console.log('signedUrl:', data.signedUrl);
+
     const blob = await response.blob();
+    console.log('blob.type:', blob.type);
+    console.log('blob.size:', blob.size);
+    console.log('=================');
+
     const pdfBlob = new Blob([blob], { type: 'application/pdf' });
     const blobUrl = URL.createObjectURL(pdfBlob);
     window.open(blobUrl, '_blank');
@@ -24167,7 +24178,18 @@ async function previewStudentMaterial(shareId) {
     if (error) throw error;
 
     const response = await fetch(data.signedUrl);
+
+    // 진단 로그
+    console.log('=== I-23 진단 (previewStudentMaterial) ===');
+    console.log('Content-Type:', response.headers.get('content-type'));
+    console.log('Content-Disposition:', response.headers.get('content-disposition'));
+    console.log('signedUrl:', data.signedUrl);
+
     const blob = await response.blob();
+    console.log('blob.type:', blob.type);
+    console.log('blob.size:', blob.size);
+    console.log('=================');
+
     const pdfBlob = new Blob([blob], { type: 'application/pdf' });
     const blobUrl = URL.createObjectURL(pdfBlob);
     window.open(blobUrl, '_blank');
