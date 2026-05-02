@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathIQ - 파이데이아솔루션</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  background: #050817;
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.universe {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at top, #1B1F4E 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, #1a1450 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, #0a1a3a 0%, transparent 50%),
+    linear-gradient(180deg, #050817 0%, #0a0e27 100%);
+  z-index: 0;
+}
+
+.nebula {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(30, 115, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(107, 71, 255, 0.06) 0%, transparent 40%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.stars {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sparkle-star {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  animation: twinkle var(--duration) infinite ease-in-out;
+  opacity: var(--max-opacity);
+}
+
+.sparkle-star::before,
+.sparkle-star::after {
+  content: '';
+  position: absolute;
+  background: white;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+.sparkle-star::before {
+  width: 100%; height: 1px;
+  top: 50%; left: 0;
+  transform: translateY(-50%);
+}
+
+.sparkle-star::after {
+  width: 1px; height: 100%;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: var(--min-opacity); transform: scale(0.8) rotate(0deg); }
+  50% { opacity: var(--max-opacity); transform: scale(1.2) rotate(45deg); }
+}
+
+/* ===== 헤더 ===== */
+.header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  background: rgba(10, 14, 39, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 17px;
+  color: #fff;
+  letter-spacing: -0.3px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.header-logo .logo-star {
+  width: 14px;
+  height: 14px;
+  position: relative;
+  display: inline-block;
+}
+
+.header-logo .logo-star::before,
+.header-logo .logo-star::after {
+  content: '';
+  position: absolute;
+  background: linear-gradient(90deg, transparent, #FFD966, transparent);
+  box-shadow: 0 0 8px #FFC93C;
+}
+
+.header-logo .logo-star::before {
+  width: 100%; height: 1.5px;
+  top: 50%; left: 0;
+  transform: translateY(-50%);
+}
+
+.header-logo .logo-star::after {
+  width: 1.5px; height: 100%;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+}
+
+.header-nav {
+  display: flex;
+  gap: 32px;
+}
+
+.header-nav a {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+  letter-spacing: -0.2px;
+}
+
+.header-nav a:hover { color: #B8C5FF; }
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.header-icon {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header-icon:hover {
+  background: rgba(184, 197, 255, 0.12);
+  color: #B8C5FF;
+  border-color: rgba(184, 197, 255, 0.25);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.header-login-btn {
+  padding: 8px 16px;
+  background: rgba(184, 197, 255, 0.15);
+  border: 1px solid rgba(184, 197, 255, 0.3);
+  border-radius: 20px;
+  color: #B8C5FF;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.header-login-btn:hover {
+  background: rgba(184, 197, 255, 0.25);
+}
+
+/* ===== 마인드맵 ===== */
+.mindmap-container {
+  position: fixed;
+  inset: 64px 0 0 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mindmap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 1400px;
+  max-height: 800px;
+}
+
+/* ===== 중앙 북극성 ===== */
+.north-star {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  text-align: center;
+  animation: float-center 6s ease-in-out infinite;
+  cursor: default;
+  padding: 12px 24px;
+  border-radius: 16px;
+}
+
+@keyframes float-center {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+  50% { transform: translate(-50%, -50%) translateY(-4px); }
+}
+
+.cross-star {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+  animation: pulse-star 3s ease-in-out infinite;
+}
+
+.cross-star::before,
+.cross-star::after {
+  content: '';
+  position: absolute;
+  background: linear-gradient(90deg, transparent, #FFE08A 15%, #FFFEF0 50%, #FFE08A 85%, transparent);
+  box-shadow:
+    0 0 12px #FFD966,
+    0 0 24px #FFC93C,
+    0 0 36px rgba(255, 200, 60, 0.5),
+    0 0 48px rgba(255, 180, 40, 0.3);
+}
+
+.cross-star::before {
+  width: 100%; height: 2px;
+  top: 50%; left: 0;
+  transform: translateY(-50%);
+}
+
+.cross-star::after {
+  width: 2px; height: 100%;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes pulse-star {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.15) rotate(45deg);
+    filter: brightness(1.4);
+  }
+}
+
+.center-text {
+  margin-top: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  background: linear-gradient(135deg, #fff 0%, #FFE08A 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.center-subtext {
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 4px;
+  color: rgba(255, 224, 138, 0.5);
+}
+
+/* ===== 북극성 멘트 (호버 시 등장) ===== */
+.star-message {
+  margin-top: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-top 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.north-star.message-active .star-message {
+  max-height: 100px;
+  opacity: 1;
+  margin-top: 14px;
+}
+
+.message-divider {
+  width: 0;
+  height: 1px;
+  margin: 0 auto 12px;
+  background: linear-gradient(90deg, transparent, rgba(255, 217, 102, 0.6), transparent);
+  transition: width 0.5s ease 0.1s;
+}
+
+.north-star.message-active .message-divider {
+  width: 60px;
+}
+
+.message-line-1 {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: rgba(255, 224, 138, 0.7);
+  margin-bottom: 6px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s,
+              opacity 0.5s ease 0.2s;
+}
+
+.message-line-2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: rgba(255, 255, 255, 0.95);
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.35s,
+              opacity 0.5s ease 0.35s;
+}
+
+.north-star.message-active .message-line-1 {
+  transform: translateY(0);
+  opacity: 1;
+  animation: shimmer-yellow 0.8s ease-out 0.4s;
+}
+
+.north-star.message-active .message-line-2 {
+  transform: translateY(0);
+  opacity: 1;
+  animation: shimmer-yellow 0.8s ease-out 0.55s;
+}
+
+@keyframes shimmer-yellow {
+  0% {
+    text-shadow: 0 0 0 transparent;
+    filter: brightness(1);
+  }
+  30% {
+    text-shadow:
+      0 0 8px rgba(255, 217, 102, 0.8),
+      0 0 16px rgba(255, 200, 60, 0.6),
+      0 0 24px rgba(255, 200, 60, 0.3);
+    filter: brightness(1.4);
+  }
+  60% {
+    text-shadow:
+      0 0 12px rgba(255, 217, 102, 1),
+      0 0 24px rgba(255, 200, 60, 0.8),
+      0 0 36px rgba(255, 200, 60, 0.5);
+    filter: brightness(1.6);
+  }
+  100% {
+    text-shadow:
+      0 0 4px rgba(255, 217, 102, 0.4),
+      0 0 8px rgba(255, 200, 60, 0.2);
+    filter: brightness(1);
+  }
+}
+
+/* ===== 메인 노드 ===== */
+.main-node {
+  position: absolute;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translate(-50%, -50%);
+}
+
+.main-node.floating {
+  animation: float-node var(--float-duration) ease-in-out infinite;
+  animation-delay: var(--float-delay);
+}
+
+@keyframes float-node {
+  0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
+  25% { transform: translate(-50%, -50%) translate(var(--float-x1), var(--float-y1)); }
+  50% { transform: translate(-50%, -50%) translate(var(--float-x2), var(--float-y2)); }
+  75% { transform: translate(-50%, -50%) translate(var(--float-x3), var(--float-y3)); }
+}
+
+.main-node:hover,
+.main-node.active {
+  animation-play-state: paused;
+}
+
+/* 호버 시 빛 오라 */
+.main-node::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(184, 197, 255, 0.3) 0%,
+    rgba(140, 160, 255, 0.15) 30%,
+    rgba(100, 130, 255, 0.05) 60%,
+    transparent 80%);
+  pointer-events: none;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+  margin-top: 3px;
+}
+
+.main-node:hover::before,
+.main-node.active::before {
+  width: 280px;
+  height: 280px;
+}
+
+.node-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(220, 230, 255, 0.7);
+  box-shadow:
+    0 0 4px rgba(220, 230, 255, 0.4),
+    0 0 8px rgba(180, 200, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.main-node:hover .node-dot,
+.main-node.active .node-dot {
+  width: 9px;
+  height: 9px;
+  background: #fff;
+  box-shadow:
+    0 0 8px #fff,
+    0 0 16px rgba(184, 197, 255, 0.8),
+    0 0 32px rgba(140, 160, 255, 0.5);
+}
+
+.node-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.main-node:hover .node-label,
+.main-node.active .node-label {
+  color: #fff;
+  text-shadow:
+    0 0 12px rgba(184, 197, 255, 0.8),
+    0 0 24px rgba(140, 160, 255, 0.4);
+}
+
+/* 메인 노드 위치 */
+.node-1 { top: 30%; left: 30%; }
+.node-2 { top: 28%; left: 70%; }
+.node-3 { top: 50%; left: 22%; }
+.node-4 { top: 50%; left: 78%; }
+.node-5 { top: 72%; left: 35%; }
+.node-6 { top: 70%; left: 65%; }
+
+/* ===== 하위 노드 ===== */
+.sub-node {
+  position: absolute;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  transform: translate(-50%, -50%);
+}
+
+.sub-node.floating {
+  animation: float-sub var(--sub-float-duration) ease-in-out infinite;
+  animation-delay: var(--sub-float-delay);
+}
+
+@keyframes float-sub {
+  0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
+  33% { transform: translate(-50%, -50%) translate(var(--sub-x1), var(--sub-y1)); }
+  66% { transform: translate(-50%, -50%) translate(var(--sub-x2), var(--sub-y2)); }
+}
+
+.sub-node-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(220, 230, 255, 0.5);
+  box-shadow: 0 0 3px rgba(220, 230, 255, 0.3);
+  transition: all 0.3s;
+}
+
+.sub-node-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+  transition: all 0.3s;
+}
+
+.sub-node.active {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.sub-node.active .sub-node-dot {
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  box-shadow:
+    0 0 6px #fff,
+    0 0 12px rgba(184, 197, 255, 0.6);
+  animation: pulse-sub 1.5s ease-in-out infinite;
+}
+
+.sub-node.active:hover .sub-node-dot {
+  background: #fff;
+  box-shadow:
+    0 0 10px #fff,
+    0 0 20px rgba(184, 197, 255, 1),
+    0 0 36px rgba(140, 160, 255, 0.5);
+}
+
+.sub-node.active:hover .sub-node-label {
+  color: #B8C5FF;
+}
+
+@keyframes pulse-sub {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.8; }
+}
+
+/* ===== 푸터 ===== */
+.footer-hint {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  animation: fade-pulse 4s ease-in-out infinite;
+}
+
+@keyframes fade-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.55; }
+}
+
+@media (max-width: 1440px) {
+  .center-text { font-size: 16px; }
+  .node-label { font-size: 13px; }
+  .sub-node-label { font-size: 10px; }
+}
+
+/* 모바일: 마인드맵 숨김 */
+@media (max-width: 768px) {
+  .header-nav { display: none; }
+  .mindmap-container { display: none; }
+  .mobile-message {
+    position: fixed;
+    inset: 64px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    padding: 20px;
+    text-align: center;
+  }
+  .mobile-message .mobile-star {
+    width: 32px;
+    height: 32px;
+    position: relative;
+    margin-bottom: 24px;
+    animation: pulse-star 3s ease-in-out infinite;
+  }
+  .mobile-message .mobile-star::before,
+  .mobile-message .mobile-star::after {
+    content: '';
+    position: absolute;
+    background: linear-gradient(90deg, transparent, #FFE08A 50%, transparent);
+    box-shadow: 0 0 12px #FFD966, 0 0 24px #FFC93C;
+  }
+  .mobile-message .mobile-star::before {
+    width: 100%; height: 2px;
+    top: 50%; left: 0;
+    transform: translateY(-50%);
+  }
+  .mobile-message .mobile-star::after {
+    width: 2px; height: 100%;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+  }
+  .mobile-message h1 {
+    font-size: 22px;
+    background: linear-gradient(135deg, #fff 0%, #FFE08A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .mobile-message p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 280px;
+  }
+  .mobile-menu-list {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 280px;
+  }
+  .mobile-menu-list a {
+    display: block;
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    text-align: center;
+    backdrop-filter: blur(10px);
+  }
+  .footer-hint { font-size: 10px; bottom: 16px; padding: 0 20px; text-align: center; }
+}
+
+@media (min-width: 769px) {
+  .mobile-message { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="universe"></div>
+<div class="nebula"></div>
+<div class="stars" id="stars"></div>
+
+<header class="header">
+  <a href="/index.html" class="header-logo">
+    <span class="logo-star"></span>
+    <span>MathIQ</span>
+  </a>
+  <nav class="header-nav">
+    <a href="#" data-menu="학습">학습</a>
+    <a href="#" data-menu="학생관리">학생관리</a>
+    <a href="#" data-menu="강사도구">강사도구</a>
+    <a href="#" data-menu="커뮤니티">커뮤니티</a>
+    <a href="#" data-menu="운영">운영</a>
+    <a href="#" data-menu="정보">정보</a>
+  </nav>
+  <div class="header-actions" id="headerActions">
+    <a href="/index.html" class="header-login-btn" id="loginBtn">로그인</a>
+  </div>
+</header>
+
+<div class="mindmap-container">
+  <div class="mindmap" id="mindmap">
+
+    <div class="north-star" id="northStar">
+      <div class="cross-star"></div>
+      <div class="center-text">파이데이아솔루션</div>
+      <div class="center-subtext">PAIDEIA SOLUTION</div>
+      <div class="star-message">
+        <div class="message-divider"></div>
+        <div class="message-line-1">북극성처럼,</div>
+        <div class="message-line-2">파이데이아를 따라오면 길을 잃지 않습니다.</div>
+      </div>
+    </div>
+
+    <div class="main-node node-1 floating" data-menu="학습">
+      <div class="node-dot"></div>
+      <div class="node-label">학습</div>
+    </div>
+    <div class="main-node node-2 floating" data-menu="학생관리">
+      <div class="node-dot"></div>
+      <div class="node-label">학생관리</div>
+    </div>
+    <div class="main-node node-3 floating" data-menu="강사도구">
+      <div class="node-dot"></div>
+      <div class="node-label">강사도구</div>
+    </div>
+    <div class="main-node node-4 floating" data-menu="커뮤니티">
+      <div class="node-dot"></div>
+      <div class="node-label">커뮤니티</div>
+    </div>
+    <div class="main-node node-5 floating" data-menu="운영">
+      <div class="node-dot"></div>
+      <div class="node-label">운영</div>
+    </div>
+    <div class="main-node node-6 floating" data-menu="정보">
+      <div class="node-dot"></div>
+      <div class="node-label">정보</div>
+    </div>
+
+    <div id="subNodes"></div>
+
+  </div>
+</div>
+
+<!-- 모바일 안내 -->
+<div class="mobile-message">
+  <div class="mobile-star"></div>
+  <h1>파이데이아솔루션</h1>
+  <p>북극성처럼,<br>파이데이아를 따라오면 길을 잃지 않습니다.</p>
+  <p style="margin-top: 16px; font-size: 11px; color: rgba(255,255,255,0.4);">
+    더 많은 기능은 PC에서 이용 가능합니다.
+  </p>
+  <div class="mobile-menu-list">
+    <a href="/index.html#notices">커뮤니티</a>
+    <a href="/insights.html">입시 인사이트</a>
+    <a href="/index.html">로그인</a>
+  </div>
+</div>
+
+<div class="footer-hint">메뉴에 마우스를 올려보세요 · 파이데이아를 따라오면 길을 잃지 않습니다</div>
+
+<script>
+// Supabase 인증 연동
+let sb = null;
+let currentUser = null;
+
+async function initAuth() {
+  if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_KEY !== 'undefined') {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: { user } } = await sb.auth.getUser();
+    currentUser = user;
+    updateHeaderUI();
+  }
+}
+
+function updateHeaderUI() {
+  const headerActions = document.getElementById('headerActions');
+  if (currentUser) {
+    headerActions.innerHTML = `
+      <div class="header-icon" onclick="location.href='/index.html#notices'" title="알림">알림</div>
+      <div class="header-icon" onclick="location.href='/index.html#messages'" title="쪽지">쪽지</div>
+      <div class="header-icon" onclick="location.href='/index.html#profile'" title="프로필">계정</div>
+      <div class="header-icon" onclick="location.href='/help.html'" title="도움말">?</div>
+    `;
+  } else {
+    headerActions.innerHTML = `<a href="/index.html" class="header-login-btn">로그인</a>`;
+  }
+}
+
+function createStars() {
+  const container = document.getElementById('stars');
+  const count = 80;
+  for (let i = 0; i < count; i++) {
+    const star = document.createElement('div');
+    star.className = 'sparkle-star';
+    const size = Math.random() * 6 + 3;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.setProperty('--duration', (Math.random() * 4 + 4) + 's');
+    star.style.setProperty('--min-opacity', (Math.random() * 0.2 + 0.1));
+    star.style.setProperty('--max-opacity', (Math.random() * 0.4 + 0.4));
+    star.style.animationDelay = Math.random() * 6 + 's';
+    container.appendChild(star);
+  }
+}
+
+// 메뉴 데이터 - 실제 페이지 링크 연결
+const menuData = {
+  '학습': {
+    nodeId: 'node-1',
+    items: [
+      { label: '문제은행', href: '/index.html#question-bank' },
+      { label: '온라인 시험', href: '/index.html#exams' },
+      { label: '해설 자료', href: '/index.html#materials' },
+      { label: '학습 진도', href: '/index.html#reports' },
+      { label: '문제 업로드', href: '/index.html#question-upload' }
+    ]
+  },
+  '학생관리': {
+    nodeId: 'node-2',
+    items: [
+      { label: '학생 목록', href: '/index.html#students' },
+      { label: '성적 분석', href: '/index.html#reports' },
+      { label: '수강료', href: '/index.html#accounting' },
+      { label: '캘린더', href: '/index.html#dashboard' },
+      { label: '쪽지함', href: '/index.html#messages' }
+    ]
+  },
+  '강사도구': {
+    nodeId: 'node-3',
+    items: [
+      { label: '강사 관리', href: '/index.html#director-teachers' },
+      { label: '자료 공유', href: '/index.html#teacher-materials' },
+      { label: 'AI 도우미', href: '/paste-review.html' },
+      { label: '강사 프로필', href: '/index.html#tutor-profile' },
+      { label: '학생 찾기', href: '/index.html#student-search' }
+    ]
+  },
+  '커뮤니티': {
+    nodeId: 'node-4',
+    items: [
+      { label: '공지·알림', href: '/index.html#notices' },
+      { label: '쪽지함', href: '/index.html#messages' },
+      { label: '문의하기', href: '/index.html#inquiry' },
+      { label: '도움말', href: '/help.html' },
+      { label: '입시 정보', href: '/insights.html' }
+    ]
+  },
+  '운영': {
+    nodeId: 'node-5',
+    items: [
+      { label: '회계', href: '/index.html#accounting' },
+      { label: '대시보드', href: '/index.html#dashboard' },
+      { label: '학원 설정', href: '/index.html#profile' },
+      { label: '강사 현황', href: '/index.html#director-dashboard' },
+      { label: '학생 현황', href: '/index.html#director-students' }
+    ]
+  },
+  '정보': {
+    nodeId: 'node-6',
+    items: [
+      { label: '입시 인사이트', href: '/insights.html' },
+      { label: '공지사항', href: '/index.html#notices' },
+      { label: '도움말', href: '/help.html' },
+      { label: '문의하기', href: '/index.html#inquiry' },
+      { label: '소개', href: '/index.html' }
+    ]
+  }
+};
+
+const mainNodePositions = {
+  'node-1': { left: 30, top: 30 },
+  'node-2': { left: 70, top: 28 },
+  'node-3': { left: 22, top: 50 },
+  'node-4': { left: 78, top: 50 },
+  'node-5': { left: 35, top: 72 },
+  'node-6': { left: 65, top: 70 }
+};
+
+function getSubNodePosition(nodeId, idx, total) {
+  const mainPos = mainNodePositions[nodeId];
+  const radius = 9;
+
+  const startAngles = {
+    'node-1': -120, 'node-2': -60,
+    'node-3': -180, 'node-4': 0,
+    'node-5': 120, 'node-6': 60
+  };
+
+  const startAngle = startAngles[nodeId] || 0;
+  const spreadAngle = 200;
+  const angleStep = spreadAngle / (total - 1);
+  const angle = (startAngle - spreadAngle / 2 + angleStep * idx) * Math.PI / 180;
+
+  return {
+    left: mainPos.left + Math.cos(angle) * radius,
+    top: mainPos.top + Math.sin(angle) * radius * 0.85
+  };
+}
+
+function randomFloat(min, max) {
+  return (Math.random() * (max - min) + min).toFixed(2);
+}
+
+function applyFloatMotion(element, isMain = true) {
+  if (isMain) {
+    element.style.setProperty('--float-duration', randomFloat(8, 14) + 's');
+    element.style.setProperty('--float-delay', randomFloat(0, 4) + 's');
+    element.style.setProperty('--float-x1', randomFloat(-16, 16) + 'px');
+    element.style.setProperty('--float-y1', randomFloat(-16, 16) + 'px');
+    element.style.setProperty('--float-x2', randomFloat(-16, 16) + 'px');
+    element.style.setProperty('--float-y2', randomFloat(-16, 16) + 'px');
+    element.style.setProperty('--float-x3', randomFloat(-16, 16) + 'px');
+    element.style.setProperty('--float-y3', randomFloat(-16, 16) + 'px');
+  } else {
+    element.style.setProperty('--sub-float-duration', randomFloat(6, 10) + 's');
+    element.style.setProperty('--sub-float-delay', randomFloat(0, 3) + 's');
+    element.style.setProperty('--sub-x1', randomFloat(-10, 10) + 'px');
+    element.style.setProperty('--sub-y1', randomFloat(-10, 10) + 'px');
+    element.style.setProperty('--sub-x2', randomFloat(-10, 10) + 'px');
+    element.style.setProperty('--sub-y2', randomFloat(-10, 10) + 'px');
+  }
+}
+
+function createSubNodes() {
+  const container = document.getElementById('subNodes');
+
+  Object.entries(menuData).forEach(([menuName, data]) => {
+    const nodeId = data.nodeId;
+    const total = data.items.length;
+
+    data.items.forEach((item, idx) => {
+      const pos = getSubNodePosition(nodeId, idx, total);
+
+      const subNode = document.createElement('a');
+      subNode.className = 'sub-node floating';
+      subNode.dataset.parent = nodeId;
+      subNode.dataset.label = item.label;
+      subNode.href = item.href || '#';
+      subNode.style.left = pos.left + '%';
+      subNode.style.top = pos.top + '%';
+      subNode.style.textDecoration = 'none';
+      subNode.innerHTML = `
+        <div class="sub-node-dot"></div>
+        <div class="sub-node-label">${item.label}</div>
+      `;
+
+      applyFloatMotion(subNode, false);
+      container.appendChild(subNode);
+    });
+  });
+
+  document.querySelectorAll('.main-node').forEach(node => {
+    applyFloatMotion(node, true);
+  });
+}
+
+function setupHover() {
+  const mainNodes = document.querySelectorAll('.main-node');
+  const headerLinks = document.querySelectorAll('.header-nav a');
+
+  function activateMenu(menuName) {
+    const data = menuData[menuName];
+    if (!data) return;
+
+    const nodeId = data.nodeId;
+
+    document.querySelectorAll('.main-node').forEach(n => n.classList.remove('active'));
+    document.querySelector('.' + nodeId).classList.add('active');
+
+    document.querySelectorAll('.sub-node').forEach(n => {
+      if (n.dataset.parent === nodeId) {
+        n.classList.add('active');
+      } else {
+        n.classList.remove('active');
+      }
+    });
+  }
+
+  function deactivateAll() {
+    document.querySelectorAll('.main-node').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.sub-node').forEach(n => n.classList.remove('active'));
+  }
+
+  mainNodes.forEach(node => {
+    node.addEventListener('mouseenter', () => activateMenu(node.dataset.menu));
+  });
+
+  headerLinks.forEach(link => {
+    link.addEventListener('mouseenter', () => activateMenu(link.dataset.menu));
+  });
+
+  document.querySelector('.mindmap-container').addEventListener('mouseleave', deactivateAll);
+  document.querySelector('.header-nav').addEventListener('mouseleave', deactivateAll);
+}
+
+function setupNorthStarHover() {
+  const northStar = document.getElementById('northStar');
+  if (!northStar) return;
+
+  northStar.addEventListener('mouseenter', () => {
+    northStar.classList.add('message-active');
+  });
+
+  northStar.addEventListener('mouseleave', () => {
+    northStar.classList.remove('message-active');
+  });
+}
+
+function init() {
+  createStars();
+  createSubNodes();
+  setupHover();
+  setupNorthStarHover();
+  initAuth();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
