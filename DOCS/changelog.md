@@ -4,6 +4,57 @@ MathIQ의 주요 업데이트 내역입니다.
 
 ---
 
+## 2026-05-01
+
+### 큰 변경
+- **방향 전환:** 베타(지인 10명 카톡) 취소 → 정상 오픈 목표로 전환
+  - 점검 순서: 강사 → 원장 → 학생 → 정상 오픈
+- **C-1 외래키 처리 9개 풀세트 완료**
+  - 학생 삭제 시 데이터 보호 전면 정비
+  - 박제 칼럼 패턴 도입 (학생 정보 시점 보존)
+
+### 코드 변경
+- I-13 + I-14 학생 전화 추가 + 전화 형식 통일 (커밋 fde4ad9)
+  - students.student_phone 칼럼 추가
+  - 자동 하이픈 입력 (010-XXXX-XXXX)
+  - DB 저장은 숫자만
+  - formatPhone(), autoHyphenPhone() 공통 함수
+- I-16 전화 중복/일치 경고
+  - 학생 전화 중복 시 confirm
+  - 학부모=학생 전화 일치 시 confirm
+  - 자기 자신 수정 시 제외
+- C-1 박제 코드 5개 함수 수정
+  - sendBillingInvoice (청구) - studentName 파라미터 제거, DB 조회 + 박제
+  - sendPaymentReminder (독촉) - 동일 패턴
+  - startExam (시험 시작) - exam_sessions INSERT 시 박제
+  - submitMaterialShare (자료 공유) - 일괄 INSERT 시 박제 + 검증
+  - smsSendMessages (학부모 문자) - records 배열에 student_name_snapshot
+
+### DB 변경 (Supabase 직접 실행)
+- 박제 칼럼 추가 (8개 테이블)
+  - billing_invoices: student_name/student_phone/parent_phone snapshot
+  - exam_results: student_name/grade/school/teacher_id snapshot
+  - exam_sessions: student_name/grade/school/teacher_id snapshot
+  - material_shares: student_name/grade/school snapshot
+  - payment_reminders: student_name/student_phone/parent_phone snapshot
+  - sms_history: student_name snapshot
+  - teacher_comments: student_name/grade snapshot
+- student_id NULL 허용 (해당 테이블)
+- ON DELETE CASCADE → SET NULL 변경 (해당 테이블)
+- accounting_income 더미 데이터 5건 정리 (박지훈 외 4명, 학생 매칭 불가)
+- sms_history message_type CHECK 제약 제거 (I-20 임시 조치)
+
+### 새 점검 이슈 발견
+- I-15 학부모 이름 입력 UI 누락
+- I-17 성적 리포트 강사 정보 표시 정책
+- I-18 자료 공유 취소/회수 기능
+- I-19 청구/독촉 SMS sms_history INSERT 누락
+- I-20 sms_history CHECK 제약 안전한 형태로 다시
+- I-21 SMS 발송 이력 권한 분리 확인
+- I-22 강사 코멘트 작성 기능 구현
+
+---
+
 ## 2026-04-27
 
 ### 문서 정리
