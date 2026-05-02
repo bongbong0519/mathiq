@@ -14,8 +14,9 @@
     label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 14px; }
     input, select, textarea { width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px; }
     textarea { min-height: 100px; resize: vertical; }
-    .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
-    .checkbox-group label { font-weight: normal; display: flex; align-items: center; gap: 4px; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+    .checkbox-group label { font-weight: normal; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
+    .checkbox-group input[type="checkbox"] { width: auto; margin: 0; }
     .btn { padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
     .btn:hover { background: #4338CA; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
