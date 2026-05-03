@@ -11890,6 +11890,9 @@ async function doSubmitExam() {
     .eq('exam_id', examTaking.examId)
     .eq('student_id', examTaking.studentId);
 
+  // 6역량 누적 기록
+  recordCompetencyOnExamComplete(examTaking.sessionId, examTaking.studentId, examTaking.examId);
+
   // 완료 화면 표시
   document.getElementById('se-taking-state').style.display = 'none';
   document.getElementById('se-done-state').style.display = 'block';
@@ -11947,6 +11950,120 @@ function backToExamList() {
   document.getElementById('se-taking-state').style.display = 'none';
   document.getElementById('se-list-state').style.display = 'block';
   loadStudentExams();
+}
+
+// ── 6역량 누적 시스템 ──
+async function recordCompetencyOnExamComplete(examSessionId, studentId, examId) {
+  const { data: questions } = await sbClient.from('exam_questions')
+    .select('id, competencies, answer_index')
+    .eq('exam_id', examId);
+
+  const { data: session } = await sbClient.from('exam_sessions')
+    .select('answers')
+    .eq('id', examSessionId)
+    .single();
+
+  if (!questions || !session) return;
+
+  const totals = {
+    problem_solving_earned: 0, problem_solving_total: 0,
+    reasoning_earned: 0, reasoning_total: 0,
+    communication_earned: 0, communication_total: 0,
+    connection_earned: 0, connection_total: 0,
+    info_processing_earned: 0, info_processing_total: 0,
+    attitude_earned: 0, attitude_total: 0,
+  };
+
+  for (const q of questions) {
+    const comp = q.competencies;
+    if (!comp) continue;
+
+    const studentAnswer = session.answers?.[q.id];
+    const isCorrect = studentAnswer != null && studentAnswer === q.answer_index;
+
+    totals.problem_solving_total += comp.problem_solving || 0;
+    totals.reasoning_total += comp.reasoning || 0;
+    totals.communication_total += comp.communication || 0;
+    totals.connection_total += comp.connection || 0;
+    totals.info_processing_total += comp.info_processing || 0;
+    totals.attitude_total += comp.attitude || 0;
+
+    if (isCorrect) {
+      totals.problem_solving_earned += comp.problem_solving || 0;
+      totals.reasoning_earned += comp.reasoning || 0;
+      totals.communication_earned += comp.communication || 0;
+      totals.connection_earned += comp.connection || 0;
+      totals.info_processing_earned += comp.info_processing || 0;
+      totals.attitude_earned += comp.attitude || 0;
+    }
+  }
+
+  const { data: student } = await sbClient.from('students')
+    .select('name, grade').eq('id', studentId).single();
+
+  const { data: exam } = await sbClient.from('exams')
+    .select('title').eq('id', examId).single();
+
+  const { error } = await sbClient.from('student_competency_records').insert({
+    student_id: studentId,
+    exam_session_id: examSessionId,
+    ...totals,
+    student_name_snapshot: student?.name,
+    student_grade_snapshot: student?.grade,
+    exam_title_snapshot: exam?.title,
+  });
+
+  if (error) console.error('[recordCompetency] INSERT failed:', error.message);
+}
+
+async function getStudentCompetencyAggregate(studentId, periodMonths = null) {
+  let query = sbClient.from('student_competency_records')
+    .select('*')
+    .eq('student_id', studentId);
+
+  if (periodMonths !== null) {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - periodMonths);
+    query = query.gte('recorded_at', cutoff.toISOString());
+  }
+
+  const { data: records } = await query;
+
+  if (!records || records.length === 0) return null;
+
+  const sums = records.reduce((acc, r) => ({
+    problem_solving_earned: acc.problem_solving_earned + (r.problem_solving_earned || 0),
+    problem_solving_total: acc.problem_solving_total + (r.problem_solving_total || 0),
+    reasoning_earned: acc.reasoning_earned + (r.reasoning_earned || 0),
+    reasoning_total: acc.reasoning_total + (r.reasoning_total || 0),
+    communication_earned: acc.communication_earned + (r.communication_earned || 0),
+    communication_total: acc.communication_total + (r.communication_total || 0),
+    connection_earned: acc.connection_earned + (r.connection_earned || 0),
+    connection_total: acc.connection_total + (r.connection_total || 0),
+    info_processing_earned: acc.info_processing_earned + (r.info_processing_earned || 0),
+    info_processing_total: acc.info_processing_total + (r.info_processing_total || 0),
+    attitude_earned: acc.attitude_earned + (r.attitude_earned || 0),
+    attitude_total: acc.attitude_total + (r.attitude_total || 0),
+  }), {
+    problem_solving_earned: 0, problem_solving_total: 0,
+    reasoning_earned: 0, reasoning_total: 0,
+    communication_earned: 0, communication_total: 0,
+    connection_earned: 0, connection_total: 0,
+    info_processing_earned: 0, info_processing_total: 0,
+    attitude_earned: 0, attitude_total: 0,
+  });
+
+  const pct = (e, t) => t > 0 ? Math.round((e / t) * 100) : 0;
+
+  return {
+    problem_solving: pct(sums.problem_solving_earned, sums.problem_solving_total),
+    reasoning: pct(sums.reasoning_earned, sums.reasoning_total),
+    communication: pct(sums.communication_earned, sums.communication_total),
+    connection: pct(sums.connection_earned, sums.connection_total),
+    info_processing: pct(sums.info_processing_earned, sums.info_processing_total),
+    attitude: pct(sums.attitude_earned, sums.attitude_total),
+    record_count: records.length,
+  };
 }
 
 // ── 파일 업로드 → Supabase Storage (admin only) ──
