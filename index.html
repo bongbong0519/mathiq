@@ -2552,9 +2552,6 @@
         <div class="nav-item" onclick="showTierLockModal('coming-soon')">
           <span class="icon">🧩</span> AI 유사문제 생성 <span style="font-size:10px;margin-left:auto;color:var(--text3)">🔒</span>
         </div>
-        <div class="nav-item" onclick="showView('reports')">
-          <span class="icon">📋</span> 성적 리포트
-        </div>
         <div class="nav-item" onclick="showView('sms')">
           <span class="icon">📲</span> 학부모 문자 발송
         </div>
@@ -3117,33 +3114,6 @@
             <div class="empty-state-icon">📝</div>
             <div class="empty-state-text">등록된 시험이 없습니다</div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ VIEW: REPORTS ══ -->
-    <div id="view-reports" class="view">
-      <div class="page-header">
-        <div>
-          <div class="page-title">리포트 관리</div>
-          <div class="page-sub">생성 · 공유 · 열람 이력</div>
-        </div>
-        <div class="header-actions">
-          <button class="btn btn-ghost btn-sm">📥 내보내기</button>
-          <button class="btn btn-primary btn-sm" onclick="openShareModal('새 리포트')">+ 리포트 공유</button>
-        </div>
-      </div>
-
-      <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab(this,'reports','all')">전체 (6)</button>
-        <button class="tab-btn" onclick="switchTab(this,'reports','shared')">공유됨 (3)</button>
-        <button class="tab-btn" onclick="switchTab(this,'reports','draft')">임시저장 (3)</button>
-      </div>
-
-      <div id="report-tab-all">
-        <div class="empty-state" style="padding:60px">
-          <div class="empty-state-icon">📋</div>
-          <div class="empty-state-text">아직 생성된 리포트가 없습니다</div>
         </div>
       </div>
     </div>
