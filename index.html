@@ -11320,7 +11320,7 @@ async function openStudentDetailModal(studentId) {
   const [sessionsRes, commentsRes, sharesRes, invoicesRes, remindersRes, smsRes] = await Promise.all([
     sbClient.from('exam_sessions').select('*, exams(title)').eq('student_id', studentId).order('created_at', { ascending: false }),
     sbClient.from('teacher_comments').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
-    sbClient.from('material_shares').select('*, material:class_materials(title)').eq('student_id', studentId).is('revoked_at', null).order('created_at', { ascending: false }),
+    sbClient.from('material_shares').select('*, class_materials(title)').eq('student_id', studentId).is('revoked_at', null).order('created_at', { ascending: false }),
     sbClient.from('billing_invoices').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
     sbClient.from('payment_reminders').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
     sbClient.from('sms_history').select('*').eq('student_id', studentId).order('created_at', { ascending: false })
@@ -11419,7 +11419,7 @@ async function openStudentDetailModal(studentId) {
             <div style="flex:1;font-size:13px;color:var(--text)">${s.exams?.title || '시험'}</div>
             <div style="font-size:11px;color:var(--text3)">${new Date(s.created_at).toLocaleDateString('ko-KR')}</div>
             <div style="font-size:13px;font-weight:600;color:var(--accent)">${s.score != null ? s.score + '점' : '-'}</div>
-            <button class="btn btn-ghost btn-xs" onclick="openStudentReport('${studentId}','${s.exam_id}')">리포트</button>
+            <button class="btn btn-ghost btn-xs" onclick="console.log('report btn', '${studentId}', '${s.exam_id}'); openStudentReport('${studentId}','${s.exam_id}')">리포트</button>
           </div>
         `).join('')}
     </div>
@@ -11433,7 +11433,7 @@ async function openStudentDetailModal(studentId) {
       ${shares.length === 0 ? '<div style="color:var(--text3);font-size:13px;padding:12px;background:var(--bg3);border-radius:6px">공유한 자료 없음</div>' :
         shares.slice(0, 10).map(sh => `
           <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px">
-            <div style="flex:1;font-size:13px;color:var(--text)">${sh.material?.title || '자료'}</div>
+            <div style="flex:1;font-size:13px;color:var(--text)">${sh.class_materials?.title || '자료'}</div>
             <div style="font-size:11px;color:var(--text3)">${new Date(sh.created_at).toLocaleDateString('ko-KR')}</div>
             <span style="font-size:10px;color:${sh.downloaded_at ? 'var(--green)' : 'var(--text3)'}">${sh.downloaded_at ? '다운완료' : '미다운'}</span>
             <button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="revokeMaterialShare('${sh.id}','${student.name.replace(/'/g,"\\'")}')">회수</button>
