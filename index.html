@@ -11432,7 +11432,7 @@ async function openStudentDetailModal(studentId) {
             <div style="flex:1;font-size:13px;color:var(--text)">${s.exams?.title || '시험'}</div>
             <div style="font-size:11px;color:var(--text3)">${new Date(s.created_at).toLocaleDateString('ko-KR')}</div>
             <div style="font-size:13px;font-weight:600;color:var(--accent)">${s.score != null ? s.score + '점' : '-'}</div>
-            <button class="btn btn-ghost btn-xs" onclick="console.log('report btn', '${studentId}', '${s.exam_id}'); openStudentReport('${studentId}','${s.exam_id}')">리포트</button>
+            <a href="/student-report.html?student_id=${studentId}&exam_id=${s.exam_id}" target="_blank" class="btn btn-ghost btn-xs" style="text-decoration:none">리포트</a>
           </div>
         `).join('')}
     </div>
