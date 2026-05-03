@@ -6065,6 +6065,22 @@
   </div>
 </div>
 
+<!-- ════════════════════ STUDENT DETAIL MODAL ════════════════════ -->
+<div class="modal-overlay" id="studentDetailModal">
+  <div class="modal" style="max-width:720px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header" style="position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:1px solid var(--border);padding-bottom:12px">
+      <div class="modal-title" id="sdm-title">학생 상세</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" id="sdm-edit-btn">✏️ 수정</button>
+        <button class="btn btn-primary btn-sm" id="sdm-report-btn">📤 리포트 발송</button>
+        <button class="modal-close" onclick="closeModal('studentDetailModal')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="sdm-body" style="padding:16px">
+      <div style="text-align:center;padding:40px;color:var(--text3)">로딩 중...</div>
+    </div>
+  </div>
+</div>
 
 <!-- ════ ADD STUDENT MODAL ════ -->
 <div class="modal-overlay" id="addStudentModal">
@@ -10539,26 +10555,26 @@ async function loadStudents() {
       const color = colors[i % colors.length];
       const tuition = s.monthly_tuition || 0;
       const tuitionDisplay = tuition > 0 ? `${tuition.toLocaleString()}원` : '미설정';
-      html += `<div class="student-card">
+      html += `<div class="student-card" onclick="openStudentDetailModal('${s.id}')" style="cursor:pointer">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
           <div class="student-ava" style="background:${color}">${s.name[0]}</div>
           <div style="flex:1;min-width:0">
             <div class="student-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
             <div class="student-meta">${s.grade || ''} · ${s.school || ''}</div>
           </div>
-          <button onclick="openStudentEditModal('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="편집">✏️</button>
+          <button onclick="event.stopPropagation();openStudentEditModal('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="편집">✏️</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:6px">
           <span style="font-size:11px;color:var(--text3)">월 수강료</span>
           <span style="font-size:13px;font-weight:700;color:${tuition > 0 ? 'var(--accent)' : 'var(--text3)'}">${tuitionDisplay}</span>
-          <button onclick="openBillingHistory('${s.id}','${s.name}')" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;text-decoration:underline">이력</button>
+          <button onclick="event.stopPropagation();openBillingHistory('${s.id}','${s.name}')" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;text-decoration:underline">이력</button>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button onclick="sendBillingInvoice('${s.id}',${tuition})" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap" ${tuition <= 0 ? 'disabled title="수강료를 먼저 설정하세요"' : ''}>청구</button>
-          <button onclick="sendPaymentReminder('${s.id}',${tuition})" style="background:rgba(246,173,85,0.1);border:1px solid rgba(246,173,85,0.2);color:var(--yellow);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap" ${tuition <= 0 ? 'disabled title="수강료를 먼저 설정하세요"' : ''}>독촉</button>
-          <button onclick="openStudentReport('${s.id}')" style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);color:var(--green);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">리포트</button>
-          <button onclick="openCommentModal('${s.id}','${s.name.replace(/'/g,"\\'")}','${(s.grade||'').replace(/'/g,"\\'")}')" style="background:rgba(147,112,219,0.1);border:1px solid rgba(147,112,219,0.2);color:#9370DB;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">💬 코멘트</button>
-          <button onclick="deleteStudent('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;margin-left:auto" title="삭제">🗑</button>
+          <button onclick="event.stopPropagation();sendBillingInvoice('${s.id}',${tuition})" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);color:var(--accent);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap" ${tuition <= 0 ? 'disabled title="수강료를 먼저 설정하세요"' : ''}>청구</button>
+          <button onclick="event.stopPropagation();sendPaymentReminder('${s.id}',${tuition})" style="background:rgba(246,173,85,0.1);border:1px solid rgba(246,173,85,0.2);color:var(--yellow);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap" ${tuition <= 0 ? 'disabled title="수강료를 먼저 설정하세요"' : ''}>독촉</button>
+          <button onclick="event.stopPropagation();openStudentReport('${s.id}')" style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.2);color:var(--green);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">리포트</button>
+          <button onclick="event.stopPropagation();openCommentModal('${s.id}','${s.name.replace(/'/g,"\\'")}','${(s.grade||'').replace(/'/g,"\\'")}')" style="background:rgba(147,112,219,0.1);border:1px solid rgba(147,112,219,0.2);color:#9370DB;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">💬 코멘트</button>
+          <button onclick="event.stopPropagation();deleteStudent('${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;margin-left:auto" title="삭제">🗑</button>
         </div>
       </div>`;
     });
@@ -11276,6 +11292,261 @@ function openStudentReport(studentId, examId = null) {
     url += `&exam_id=${examId}`;
   }
   window.open(url, '_blank');
+}
+
+// ── 학생 상세 모달 (Phase0-Step2) ──
+let _sdmStudentId = null;
+
+async function openStudentDetailModal(studentId) {
+  _sdmStudentId = studentId;
+  document.getElementById('studentDetailModal').classList.add('open');
+  const body = document.getElementById('sdm-body');
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">로딩 중...</div>';
+
+  // 학생 기본 정보
+  const { data: student } = await sbClient.from('students')
+    .select('*').eq('id', studentId).single();
+
+  if (!student) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">학생 정보를 불러올 수 없습니다</div>';
+    return;
+  }
+
+  document.getElementById('sdm-title').textContent = `${student.name} 상세`;
+  document.getElementById('sdm-edit-btn').onclick = () => { closeModal('studentDetailModal'); openStudentEditModal(studentId); };
+  document.getElementById('sdm-report-btn').onclick = () => { document.getElementById('shareModal').classList.add('open'); };
+
+  // 병렬 데이터 로드
+  const [sessionsRes, commentsRes, sharesRes, invoicesRes, remindersRes, smsRes] = await Promise.all([
+    sbClient.from('exam_sessions').select('*, exams(title)').eq('student_id', studentId).order('created_at', { ascending: false }),
+    sbClient.from('teacher_comments').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
+    sbClient.from('material_shares').select('*, teaching_materials(title)').eq('student_id', studentId).is('revoked_at', null).order('created_at', { ascending: false }),
+    sbClient.from('billing_invoices').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
+    sbClient.from('payment_reminders').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
+    sbClient.from('sms_history').select('*').eq('student_id', studentId).order('created_at', { ascending: false })
+  ]);
+
+  const sessions = sessionsRes.data || [];
+  const comments = commentsRes.data || [];
+  const shares = sharesRes.data || [];
+  const invoices = invoicesRes.data || [];
+  const reminders = remindersRes.data || [];
+  const smsHistory = smsRes.data || [];
+
+  // 6역량 집계
+  const compAll = await getStudentCompetencyAggregate(studentId);
+  const comp6m = await getStudentCompetencyAggregate(studentId, 6);
+  const comp3m = await getStudentCompetencyAggregate(studentId, 3);
+
+  // 학습 현황 계산
+  const examCount = sessions.length;
+  const avgScore = examCount > 0 ? Math.round(sessions.reduce((s, e) => s + (e.score || 0), 0) / examCount) : null;
+  const recentScore = sessions[0]?.score ?? null;
+
+  // 영역 1: 기본 정보
+  let html = `
+  <section style="margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:10px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#818cf8);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px">${student.name[0]}</div>
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)">${student.name}</div>
+        <div style="font-size:13px;color:var(--text3)">${student.grade || ''} · ${student.school || ''}</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text2)">
+      ${student.student_phone ? `<span>📱 학생: ${student.student_phone}</span>` : ''}
+      ${student.parent_phone ? `<span>📞 학부모: ${student.parent_phone}</span>` : ''}
+      ${student.parent_name ? `<span>👤 ${student.parent_name}</span>` : ''}
+      <span>📅 등록일: ${new Date(student.created_at).toLocaleDateString('ko-KR')}</span>
+    </div>
+  </section>`;
+
+  // 영역 2: 학습 현황
+  html += `
+  <section style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">📊 학습 현황</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:100px;padding:12px;background:var(--bg3);border-radius:8px;text-align:center">
+        <div style="font-size:11px;color:var(--text3)">응시 시험</div>
+        <div style="font-size:20px;font-weight:800;color:var(--accent)">${examCount}회</div>
+      </div>
+      <div style="flex:1;min-width:100px;padding:12px;background:var(--bg3);border-radius:8px;text-align:center">
+        <div style="font-size:11px;color:var(--text3)">평균 점수</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${avgScore !== null ? avgScore + '점' : '-'}</div>
+      </div>
+      <div style="flex:1;min-width:100px;padding:12px;background:var(--bg3);border-radius:8px;text-align:center">
+        <div style="font-size:11px;color:var(--text3)">최근 점수</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${recentScore !== null ? recentScore + '점' : '-'}</div>
+      </div>
+    </div>
+  </section>`;
+
+  // 영역 3: 6역량 프로필
+  html += `
+  <section style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">🧠 6역량 프로필</div>
+    <div id="sdm-competency-chart" style="padding:16px;background:var(--bg3);border-radius:8px">
+      ${compAll ? '' : '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px">역량 데이터가 아직 누적되지 않았습니다.<br>시험을 응시하면 자동으로 누적됩니다.</div>'}
+    </div>
+  </section>`;
+
+  // 영역 4: 강사 코멘트
+  html += `
+  <section style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:700;color:var(--text)">💬 강사 코멘트</div>
+      <button class="btn btn-ghost btn-xs" onclick="closeModal('studentDetailModal');openCommentModal('${studentId}','${student.name.replace(/'/g,"\\'")}','${(student.grade||'').replace(/'/g,"\\'")}')">+ 작성</button>
+    </div>
+    <div style="max-height:150px;overflow-y:auto">
+      ${comments.length === 0 ? '<div style="color:var(--text3);font-size:13px;padding:12px;background:var(--bg3);border-radius:6px">아직 작성한 코멘트가 없습니다</div>' :
+        comments.slice(0, 5).map(c => `
+          <div style="padding:10px;background:var(--bg3);border-radius:6px;margin-bottom:6px">
+            <div style="font-size:13px;color:var(--text);line-height:1.5">${c.comment.replace(/\n/g, '<br>')}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:4px">${new Date(c.created_at).toLocaleDateString('ko-KR')}</div>
+          </div>
+        `).join('')}
+    </div>
+  </section>`;
+
+  // 영역 5: 시험 이력
+  html += `
+  <section style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">📝 시험 이력</div>
+    <div style="max-height:150px;overflow-y:auto">
+      ${sessions.length === 0 ? '<div style="color:var(--text3);font-size:13px;padding:12px;background:var(--bg3);border-radius:6px">응시 기록 없음</div>' :
+        sessions.slice(0, 10).map(s => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px">
+            <div style="flex:1;font-size:13px;color:var(--text)">${s.exams?.title || '시험'}</div>
+            <div style="font-size:11px;color:var(--text3)">${new Date(s.created_at).toLocaleDateString('ko-KR')}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--accent)">${s.score != null ? s.score + '점' : '-'}</div>
+            <button class="btn btn-ghost btn-xs" onclick="openStudentReport('${studentId}','${s.exam_id}')">리포트</button>
+          </div>
+        `).join('')}
+    </div>
+  </section>`;
+
+  // 영역 6: 자료 공유 이력
+  html += `
+  <section style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">📂 자료 공유 이력</div>
+    <div style="max-height:120px;overflow-y:auto">
+      ${shares.length === 0 ? '<div style="color:var(--text3);font-size:13px;padding:12px;background:var(--bg3);border-radius:6px">공유한 자료 없음</div>' :
+        shares.slice(0, 10).map(sh => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px">
+            <div style="flex:1;font-size:13px;color:var(--text)">${sh.teaching_materials?.title || '자료'}</div>
+            <div style="font-size:11px;color:var(--text3)">${new Date(sh.created_at).toLocaleDateString('ko-KR')}</div>
+            <span style="font-size:10px;color:${sh.downloaded_at ? 'var(--green)' : 'var(--text3)'}">${sh.downloaded_at ? '다운완료' : '미다운'}</span>
+            <button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="revokeMaterialShare('${sh.id}','${student.name.replace(/'/g,"\\'")}')">회수</button>
+          </div>
+        `).join('')}
+    </div>
+  </section>`;
+
+  // 영역 7: 수강료/결제 이력
+  const billingHistory = [
+    ...invoices.map(i => ({ type: '청구', date: i.created_at, amount: i.amount, status: i.status })),
+    ...reminders.map(r => ({ type: '독촉', date: r.created_at, amount: r.amount, status: r.status }))
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  html += `
+  <section style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">💳 수강료/결제 이력</div>
+    <div style="max-height:120px;overflow-y:auto">
+      ${billingHistory.length === 0 ? '<div style="color:var(--text3);font-size:13px;padding:12px;background:var(--bg3);border-radius:6px">발송 이력 없음</div>' :
+        billingHistory.slice(0, 10).map(b => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px">
+            <span style="font-size:11px;padding:2px 6px;border-radius:4px;background:${b.type === '청구' ? 'rgba(79,142,247,0.15)' : 'rgba(246,173,85,0.15)'};color:${b.type === '청구' ? 'var(--accent)' : 'var(--yellow)'}">${b.type}</span>
+            <div style="font-size:11px;color:var(--text3)">${new Date(b.date).toLocaleDateString('ko-KR')}</div>
+            <div style="font-size:13px;color:var(--text)">${b.amount?.toLocaleString() || 0}원</div>
+            <span style="font-size:10px;color:var(--text3)">${b.status || ''}</span>
+          </div>
+        `).join('')}
+    </div>
+  </section>`;
+
+  // 영역 8: SMS 발송 이력
+  const msgTypeMap = { parent_grade: '성적', parent_attendance: '출결', parent_homework: '숙제', parent_custom: '일반', parent_mixed: '종합', billing: '청구', reminder: '독촉' };
+  html += `
+  <section style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">📱 SMS 발송 이력</div>
+    <div style="max-height:120px;overflow-y:auto">
+      ${smsHistory.length === 0 ? '<div style="color:var(--text3);font-size:13px;padding:12px;background:var(--bg3);border-radius:6px">발송 이력 없음</div>' :
+        smsHistory.slice(0, 10).map(s => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px">
+            <span style="font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(147,112,219,0.15);color:#9370DB">${msgTypeMap[s.message_type] || s.message_type}</span>
+            <div style="font-size:11px;color:var(--text3)">${new Date(s.created_at).toLocaleDateString('ko-KR')}</div>
+            <div style="flex:1;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(s.message || '').slice(0, 30)}${(s.message || '').length > 30 ? '...' : ''}</div>
+          </div>
+        `).join('')}
+    </div>
+  </section>`;
+
+  body.innerHTML = html;
+
+  // 6역량 차트 렌더링
+  if (compAll) {
+    renderCompetencyRadarChart('sdm-competency-chart', compAll, comp6m, comp3m);
+  }
+}
+
+function renderCompetencyRadarChart(containerId, compAll, comp6m, comp3m) {
+  const container = document.getElementById(containerId);
+  const labels = ['문제해결', '추론', '의사소통', '연결', '정보처리', '태도'];
+  const keys = ['problem_solving', 'reasoning', 'communication', 'connection', 'info_processing', 'attitude'];
+
+  const allVals = keys.map(k => compAll?.[k] || 0);
+  const m6Vals = keys.map(k => comp6m?.[k] || 0);
+  const m3Vals = keys.map(k => comp3m?.[k] || 0);
+
+  const size = 200;
+  const cx = size / 2, cy = size / 2, r = 70;
+
+  const angleStep = (2 * Math.PI) / 6;
+  const getPoint = (val, i) => {
+    const angle = angleStep * i - Math.PI / 2;
+    const dist = (val / 100) * r;
+    return [cx + dist * Math.cos(angle), cy + dist * Math.sin(angle)];
+  };
+
+  const makePath = (vals) => vals.map((v, i) => getPoint(v, i)).map((p, i) => (i === 0 ? 'M' : 'L') + p.join(',')).join(' ') + ' Z';
+
+  let svg = `<svg viewBox="0 0 ${size} ${size}" style="width:100%;max-width:240px;display:block;margin:0 auto">`;
+  // 그리드
+  for (let lv = 1; lv <= 4; lv++) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = angleStep * i - Math.PI / 2;
+      const dist = (lv / 4) * r;
+      pts.push([cx + dist * Math.cos(angle), cy + dist * Math.sin(angle)]);
+    }
+    svg += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="var(--border)" stroke-width="0.5"/>`;
+  }
+  // 축
+  for (let i = 0; i < 6; i++) {
+    const [ex, ey] = getPoint(100, i);
+    svg += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="var(--border)" stroke-width="0.5"/>`;
+  }
+  // 데이터 (전체=진한, 6개월=중간, 3개월=옅은)
+  if (comp3m) svg += `<polygon points="${m3Vals.map((v, i) => getPoint(v, i).join(',')).join(' ')}" fill="rgba(79,142,247,0.1)" stroke="rgba(79,142,247,0.4)" stroke-width="1"/>`;
+  if (comp6m) svg += `<polygon points="${m6Vals.map((v, i) => getPoint(v, i).join(',')).join(' ')}" fill="rgba(79,142,247,0.15)" stroke="rgba(79,142,247,0.6)" stroke-width="1.5"/>`;
+  if (compAll) svg += `<polygon points="${allVals.map((v, i) => getPoint(v, i).join(',')).join(' ')}" fill="rgba(79,142,247,0.2)" stroke="var(--accent)" stroke-width="2"/>`;
+  // 라벨
+  for (let i = 0; i < 6; i++) {
+    const angle = angleStep * i - Math.PI / 2;
+    const lx = cx + (r + 18) * Math.cos(angle);
+    const ly = cy + (r + 18) * Math.sin(angle);
+    svg += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" fill="var(--text3)" font-size="9">${labels[i]}</text>`;
+  }
+  svg += '</svg>';
+
+  const legend = `<div style="display:flex;justify-content:center;gap:16px;margin-top:10px;font-size:10px;color:var(--text3)">
+    <span><span style="display:inline-block;width:12px;height:3px;background:var(--accent);margin-right:4px;vertical-align:middle"></span>전체</span>
+    <span><span style="display:inline-block;width:12px;height:3px;background:rgba(79,142,247,0.6);margin-right:4px;vertical-align:middle"></span>6개월</span>
+    <span><span style="display:inline-block;width:12px;height:3px;background:rgba(79,142,247,0.4);margin-right:4px;vertical-align:middle"></span>3개월</span>
+  </div>
+  <div style="text-align:center;margin-top:6px;font-size:10px;color:var(--text3)">시험 ${compAll?.record_count || 0}회 누적</div>`;
+
+  container.innerHTML = svg + legend;
 }
 
 // ── 시험 등록 ──
