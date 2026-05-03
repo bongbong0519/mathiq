@@ -11449,7 +11449,7 @@ async function openStudentDetailModal(studentId) {
             <div style="flex:1;font-size:13px;color:var(--text)">${sh.class_materials?.title || '자료'}</div>
             <div style="font-size:11px;color:var(--text3)">${new Date(sh.shared_at).toLocaleDateString('ko-KR')}</div>
             <span style="font-size:10px;color:${sh.downloaded_at ? 'var(--green)' : 'var(--text3)'}">${sh.downloaded_at ? '다운완료' : '미다운'}</span>
-            <button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="revokeMaterialShare('${sh.id}','${student.name.replace(/'/g,"\\'")}')">회수</button>
+            <button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="(async()=>{await revokeMaterialShare('${sh.id}','${student.name.replace(/'/g,"\\'")}');openStudentDetailModal('${studentId}')})()">회수</button>
           </div>
         `).join('')}
     </div>
