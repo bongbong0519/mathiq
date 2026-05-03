@@ -11287,11 +11287,13 @@ async function submitTeacherComment() {
 
 // ── 학생 리포트 열기 ──
 function openStudentReport(studentId, examId = null) {
-  let url = `student-report.html?student_id=${studentId}`;
+  let url = `/student-report.html?student_id=${studentId}`;
   if (examId) {
     url += `&exam_id=${examId}`;
   }
-  window.open(url, '_blank');
+  console.log('[openStudentReport] url:', url);
+  const w = window.open(url, '_blank');
+  console.log('[openStudentReport] window:', w);
 }
 
 // ── 학생 상세 모달 (Phase0-Step2) ──
@@ -11320,7 +11322,7 @@ async function openStudentDetailModal(studentId) {
   const [sessionsRes, commentsRes, sharesRes, invoicesRes, remindersRes, smsRes] = await Promise.all([
     sbClient.from('exam_sessions').select('*, exams(title)').eq('student_id', studentId).order('created_at', { ascending: false }),
     sbClient.from('teacher_comments').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
-    sbClient.from('material_shares').select('*, class_materials(title)').eq('student_id', studentId).is('revoked_at', null).order('created_at', { ascending: false }),
+    sbClient.from('material_shares').select('*').eq('student_id', studentId).is('revoked_at', null).order('created_at', { ascending: false }),
     sbClient.from('billing_invoices').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
     sbClient.from('payment_reminders').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
     sbClient.from('sms_history').select('*').eq('student_id', studentId).order('created_at', { ascending: false })
@@ -11328,10 +11330,21 @@ async function openStudentDetailModal(studentId) {
 
   const sessions = sessionsRes.data || [];
   const comments = commentsRes.data || [];
-  const shares = sharesRes.data || [];
+  const rawShares = sharesRes.data || [];
   const invoices = invoicesRes.data || [];
   const reminders = remindersRes.data || [];
   const smsHistory = smsRes.data || [];
+
+  // material_shares → class_materials 별도 조회 (RLS 우회)
+  let shares = rawShares;
+  if (rawShares.length > 0) {
+    const materialIds = [...new Set(rawShares.map(s => s.material_id).filter(Boolean))];
+    if (materialIds.length > 0) {
+      const { data: materials } = await sbClient.from('class_materials').select('id, title').in('id', materialIds);
+      const materialMap = new Map((materials || []).map(m => [m.id, m]));
+      shares = rawShares.map(s => ({ ...s, class_materials: materialMap.get(s.material_id) || { title: '제목 없음' } }));
+    }
+  }
 
   // 6역량 집계
   const compAll = await getStudentCompetencyAggregate(studentId);
