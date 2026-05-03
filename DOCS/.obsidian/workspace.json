@@ -200,6 +200,7 @@
   },
   "active": "84c9dc1432b82b9f",
   "lastOpenFiles": [
+    "_pending/migration-023-teacher-comments-rls.sql",
     "_pending/migration-022-material-shares-drop-viewed-at.sql",
     "_README.md",
     "decisions.md",
@@ -236,7 +237,6 @@
     "00-FEATURES.md",
     "01-student-report.md",
     "sessions/permission-mindmap (1).canvas",
-    "sessions",
-    "daily"
+    "sessions"
   ]
 }
