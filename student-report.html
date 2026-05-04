@@ -428,6 +428,32 @@
     line-height: 1.5;
   }
 
+  /* ══ 6역량 프로필 ══ */
+  .competency-chart-wrap { display: flex; justify-content: center; margin: 16px 0; }
+  .competency-legend {
+    display: flex; gap: 16px; justify-content: center;
+    font-size: 12px; flex-wrap: wrap; margin: 12px 0; color: var(--text2);
+  }
+  .legend-dot {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; margin-right: 4px; vertical-align: middle;
+  }
+  .competency-scores {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; margin-top: 16px;
+  }
+  .competency-scores > div {
+    display: flex; justify-content: space-between;
+    padding: 8px 12px; background: var(--bg); border-radius: 6px;
+    border: 1px solid var(--border); font-size: 13px;
+  }
+  .competency-scores > div span { color: var(--text2); }
+  .competency-scores > div strong { color: var(--text); font-family: 'Space Mono', monospace; }
+  .competency-empty {
+    text-align: center; color: var(--text3); padding: 32px;
+    background: var(--bg); border-radius: 8px; font-size: 14px; line-height: 1.6;
+  }
+
   /* ══ 인쇄용 스타일 ══ */
   @media print {
     @page {
@@ -624,6 +650,14 @@
       </div>
     </div>
 
+    <!-- 6역량 프로필 -->
+    <div class="section" id="competency-section">
+      <div class="section-title">🧠 6역량 프로필</div>
+      <div id="competency-content">
+        <div class="competency-empty">역량 데이터를 불러오는 중...</div>
+      </div>
+    </div>
+
     <!-- 문제별 결과 (특정 시험 선택 시) -->
     <div class="section" id="question-results-section" style="display:none">
       <div class="section-title">📝 문제별 결과</div>
@@ -740,6 +774,150 @@ function showError(msg) {
   document.getElementById('error-message').textContent = msg;
 }
 
+// ══ 6역량 데이터 로드 ══
+async function loadCompetencyData(studentId) {
+  const periods = [
+    { months: null, key: 'all' },
+    { months: 6, key: 'm6' },
+    { months: 3, key: 'm3' },
+  ];
+
+  const result = {};
+  for (const p of periods) {
+    let query = sbClient.from('student_competency_records')
+      .select('*')
+      .eq('student_id', studentId);
+
+    if (p.months !== null) {
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - p.months);
+      query = query.gte('recorded_at', cutoff.toISOString());
+    }
+
+    const { data: records } = await query;
+
+    if (!records || records.length === 0) {
+      result[p.key] = null;
+      continue;
+    }
+
+    const sums = {
+      problem_solving_earned: 0, problem_solving_total: 0,
+      reasoning_earned: 0, reasoning_total: 0,
+      communication_earned: 0, communication_total: 0,
+      connection_earned: 0, connection_total: 0,
+      info_processing_earned: 0, info_processing_total: 0,
+      attitude_earned: 0, attitude_total: 0,
+    };
+    for (const r of records) {
+      sums.problem_solving_earned += Number(r.problem_solving_earned) || 0;
+      sums.problem_solving_total += Number(r.problem_solving_total) || 0;
+      sums.reasoning_earned += Number(r.reasoning_earned) || 0;
+      sums.reasoning_total += Number(r.reasoning_total) || 0;
+      sums.communication_earned += Number(r.communication_earned) || 0;
+      sums.communication_total += Number(r.communication_total) || 0;
+      sums.connection_earned += Number(r.connection_earned) || 0;
+      sums.connection_total += Number(r.connection_total) || 0;
+      sums.info_processing_earned += Number(r.info_processing_earned) || 0;
+      sums.info_processing_total += Number(r.info_processing_total) || 0;
+      sums.attitude_earned += Number(r.attitude_earned) || 0;
+      sums.attitude_total += Number(r.attitude_total) || 0;
+    }
+
+    const pct = (e, t) => t > 0 ? Math.round((e / t) * 100) : 0;
+    result[p.key] = {
+      problem_solving: pct(sums.problem_solving_earned, sums.problem_solving_total),
+      reasoning: pct(sums.reasoning_earned, sums.reasoning_total),
+      communication: pct(sums.communication_earned, sums.communication_total),
+      connection: pct(sums.connection_earned, sums.connection_total),
+      info_processing: pct(sums.info_processing_earned, sums.info_processing_total),
+      attitude: pct(sums.attitude_earned, sums.attitude_total),
+      record_count: records.length,
+    };
+  }
+
+  return result;
+}
+
+// ══ 6역량 레이더 차트 SVG ══
+function renderRadarChartSVG(data) {
+  const labels = ['문제해결', '추론', '의사소통', '연결', '정보처리', '태도'];
+  const keys = ['problem_solving', 'reasoning', 'communication', 'connection', 'info_processing', 'attitude'];
+
+  const cx = 150, cy = 150;
+  const maxR = 100;
+  const numAxes = 6;
+  const angles = keys.map((_, i) => -Math.PI / 2 + (Math.PI * 2 * i) / numAxes);
+
+  let gridSVG = '';
+  for (let level = 1; level <= 5; level++) {
+    const r = (maxR * level) / 5;
+    const points = angles.map(a => `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`).join(' ');
+    gridSVG += `<polygon points="${points}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
+  }
+
+  let axisSVG = '';
+  angles.forEach(a => {
+    axisSVG += `<line x1="${cx}" y1="${cy}" x2="${cx + maxR * Math.cos(a)}" y2="${cy + maxR * Math.sin(a)}" stroke="#e5e7eb" stroke-width="1"/>`;
+  });
+
+  const makePolygon = (scores, color, opacity) => {
+    if (!scores) return '';
+    const points = keys.map((k, i) => {
+      const r = (maxR * scores[k]) / 100;
+      return `${cx + r * Math.cos(angles[i])},${cy + r * Math.sin(angles[i])}`;
+    }).join(' ');
+    return `<polygon points="${points}" fill="${color}" fill-opacity="${opacity}" stroke="${color}" stroke-width="2"/>`;
+  };
+
+  let labelSVG = '';
+  labels.forEach((label, i) => {
+    const r = maxR + 24;
+    const x = cx + r * Math.cos(angles[i]);
+    const y = cy + r * Math.sin(angles[i]);
+    labelSVG += `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="#374151">${label}</text>`;
+  });
+
+  const allPoly = makePolygon(data.all, '#6366f1', 0.25);
+  const m6Poly = makePolygon(data.m6, '#22c55e', 0.25);
+  const m3Poly = makePolygon(data.m3, '#fb923c', 0.25);
+
+  return `<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">${gridSVG}${axisSVG}${allPoly}${m6Poly}${m3Poly}${labelSVG}</svg>`;
+}
+
+// ══ 6역량 섹션 렌더링 ══
+function renderCompetencySection(data) {
+  const container = document.getElementById('competency-content');
+
+  if (!data.all) {
+    container.innerHTML = `<div class="competency-empty">역량 데이터가 아직 누적되지 않았습니다.<br>시험을 응시하면 자동으로 누적됩니다.</div>`;
+    return;
+  }
+
+  const chartSVG = renderRadarChartSVG(data);
+
+  const legendHTML = `
+    <div class="competency-legend">
+      <span><span class="legend-dot" style="background:#6366f1"></span> 전체 (${data.all.record_count}회)</span>
+      ${data.m6 ? `<span><span class="legend-dot" style="background:#22c55e"></span> 최근 6개월 (${data.m6.record_count}회)</span>` : ''}
+      ${data.m3 ? `<span><span class="legend-dot" style="background:#fb923c"></span> 최근 3개월 (${data.m3.record_count}회)</span>` : ''}
+    </div>
+  `;
+
+  const scoresHTML = `
+    <div class="competency-scores">
+      <div><span>문제해결</span><strong>${data.all.problem_solving}%</strong></div>
+      <div><span>추론</span><strong>${data.all.reasoning}%</strong></div>
+      <div><span>의사소통</span><strong>${data.all.communication}%</strong></div>
+      <div><span>연결</span><strong>${data.all.connection}%</strong></div>
+      <div><span>정보처리</span><strong>${data.all.info_processing}%</strong></div>
+      <div><span>태도</span><strong>${data.all.attitude}%</strong></div>
+    </div>
+  `;
+
+  container.innerHTML = `<div class="competency-chart-wrap">${chartSVG}</div>${legendHTML}${scoresHTML}`;
+}
+
 // ══ 메인 데이터 로드 ══
 async function loadReportData() {
   const { studentId, examId } = getParams();
@@ -844,6 +1022,10 @@ async function loadReportData() {
 
     // 리포트 렌더링
     renderReport(student, sessions || [], examSession, examQuestions, examData, nationalStats, teacher);
+
+    // 6역량 데이터 로드 및 렌더링
+    const competencyData = await loadCompetencyData(studentId);
+    renderCompetencySection(competencyData);
 
   } catch (err) {
     console.error('Load error:', err);
