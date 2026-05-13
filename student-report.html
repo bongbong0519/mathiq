@@ -428,7 +428,7 @@
     line-height: 1.5;
   }
 
-  /* ══ 6역량 프로필 ══ */
+  /* ══ 5역량 프로필 ══ */
   .competency-chart-wrap { display: flex; justify-content: center; margin: 16px 0; }
   .competency-legend {
     display: flex; gap: 16px; justify-content: center;
@@ -650,9 +650,9 @@
       </div>
     </div>
 
-    <!-- 6역량 프로필 -->
+    <!-- 5역량 프로필 -->
     <div class="section" id="competency-section">
-      <div class="section-title">🧠 6역량 프로필</div>
+      <div class="section-title">🧠 5역량 프로필</div>
       <div id="competency-content">
         <div class="competency-empty">역량 데이터를 불러오는 중...</div>
       </div>
@@ -774,7 +774,7 @@ function showError(msg) {
   document.getElementById('error-message').textContent = msg;
 }
 
-// ══ 6역량 데이터 로드 ══
+// ══ 5역량 데이터 로드 ══
 async function loadCompetencyData(studentId) {
   const periods = [
     { months: null, key: 'all' },
@@ -807,7 +807,6 @@ async function loadCompetencyData(studentId) {
       communication_earned: 0, communication_total: 0,
       connection_earned: 0, connection_total: 0,
       info_processing_earned: 0, info_processing_total: 0,
-      attitude_earned: 0, attitude_total: 0,
     };
     for (const r of records) {
       sums.problem_solving_earned += Number(r.problem_solving_earned) || 0;
@@ -820,8 +819,6 @@ async function loadCompetencyData(studentId) {
       sums.connection_total += Number(r.connection_total) || 0;
       sums.info_processing_earned += Number(r.info_processing_earned) || 0;
       sums.info_processing_total += Number(r.info_processing_total) || 0;
-      sums.attitude_earned += Number(r.attitude_earned) || 0;
-      sums.attitude_total += Number(r.attitude_total) || 0;
     }
 
     const pct = (e, t) => t > 0 ? Math.round((e / t) * 100) : 0;
@@ -831,7 +828,6 @@ async function loadCompetencyData(studentId) {
       communication: pct(sums.communication_earned, sums.communication_total),
       connection: pct(sums.connection_earned, sums.connection_total),
       info_processing: pct(sums.info_processing_earned, sums.info_processing_total),
-      attitude: pct(sums.attitude_earned, sums.attitude_total),
       record_count: records.length,
     };
   }
@@ -839,14 +835,14 @@ async function loadCompetencyData(studentId) {
   return result;
 }
 
-// ══ 6역량 레이더 차트 SVG ══
+// ══ 5역량 레이더 차트 SVG ══
 function renderRadarChartSVG(data) {
-  const labels = ['문제해결', '추론', '의사소통', '연결', '정보처리', '태도'];
-  const keys = ['problem_solving', 'reasoning', 'communication', 'connection', 'info_processing', 'attitude'];
+  const labels = ['문제해결', '추론', '의사소통', '연결', '정보처리'];
+  const keys = ['problem_solving', 'reasoning', 'communication', 'connection', 'info_processing'];
 
   const cx = 150, cy = 150;
   const maxR = 100;
-  const numAxes = 6;
+  const numAxes = 5;
   const angles = keys.map((_, i) => -Math.PI / 2 + (Math.PI * 2 * i) / numAxes);
 
   let gridSVG = '';
@@ -885,7 +881,7 @@ function renderRadarChartSVG(data) {
   return `<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">${gridSVG}${axisSVG}${allPoly}${m6Poly}${m3Poly}${labelSVG}</svg>`;
 }
 
-// ══ 6역량 섹션 렌더링 ══
+// ══ 5역량 섹션 렌더링 ══
 function renderCompetencySection(data) {
   const container = document.getElementById('competency-content');
 
@@ -911,7 +907,6 @@ function renderCompetencySection(data) {
       <div><span>의사소통</span><strong>${data.all.communication}%</strong></div>
       <div><span>연결</span><strong>${data.all.connection}%</strong></div>
       <div><span>정보처리</span><strong>${data.all.info_processing}%</strong></div>
-      <div><span>태도</span><strong>${data.all.attitude}%</strong></div>
     </div>
   `;
 
@@ -1023,7 +1018,7 @@ async function loadReportData() {
     // 리포트 렌더링
     renderReport(student, sessions || [], examSession, examQuestions, examData, nationalStats, teacher);
 
-    // 6역량 데이터 로드 및 렌더링
+    // 5역량 데이터 로드 및 렌더링
     const competencyData = await loadCompetencyData(studentId);
     renderCompetencySection(competencyData);
 

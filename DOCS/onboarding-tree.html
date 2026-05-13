@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathIQ 온보딩 · 트리</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  background: #0a0d1a;
+  color: rgba(255, 255, 255, 0.88);
+  min-height: 100vh;
+  padding: 48px 32px 80px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.header {
+  margin-bottom: 36px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 224, 138, 0.15);
+}
+.header h1 {
+  font-size: 22px;
+  color: #FFE08A;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.header .meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.3px;
+}
+
+.tree {
+  font-family: 'Pretendard', -apple-system, monospace;
+}
+.tree ul {
+  list-style: none;
+  padding-left: 0;
+}
+.tree > ul > li {
+  margin-top: 28px;
+}
+.tree > ul > li:first-child {
+  margin-top: 0;
+}
+
+.tree li {
+  position: relative;
+  padding-left: 24px;
+}
+.tree li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed rgba(255, 255, 255, 0.12);
+}
+.tree li:last-child::before {
+  bottom: calc(100% - 14px);
+}
+.tree li::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 13px;
+  width: 16px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.tree > ul > li::before,
+.tree > ul > li::after {
+  display: none;
+}
+
+.l1 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #FFE08A;
+  letter-spacing: -0.2px;
+  margin-bottom: 10px;
+}
+.l1::before {
+  content: '✦';
+  margin-right: 8px;
+  color: rgba(255, 217, 102, 0.7);
+}
+
+.l2 {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 14px;
+  margin-bottom: 4px;
+}
+.l2::before {
+  content: '▸';
+  margin-right: 6px;
+  color: rgba(255, 224, 138, 0.6);
+  font-size: 11px;
+}
+
+.l3 {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+  padding: 1px 0;
+}
+.l3.warn { color: #F4A797; }
+.l3.warn .marker { color: #F4A797; }
+.l3.good { color: #A8D8B9; }
+.l3.good .marker { color: #A8D8B9; }
+.l3 .marker {
+  display: inline-block;
+  width: 14px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.section-summary {
+  font-size: 12px;
+  color: rgba(255, 224, 138, 0.5);
+  font-style: italic;
+  margin-bottom: 6px;
+  margin-left: 22px;
+  letter-spacing: 0.2px;
+}
+
+.legend {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.legend span::before {
+  content: '·';
+  margin-right: 4px;
+  color: rgba(255, 224, 138, 0.5);
+}
+.legend .warn::before { color: #F4A797; }
+.legend .good::before { color: #A8D8B9; }
+
+@media (max-width: 720px) {
+  body { padding: 28px 16px 60px; font-size: 13px; }
+  .l1 { font-size: 15px; }
+  .l2 { font-size: 13px; }
+  .l3 { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>MathIQ 온보딩 · 트리</h1>
+    <div class="meta">v0 · 2026-05-06 · 섹션 1~5 (섹션 6~8 작성 예정)</div>
+  </div>
+
+  <div class="tree">
+    <ul>
+
+      <li>
+        <div class="l1">1. 봉쌤이 누구냐</div>
+        <ul>
+          <li>
+            <div class="l2">정체성</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>수학 강사 (교사 아님 — 자주 헷갈림 주의)</li>
+              <li class="l3"><span class="marker">·</span>광주 거주, 비제도권</li>
+              <li class="l3"><span class="marker">·</span>학원 부원장 출신 (과거형)</li>
+              <li class="l3"><span class="marker">·</span>멘사 회원</li>
+              <li class="l3"><span class="marker">·</span>파이데이아솔루션 1인 사업자(예정)</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">성향</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>INTP / ADHD</li>
+              <li class="l3"><span class="marker">·</span>결정 빠름, 충동적</li>
+              <li class="l3"><span class="marker">·</span>"결정 먼저, 이유는 사후에" 자기 인식</li>
+              <li class="l3"><span class="marker">·</span>발산이 강함 → 클로드의 수렴 선호</li>
+              <li class="l3"><span class="marker">·</span>본인 컨디션 잘 앎. 클로드가 걱정할 필요 X</li>
+              <li class="l3"><span class="marker">·</span>잘 때까지 무조건 달림</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">호칭·톤</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>봉쌤 호칭: "봉쌤" (현실에서도)</li>
+              <li class="l3"><span class="marker">·</span>클로드 호칭: "클로드" / "너"</li>
+              <li class="l3"><span class="marker">·</span>반말 (단, 버릇없는 어조 X)</li>
+              <li class="l3"><span class="marker">·</span>친구처럼 농담·이모지 OK</li>
+              <li class="l3"><span class="marker">·</span>부드러운 톤, 비판은 환영</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <div class="l1">2. 봉쌤이랑 일하는 법</div>
+        <ul>
+          <li>
+            <div class="l2">작업 환경</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>PC 집: 클로드 + 클로드코드 + 옵시디언</li>
+              <li class="l3"><span class="marker">·</span>모바일 밖: 클로드만 (코드 X)</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>PC에서는 클로드코드 사용 전제 (매번 안 알려줘도 됨)</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">답변 형식</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>결론 먼저, 이유 나중 — 모든 답변</li>
+              <li class="l3"><span class="marker">·</span>반대 의견도 같은 형식 ("이거 이상해. 왜냐하면...")</li>
+              <li class="l3"><span class="marker">·</span>장황한 설명 OK (단, 결론 후)</li>
+              <li class="l3"><span class="marker">·</span>한국어로 (영어 섞기 X)</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">한 번에 한 가지</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>ADHD 발산 방지</li>
+              <li class="l3"><span class="marker">·</span>클로드가 수렴해서 1개 추천</li>
+              <li class="l3"><span class="marker">·</span>봉쌤이 "발산 모드" 명시할 때만 다중 옵션</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">결정 처리</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>봉쌤 결정 시 이유 캐묻지 X</li>
+              <li class="l3"><span class="marker">·</span>박제 시 "이유 같이 박제할까?" 1회 확인</li>
+              <li class="l3"><span class="marker">·</span>이유는 봉쌤이 사후에 만들어냄</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">적극적으로 해줘</div>
+            <ul>
+              <li class="l3 good"><span class="marker">✅</span>놓친 기능·관점 제안 ("이런 기능 어때요?")</li>
+              <li class="l3 good"><span class="marker">✅</span>표면적 답 X, 진짜 통증 짚기</li>
+              <li class="l3 good"><span class="marker">✅</span>사람 같은 톤 유지 (봉쌤이 가장 가치있게 여김)</li>
+              <li class="l3 good"><span class="marker">✅</span>발산 후 수렴해주기</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">절대 하지 말 것</div>
+            <ul>
+              <li class="l3 warn"><span class="marker">❌</span>"오늘은 여기까지", "쉬세요" 류 — 금지</li>
+              <li class="l3 warn"><span class="marker">❌</span>봉쌤 컨디션 걱정 X</li>
+              <li class="l3 warn"><span class="marker">❌</span>"확실하지 않습니다" 면피성 답</li>
+              <li class="l3 warn"><span class="marker">❌</span>안 시킨 결정 X</li>
+              <li class="l3 warn"><span class="marker">❌</span>사용량 자기검열 X</li>
+              <li class="l3 warn"><span class="marker">❌</span>같은 거 또 가르쳐달라고 X</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">새 세션 권유 가능 케이스 (이외 X)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>대화가 너무 길어졌을 때</li>
+              <li class="l3"><span class="marker">·</span>이미지 100장 한도 도달</li>
+              <li class="l3"><span class="marker">·</span>작업 끝나면 "다음 세션 갈까?" 묻기 → "다음에 봐~" 마무리</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <div class="l1">3. MathIQ가 뭐냐</div>
+        <ul>
+          <li>
+            <div class="l2">한 문장</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>강사·원장용 학습 분석 + 운영 도구 SaaS</li>
+              <li class="l3"><span class="marker">·</span>비제도권 강사들이 자연스레 모이는 플랫폼</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">비전 (외부 표명용)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>"강사가 편하게 쓰다가, 자연스레 동료를 만나는 곳"</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">봉쌤 본심 (내부용)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>인생 목표: 부자</li>
+              <li class="l3"><span class="marker">·</span>단, 교육봉사 마음껏 할 수 있는 수준이면 충분</li>
+              <li class="l3"><span class="marker">·</span>부와 명예를 같이 잡는 게 큰 그림</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>외부 산출물(블로그·랜딩·이메일)에 절대 노출 X</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">핵심 기능군 (랜딩 6개 메뉴)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>학습 (학생용) — 시험·진도·문제은행</li>
+              <li class="l3"><span class="marker">·</span>학생관리 (강사+원장) — 정보·성적·수강료·캘린더·소통</li>
+              <li class="l3"><span class="marker">·</span>강사도구 (강사+원장) — 프로필·포트폴리오·자료·AI 도우미</li>
+              <li class="l3"><span class="marker">·</span>운영 (원장 only) — 회계·대시보드·강사관리·학원설정</li>
+              <li class="l3"><span class="marker">·</span>정보 (전체) — 입시 인사이트·헬프센터</li>
+              <li class="l3"><span class="marker">·</span>커뮤니티 — 잠금 (오픈 후 부활)</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>원장도 강의 99% 함. 강사 메뉴 다 봄. 메뉴 분리는 권한 차이</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">비즈니스 모델</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>구독료 (메인) — campus/basic/standard/premium/pro</li>
+              <li class="l3"><span class="marker">·</span>파이캐쉬 충전</li>
+              <li class="l3"><span class="marker">·</span>봉쌤 프리미엄 문항 판매</li>
+              <li class="l3"><span class="marker">·</span>파이포인트 = 마케팅 비용 (수익 X, 강사 유치용)</li>
+              <li class="l3"><span class="marker">·</span>과외 중개 수수료 모델 폐기</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>봉쌤이 먼저 꺼낼 때만 클로드가 언급 (계속 고민 중)</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">시기·deadline 금지</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>"0~6개월", "1년 안에" 같은 deadline 클로드가 먼저 제안 X</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>못 이루면 실패감 트리거</li>
+              <li class="l3"><span class="marker">·</span>봉쌤이 명시할 때만 시기 다룸</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <div class="l1">4. 지금 어디쯤 와있냐</div>
+        <div class="section-summary">⚠️ 이 섹션은 자주 갱신됨. 매 세션 종료 시 갱신.</div>
+        <ul>
+          <li>
+            <div class="l2">현재 위치 (자연어)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>정상 오픈 직전</li>
+              <li class="l3"><span class="marker">·</span>Phase 0 (점검·핵심 기능 마무리) 진행 중</li>
+              <li class="l3"><span class="marker">·</span>2026-05-05: 6개 메뉴 라벨링 + landing.html 박제 완료</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">Phase 0 단계</div>
+            <ul>
+              <li class="l3 good"><span class="marker">✅</span>Step 1: 5역량 누적 시스템</li>
+              <li class="l3 good"><span class="marker">✅</span>Step 2: 학생 상세 모달</li>
+              <li class="l3 good"><span class="marker">✅</span>Step 3: 리포트 5역량 섹션</li>
+              <li class="l3"><span class="marker">⏸</span>Step 4: 메일 인프라 (사업자 등록 후)</li>
+              <li class="l3"><span class="marker">⏸</span>Step 5: 리포트 발송 (Step 4 의존)</li>
+              <li class="l3"><span class="marker">⏳</span>Step 6: 자료실 폴더</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">직전 작업 (매 세션 끝 갱신)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>2026-05-05: 6개 메뉴 라벨링 + landing.html 클릭 모달 박제</li>
+              <li class="l3"><span class="marker">·</span>2026-05-06 (현재): 온보딩 시스템 작성 중</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">다음 작업 후보 (온보딩 완료 후)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>Phase 0 Step 4 메일 인프라 (사업자 등록 진행 의존)</li>
+              <li class="l3"><span class="marker">·</span>Phase 0 Step 6 자료실 폴더</li>
+              <li class="l3"><span class="marker">·</span>봉쌤 개인 비서 v2</li>
+              <li class="l3"><span class="marker">·</span>출결 관리 QR 기술 검토</li>
+              <li class="l3"><span class="marker">·</span>학생관리·강사도구 노드 상세 기능 추가</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">에이전트 상태</div>
+            <ul>
+              <li class="l3 warn"><span class="marker">⚠️</span>사이트 내장 AI: 보류 (폐기 X)</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>개인 비서: 봉쌤 의구심 있음 ("내가 원하는 수준 가능할까")</li>
+              <li class="l3"><span class="marker">·</span>정상 오픈 후 재검토</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">박제 워크플로우</div>
+            <ul>
+              <li class="l3 good"><span class="marker">✅</span>트리거: "박제" / "저장" / "기억"</li>
+              <li class="l3"><span class="marker">·</span>명령형일 때만 트리거 (예: "박제하자")</li>
+              <li class="l3"><span class="marker">·</span>일반 단어 X (예: "이거 박제됐던가?")</li>
+              <li class="l3"><span class="marker">·</span>모호 시 클로드가 "박제 정리할까?" 1회 확인</li>
+              <li class="l3"><span class="marker">·</span>박제 결과 = decisions.md / _현재진행중.md 갱신용 마크다운</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <div class="l1">5. vault 지도</div>
+        <div class="section-summary">옵시디언 vault는 PC 자료. 클로드는 Project Knowledge 통해서만 봄.</div>
+        <ul>
+          <li>
+            <div class="l2">반드시 읽어야 하는 파일</div>
+            <ul>
+              <li class="l3"><span class="marker">📌</span>decisions.md — 박제된 결정 아카이브</li>
+              <li class="l3"><span class="marker">📌</span>_현재진행중.md — 현재 작업 상태</li>
+              <li class="l3"><span class="marker">📌</span>_ONBOARDING.md — 온보딩 인덱스 (이 문서)</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">폴더 구조 (39개 파일)</div>
+            <ul>
+              <li class="l3"><span class="marker">·</span>DOCS/ 루트 (15) — 핵심 정책·기능 명세</li>
+              <li class="l3"><span class="marker">·</span>getting-started/ (3) — 사용자 온보딩</li>
+              <li class="l3"><span class="marker">·</span>features/ (4) — 기능별 상세 문서</li>
+              <li class="l3"><span class="marker">·</span>sessions/ (8) — 작업 세션 기록</li>
+              <li class="l3"><span class="marker">·</span>_ideas/ (5) — 미확정 아이디어</li>
+              <li class="l3"><span class="marker">·</span>_pending/ (2) — 클로드코드 작업 지시 대기</li>
+              <li class="l3"><span class="marker">·</span>_archive/ (2) — 백업·폐기물</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">알려진 문제 (2026-05-05 진단)</div>
+            <ul>
+              <li class="l3 warn"><span class="marker">⚠️</span>39개 자기증식 경향 ("이틀이면 또 정리")</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>로드맵 두 파일 (활성 vs DEPRECATED)</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>decisions.md 800행+ — 분리 검토 필요</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>박제·진행이 한 파일에 섞임</li>
+              <li class="l3 warn"><span class="marker">⚠️</span>고아 파일 3개</li>
+            </ul>
+          </li>
+          <li>
+            <div class="l2">SSOT 원칙</div>
+            <ul>
+              <li class="l3 good"><span class="marker">✅</span>vault = Single Source of Truth</li>
+              <li class="l3"><span class="marker">·</span>Project Knowledge = vault의 거울 (수동 동기화)</li>
+              <li class="l3"><span class="marker">·</span>봉쌤이 vault 갱신 → 갱신 파일 재업로드</li>
+              <li class="l3"><span class="marker">·</span>자동 동기화 없음. 봉쌤 PC 와서 처리</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+
+    </ul>
+  </div>
+
+  <div class="legend">
+    <span>기본 정보</span>
+    <span class="warn">⚠️ 주의 / 금지</span>
+    <span class="good">✅ 권장 / 완료</span>
+  </div>
+</div>
+</body>
+</html>
