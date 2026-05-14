@@ -10,3 +10,6 @@ config.local.js
 gemini_bbox_result.json
 DOCS/_pending/sample_income_*.csv
 node_modules/
+/experiments/
+.env
+experiments/
