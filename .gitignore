@@ -13,3 +13,8 @@ node_modules/
 /experiments/
 .env
 experiments/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
