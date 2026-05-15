@@ -2330,3 +2330,21 @@ school_events (
 1. Playwright E2E 테스트 인프라 구축 (현재 진행 중)
 2. Playwright로 현재 코드 동작 박제 (회귀 테스트 명세 작성)
 3. 학생 entity 통합 작업 (Playwright 회귀 검증과 함께)
+
+---
+
+## 2026-05-16 박제 vs 현실 갭 11번째
+
+### 발견
+- AI 유사문제 생성 메뉴(wip) 클릭 시 #tierLockModal 사용
+- 박제(2026-05-05) wip 모달 = "준비 중" + [닫기]만
+- 현실 = tierLockModal 요소 재활용 (Playwright가 티어 잠금으로 오인)
+
+### 처리
+- Playwright: 모달 자동 닫기로 회피 (skip 아님)
+- 정상 오픈 전: #wipModal 별개 요소 분리
+
+### 영향
+- wip 메뉴 = AI 유사문제 생성, 강사 현황(wip), 출결 관리(wip), 학원 설정(wip), 입시 정보·교과 정보 등 박제(2026-05-05) wip 노드 다수
+- 모든 wip 노드 = 같은 패턴 가능성 ↑
+- 분리 작업 = 베타 후 일괄
