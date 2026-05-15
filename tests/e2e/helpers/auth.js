@@ -22,13 +22,30 @@ async function login(page, persona) {
     throw new Error(`Missing credentials for persona: ${persona}. Check .env file.`);
   }
 
-  await page.goto('/landing.html');
-  await page.click('text=로그인');
-  await page.waitForSelector('input[type="email"]', { timeout: 5000 });
-  await page.fill('input[type="email"]', creds.email);
-  await page.fill('input[type="password"]', creds.password);
-  await page.click('button:has-text("로그인")');
-  await page.waitForURL(/index\.html/, { timeout: 10000 });
+  await page.goto('/index.html');
+  await page.waitForLoadState('networkidle');
+
+  // Open auth overlay
+  await page.evaluate(() => {
+    if (typeof openAuthFromLanding === 'function') {
+      openAuthFromLanding('login');
+    }
+  });
+  await page.waitForTimeout(500);
+
+  // Fill login form
+  await page.locator('#loginEmail').fill(creds.email);
+  await page.locator('#loginPassword').fill(creds.password);
+
+  // Submit
+  await page.evaluate(() => {
+    if (typeof handleLogin === 'function') {
+      handleLogin();
+    }
+  });
+
+  // Wait for dashboard
+  await page.waitForSelector('.sidebar', { timeout: 15000 });
 }
 
 module.exports = { login, credentials };
