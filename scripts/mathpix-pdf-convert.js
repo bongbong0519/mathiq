@@ -43,9 +43,15 @@ for (let i = 1; i < args.length; i++) {
   if (args[i] === '--out'    && args[i + 1]) outDir  = args[++i];
 }
 
-if (!['mmd', 'tex', 'md'].includes(format)) {
-  die(`❌ 지원하지 않는 형식: ${format}. mmd / tex / md 중 선택`);
+if (!['mmd', 'tex', 'md', 'docx', 'html'].includes(format)) {
+  die(`❌ 지원하지 않는 형식: ${format}. mmd / md / tex / docx / html 중 선택`);
 }
+
+// Mathpix API 포맷 키 매핑 (mmd → md, tex → tex.zip)
+const API_FORMAT_MAP = { mmd: 'md', tex: 'tex.zip', md: 'md', docx: 'docx', html: 'html' };
+const EXT_MAP        = { mmd: 'mmd', tex: 'zip', md: 'md', docx: 'docx', html: 'html' };
+const apiFormat = API_FORMAT_MAP[format];
+const outExt    = EXT_MAP[format];
 
 // ── 환경 검증 ──────────────────────────────────────────────────────────────
 if (!APP_ID || !APP_KEY) {
@@ -59,7 +65,7 @@ const baseName  = path.basename(pdfPath, '.pdf');
 const targetDir = outDir
   ? (fs.mkdirSync(outDir, { recursive: true }), outDir)
   : path.dirname(path.resolve(pdfPath));
-const outPath = path.join(targetDir, `${baseName}.${format}`);
+const outPath = path.join(targetDir, `${baseName}.${outExt}`);
 
 // ── 공통 헤더 ─────────────────────────────────────────────────────────────
 const AUTH_HEADERS = { app_id: APP_ID, app_key: APP_KEY };
@@ -80,7 +86,7 @@ console.log(`   출력: ${outPath}\n`);
     console.log(`✅ 처리 완료. 페이지 수: ${pages}`);
 
     console.log(`\n📥 결과 다운로드 중...`);
-    const content  = await downloadResult(pdfId, format);
+    const content  = await downloadResult(pdfId, apiFormat);
 
     fs.writeFileSync(outPath, content, 'utf-8');
     const sizeKB   = (fs.statSync(outPath).size / 1024).toFixed(1);
@@ -107,7 +113,7 @@ async function uploadPdf(pdfPath) {
 
   // multipart/form-data 수동 구성 (Node 24 FormData는 Buffer를 Blob으로 못 받는 경우 대비)
   const optionsJson = JSON.stringify({
-    conversion_formats: { [format]: true },
+    conversion_formats: { [apiFormat]: true },
     math_inline_delimiters:  ['$', '$'],
     math_display_delimiters: ['$$', '$$'],
     enable_tables_fallback:  true,
@@ -183,8 +189,8 @@ async function pollUntilDone(pdfId) {
   throw new Error('처리 시간 초과 (5분). PDF가 너무 크거나 서버 문제입니다.');
 }
 
-async function downloadResult(pdfId, format) {
-  const res = await fetch(`${BASE_URL}/v3/pdf/${pdfId}.${format}`, { headers: AUTH_HEADERS });
+async function downloadResult(pdfId, apiFormat) {
+  const res = await fetch(`${BASE_URL}/v3/pdf/${pdfId}.${apiFormat}`, { headers: AUTH_HEADERS });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`다운로드 실패 (${res.status}): ${text.slice(0, 200)}`);
