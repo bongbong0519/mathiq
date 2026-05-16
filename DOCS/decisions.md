@@ -2472,3 +2472,27 @@ school_events (
 - 박제(2026-04-25) 봉쌤 시간 = 자본
 - 시드 데이터 = MathIQ 장기 모트의 첫 시드
 - 품질 차이가 검토 시간 절감으로 직결
+
+---
+
+## 박제(2026-05-17): md → docx 자동 변환 도구
+
+### 핵심 결정
+> **"옵시디언 md = SSOT, docx = 출력물. Pandoc 기반 scripts/md-to-docx.js."**
+
+### 도구 명세
+- 위치: scripts/md-to-docx.js
+- 입력: md 파일 또는 폴더 (--batch)
+- 출력: docx (LaTeX → OMML 수식 자동 변환)
+- 의존: Pandoc (https://pandoc.org/installing.html)
+- 사용:
+  node scripts/md-to-docx.js "파일.md"
+  node scripts/md-to-docx.js "폴더/" --batch
+
+### Pandoc 설치 (Windows)
+  winget install JohnMacFarlane.Pandoc  (권장)
+  또는 공식 .msi 인스톨러
+
+### 미해결 (정상 오픈 시점)
+- MathIQ 코드 통합 (사용자 md/docx 다운로드)
+- 한글화 완료 시 docx 자동 트리거
