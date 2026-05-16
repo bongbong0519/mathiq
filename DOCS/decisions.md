@@ -2430,3 +2430,28 @@ school_events (
   5. 분류 (단원/유형/난이도 1~9)
   6. 5역량 (문제해결/추론/의사소통/연결/정보처리, 0~3)
 - **스크립트**: docs/한글화/build_template_v2.py — 문제.mmd 파싱 → docx 자동 생성
+
+---
+
+## 박제(2026-05-17): 봉쌤 한글화 워크플로우 정정 + 시드 자동 한글화 도구
+
+### 박제 정정: 봉쌤 직접 한글화 → AI 자동 한글화 + 봉쌤 검토
+
+> **봉쌤 직접 LaTeX 보며 한글화 X. AI 자동 생성 + 봉쌤 검토 + 미세 수정.**
+
+**정정 이유**: 봉쌤 진짜 통증 = 수식 보면서 머릿속 변환. AI가 초안 생성, 봉쌤은 검토만.
+
+### 시드 자동 한글화 도구 명세 (scripts/auto-translate-exam.js)
+- **입력**: 문제 PDF (필수) + 해설 PDF (선택)
+- **처리**: Mathpix → mmd → Claude API (Haiku 기본) → 한글화 + 분류 + 5역량
+- **출력**: 옵시디언 호환 md 파일 (30문제 × 6섹션)
+- **봉쌤 워크플로우**: `node scripts/auto-translate-exam.js "문제.pdf"` 1줄 → 옵시디언 검토
+- **비용**: Mathpix ~$0.028 + Haiku ~$0.02 = 시험 1회당 ~$0.05
+
+### 환경 요건 추가
+- `.env`에 `ANTHROPIC_API_KEY=sk-ant-...` 필요 (console.anthropic.com → API Keys)
+- 기존 MATHPIX_APP_ID, MATHPIX_APP_KEY는 이미 박힘
+
+### 박제(2026-05-15 듀얼 정책)와의 관계
+- 본 시드 도구 = C안 (Claude Vision 전체 자동) 단순화, UI 없음
+- A안 (영역 드래그 UI) = 정상 오픈 시점 별도 작업 유지
